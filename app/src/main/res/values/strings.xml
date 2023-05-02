@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">IvocaboProject</string>
+    <string name="back4app_server_url">https://parseapi.back4app.com/</string>
+
+    <!-- Paste BOTH strings as required -->
+    <string name="back4app_app_id">6OeFz5FXnW7YSzpgybpMHW7AZjcy8ae23hFuhvI8</string>
+    <string name="back4app_client_key">76ve3Hc2utzbskckgdIjGBb4egC4vP0KvsnYrfQb</string>
+</resources>
