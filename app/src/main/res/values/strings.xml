@@ -1,8 +1,19 @@
 <resources>
-    <string name="app_name">IvocaboProject</string>
+    <string name="app_name">Ivocabo</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="signin">Sing-in</string>
+    <string name="email">E-mail</string>
     <string name="back4app_server_url">https://parseapi.back4app.com/</string>
 
     <!-- Paste BOTH strings as required -->
     <string name="back4app_app_id">6OeFz5FXnW7YSzpgybpMHW7AZjcy8ae23hFuhvI8</string>
     <string name="back4app_client_key">76ve3Hc2utzbskckgdIjGBb4egC4vP0KvsnYrfQb</string>
+    <!--Register form-->
+    <string name="rg_title">Registration Form</string>
+    <string name="rg_subtitle">Please fill below form, cause we only communicate with your given data.</string>
+    <string name="rg_warning">We undertake that the data you register with this form will not be shared with third parties and will be protected.</string>
+    <string name="rg_username">Username</string>
+    <string name="rg_password">Password</string>
+    <string name="formelementisempty">Please don not leave empty!</string>
 </resources>
