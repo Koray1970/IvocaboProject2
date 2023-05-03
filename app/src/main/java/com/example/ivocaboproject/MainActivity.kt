@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -42,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 
 class MainActivity : ComponentActivity() {
@@ -75,20 +78,34 @@ fun RegisterUser() {
         Image(
             modifier = Modifier
                 .width(80.dp)
-                .align(alignment = Alignment.CenterHorizontally),
+                .align(alignment = Alignment.CenterHorizontally).padding(0.dp,10.dp),
             painter = painterResource(id = R.drawable.ic_launcher_round),
             contentDescription ="" )
-        Text(modifier = Modifier.fillMaxWidth(), text = stringResource(id = R.string.rg_title), style = TextStyle(color = MaterialTheme.colorScheme.onPrimary, textAlign = TextAlign.Center, fontWeight = FontWeight.Bold))
-        Text(modifier = Modifier.fillMaxWidth(),text = stringResource(id = R.string.rg_subtitle),style = TextStyle(color = MaterialTheme.colorScheme.onSecondary, textAlign = TextAlign.Center, fontSize =TextUnit(16) ))
+
+        Text(modifier = Modifier.fillMaxWidth().padding(0.dp,8.dp),
+            text = stringResource(id = R.string.rg_title),
+            style = TextStyle(
+                color = MaterialTheme.colorScheme.onPrimary,
+                textAlign = TextAlign.Center,
+                fontSize=24.sp,
+                fontWeight = FontWeight.Bold))
+        Text(modifier = Modifier.fillMaxWidth(),
+            text = stringResource(id = R.string.rg_subtitle),
+            style = TextStyle(
+                color = MaterialTheme.colorScheme.inversePrimary,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.Light,
+                textAlign = TextAlign.Center, fontSize =10.sp ))
+
         var txtrgusername by rememberSaveable { mutableStateOf("") }
         val isusernameVisible by remember { derivedStateOf { txtrgusername.isNotBlank() } }
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White),
+                .fillMaxWidth(),
             onValueChange = { txtrgusername = it },
             label = { Text(text = stringResource(id = R.string.rg_username)) },
             value = txtrgusername,
+            textStyle = TextStyle(color = Color.White),
             trailingIcon = {
                 if (isusernameVisible) {
                     IconButton(
@@ -105,11 +122,11 @@ fun RegisterUser() {
         val isemailVisible by remember { derivedStateOf { txtrgemail.isNotBlank() } }
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White),
+                .fillMaxWidth(),
             onValueChange = { txtrgemail = it },
             label = { Text(text = stringResource(id = R.string.email)) },
             value = txtrgemail,
+            textStyle = TextStyle(color = Color.White),
             trailingIcon = {
                 if (isemailVisible) {
                     IconButton(
@@ -130,11 +147,11 @@ fun RegisterUser() {
             painterResource(id = R.drawable.baseline_visibility_off_24)
         OutlinedTextField(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Color.White),
+                .fillMaxWidth(),
             onValueChange = { txtrgpassword = it },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
             value = txtrgpassword,
+            textStyle = TextStyle(color = Color.White),
             visualTransformation = if (ispasswordVisible) VisualTransformation.None
             else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -148,7 +165,16 @@ fun RegisterUser() {
                     )
                 }
             })
-        Text(text = stringResource(id = R.string.rg_warning))
+        Text(
+            modifier=Modifier.padding(0.dp,10.dp),
+            text = stringResource(id = R.string.rg_warning),
+            style = TextStyle(
+                color=MaterialTheme.colorScheme.inversePrimary,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.Light,
+                fontSize = 14.sp
+            )
+        )
         Row(){
 
             FilledTonalButton(onClick = { /*TODO*/ },

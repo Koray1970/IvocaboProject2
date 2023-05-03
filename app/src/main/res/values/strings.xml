@@ -16,4 +16,5 @@
     <string name="rg_username">Username</string>
     <string name="rg_password">Password</string>
     <string name="formelementisempty">Please don not leave empty!</string>
+    <string name="parseerror208">User already registred! Please sing-in or click to "forget my user details" button.</string>
 </resources>
