@@ -20,7 +20,7 @@ class ParseEvents {
                 if(it==null){
                     eventResult.result= parseUser.objectId.toString()
                     val appContainer=AppDataContainer(context)
-                    appContainer.userRepository.insert(User(0,Date().time,))
+                    //appContainer.userRepository.insert(User(0,Date().time,))
 
 
 
