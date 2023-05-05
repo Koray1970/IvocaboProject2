@@ -25,7 +25,7 @@ data class User(
     @ColumnInfo(name ="password")
     val password:String,
     @ColumnInfo(name ="parseid")
-    val objectId:String
+    var objectId:String
 )
 @Dao
 interface userDao{
