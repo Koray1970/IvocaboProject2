@@ -4,7 +4,7 @@
     <string name="cancel">Cancel</string>
     <string name="signin">Sing-in</string>
     <string name="email">E-mail</string>
-    <string name="back4app_server_url">https://parseapi.back4app.com/</string>
+    <string name="back4app_server_url">https://parseapi.back4app.com</string>
 
     <!-- Paste BOTH strings as required -->
     <string name="back4app_app_id">6OeFz5FXnW7YSzpgybpMHW7AZjcy8ae23hFuhvI8</string>
@@ -17,4 +17,5 @@
     <string name="rg_password">Password</string>
     <string name="formelementisempty">Please don not leave empty!</string>
     <string name="parseerror208">User already registred! Please sing-in or click to "forget my user details" button.</string>
+    <string name="userisauthenticated">User is reauthenticated!!!</string>
 </resources>

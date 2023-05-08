@@ -2,7 +2,9 @@ package com.example.ivocaboproject
 
 import android.app.Application
 import com.parse.Parse
+import dagger.hilt.android.HiltAndroidApp
 
+@HiltAndroidApp
 class ivocaboprojectApplication: Application() {
     override fun onCreate() {
         super.onCreate()

@@ -1,48 +1,47 @@
 package com.example.ivocaboproject.database
 
 import android.content.Context
-import com.example.ivocaboproject.database.localdb.AppContainer
-import com.example.ivocaboproject.database.localdb.AppDataContainer
 import com.example.ivocaboproject.database.localdb.User
-import com.example.ivocaboproject.database.localdb.UserOfflineRepository
-import com.example.ivocaboproject.database.localdb.UserRepository
-import com.example.ivocaboproject.database.localdb.userDao
-import com.parse.ParseException
+import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.parse.ParseUser
-import com.parse.SignUpCallback
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import java.util.Date
+
 
 class ParseEvents {
-    fun AddUser(context:Context, user: User):EventResult<String>{
-        var eventResult=EventResult<String>("")
-        try{
-            val parseUser=ParseUser()
-            parseUser.email=user.email
-            parseUser.username=user.username
+    fun AddUser(user: User, userViewModel: UserViewModel): EventResult<String> {
+        var eventResult = EventResult<String>("")
+        try {
+            if (ParseUser.getCurrentUser() != null)
+                ParseUser.logOut()
+            val parseUser = ParseUser()
+            parseUser.email = user.email
+            parseUser.username = user.username
             parseUser.setPassword(user.password)
-            parseUser.signUpInBackground(SignUpCallback(){
-                if(it==null){
-                    eventResult.result= parseUser.objectId.toString()
-                    val appContainer=AppDataContainer(context)
-                    user.objectId=parseUser.objectId
-                    runBlocking {
-                        launch {
-                            appContainer.userRepository.insert(user)
-                            eventResult.eventResultFlags=EventResultFlags.SUCCESS
-                        }
-                    }
-
+            parseUser.signUp()
+            if (parseUser.objectId != null) {
+                user.objectId = parseUser.objectId.toString()
+                userViewModel.addUser(user)
+                eventResult.result = user.objectId.toString()
+                eventResult.eventResultFlags = EventResultFlags.SUCCESS
+            }
+        } catch (exception: Exception) {
+            eventResult.exception = exception
+        }
+        return eventResult
+    }
+    fun SingInUser(userViewModel: UserViewModel):EventResult<Boolean>{
+        var eventResult=EventResult<Boolean>(false)
+        try{
+            var user=userViewModel.getUserDetail
+            if(user!=null){
+                ParseUser.logIn(user.username,user.password)
+                if(ParseUser.getCurrentUser().isAuthenticated){
+                    eventResult.result=true
+                    eventResult.eventResultFlags=EventResultFlags.SUCCESS
                 }
-                else{
-                    eventResult.errorcode=it.code.toString()
-                    eventResult.errormessage=it.message.toString()
-                }
-            })
+            }
         }
         catch (exception:Exception){
+            eventResult.errorcode="SU100"
             eventResult.exception=exception
         }
         return eventResult

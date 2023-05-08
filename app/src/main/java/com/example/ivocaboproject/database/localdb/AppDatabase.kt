@@ -15,7 +15,7 @@ abstract class AppDatabase: RoomDatabase() {
     abstract fun missingDeviceDao():missingDeviceDao
     abstract fun missingArvhiceDao():missingArchiveDao
 
-    companion object {
+    /*companion object {
         @Volatile
         private var Instance: AppDatabase? = null
 
@@ -28,5 +28,5 @@ abstract class AppDatabase: RoomDatabase() {
                     .also { Instance = it }
             }
         }
-    }
+    }*/
 }

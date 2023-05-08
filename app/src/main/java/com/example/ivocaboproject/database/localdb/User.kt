@@ -25,15 +25,16 @@ data class User(
     @ColumnInfo(name ="password")
     val password:String,
     @ColumnInfo(name ="parseid")
-    var objectId:String
+    var objectId:String?
 )
 @Dao
 interface userDao{
-    @Query("SELECT COUNT(*) FROM users")
-    fun count(): Flow<Int>
-
+    @Query("SELECT COUNT(id) FROM users")
+    fun count():Int
+    @Query("SELECT * FROM users LIMIT 1")
+    fun findUser(): User
     @Query("SELECT * FROM users WHERE email=:email LIMIT 1")
-    fun findbyEmail(email: String): Flow<User>
+    fun findbyEmail(email: String): User
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg users: User)
