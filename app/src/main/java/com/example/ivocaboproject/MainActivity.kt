@@ -3,6 +3,7 @@ package com.example.ivocaboproject
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -42,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -63,11 +65,14 @@ import com.example.ivocaboproject.database.localdb.User
 import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
@@ -116,8 +121,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Dashboard(
     navController: NavController,
-    userviewModel: UserViewModel = hiltViewModel()
+    userviewModel: UserViewModel = hiltViewModel(),
+    locationviewModel: ILocationClientViewModel= hiltViewModel()
 ) {
+
     if (userviewModel.count!! <= 0)
         navController.navigate("registeruser")
     else {
@@ -139,39 +146,49 @@ fun Dashboard(
             ACCESS_FINE_LOCATION
         )
     )
-    val singapore = LatLng(1.35, 103.87)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(singapore, 10f)
-    }
+
+    val mapProperties by remember { mutableStateOf(MapProperties(isBuildingEnabled = true,isIndoorEnabled = true, isMyLocationEnabled = true)) }
+    val mapUiSettings by remember{ mutableStateOf(MapUiSettings(compassEnabled = true, zoomControlsEnabled = false, zoomGesturesEnabled = true, rotationGesturesEnabled = true)) }
     LaunchedEffect(Unit) {
         multiplePermissionState.launchMultiplePermissionRequest()
     }
-    Box(Modifier.fillMaxSize()) {
-        GoogleMap(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(420.dp),
-            cameraPositionState = cameraPositionState
-        ) {
-            Marker(
-                state = MarkerState(position = singapore),
-                title = "Singapore",
-                snippet = "Marker in Singapore"
-            )
-        }
-        ScaleBar(
-            modifier = Modifier
-                .padding(top = 5.dp, end = 15.dp)
-                .align(Alignment.TopEnd),
-            cameraPositionState = cameraPositionState
-        )
+
+
+    Intent(context, LocationService::class.java).apply {
+        action = LocationService.ACTION_START
+        context.startService(this)
     }
-    LazyColumn(
+    val singapore = LatLng(locationviewModel.latitude, locationviewModel.longitude)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(singapore, 10f)
+    }
+    Column(
         modifier = Modifier.fillMaxSize()
     ) {
+        Box(modifier = Modifier.fillMaxWidth()) {
+            GoogleMap(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(420.dp),
+                cameraPositionState = cameraPositionState,
+                properties = mapProperties,
+                uiSettings = mapUiSettings
+            ) {
+                Marker(
+                    state = MarkerState(position = singapore),
+                    title = "Singapore",
+                    snippet = "Marker in Singapore"
+                )
+            }
+            ScaleBar(
+                modifier = Modifier
+                    .padding(top = 5.dp, end = 15.dp)
+                    .align(Alignment.BottomStart),
+                cameraPositionState = cameraPositionState
+            )
 
+        }
     }
-
 
 }
 
