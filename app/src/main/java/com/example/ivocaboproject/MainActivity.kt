@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -66,10 +67,12 @@ import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.material.snackbar.Snackbar
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -90,6 +93,18 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         context = applicationContext
         //context.deleteDatabase("ivocabo.db")
+
+        val cld=FetchNetworkConnectivity(application)
+        cld.observe(this) { isConnected ->
+            if (!isConnected) {
+                Snack
+                Toast.makeText(context, "Please check internet connection!", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
+
+
+
         setContent {
             IvocaboProjectTheme {
                 // A surface container using the 'background' color from the theme
@@ -132,6 +147,7 @@ fun Dashboard(
             val parseEvents = ParseEvents()
             val dbresult = parseEvents.SingInUser(userviewModel)
             if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+
                 Toast.makeText(
                     context,
                     context.getString(R.string.userisauthenticated),

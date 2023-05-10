@@ -29,10 +29,10 @@ class ILocationClientViewModel @Inject constructor(
 ) : ViewModel() {
     var latitude by mutableStateOf(0.0)
     var longitude by mutableStateOf(0.0)
-    var location = repo.let { it. } .getLocationUpdates(10000L).onEach { i ->
+    /*var location = repo.getLocationUpdates(10000L).onEach { i ->
         latitude = i.latitude
         longitude = i.longitude
-    }
+    }*/
         private set
 
 }
