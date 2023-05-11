@@ -2,6 +2,7 @@ package com.example.ivocaboproject
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -29,7 +29,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,6 +42,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -66,8 +71,9 @@ import com.example.ivocaboproject.database.localdb.User
 import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.LifecycleOwner
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
+import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.model.CameraPosition
@@ -82,6 +88,9 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 val appHelpers = AppHelpers()
 lateinit var context: Context
@@ -94,15 +103,33 @@ class MainActivity : ComponentActivity() {
         context = applicationContext
         //context.deleteDatabase("ivocabo.db")
 
-        val cld=FetchNetworkConnectivity(application)
+
+        val cld = FetchNetworkConnectivity(application)
         cld.observe(this) { isConnected ->
-            if (!isConnected) {
-                Snack
-                Toast.makeText(context, "Please check internet connection!", Toast.LENGTH_SHORT)
-                    .show()
+            when (isConnected) {
+                InternetConnectionStatus.DISCONNECTED -> Toast.makeText(
+                    context,
+                    getString(R.string.internetdisconnected),
+                    Toast.LENGTH_LONG
+                ).show()
+                InternetConnectionStatus.CHANGE_TO_CELL->Toast.makeText(
+                    context,
+                    getString(R.string.internetcellularconnected),
+                    Toast.LENGTH_LONG
+                ).show()
+                InternetConnectionStatus.CHANGE_TO_WIFI->Toast.makeText(
+                    context,
+                    getString(R.string.internetwifeconnected),
+                    Toast.LENGTH_LONG
+                ).show()
+                else ->
+                    Toast.makeText(
+                        context,
+                        getString(R.string.internetconnected),
+                        Toast.LENGTH_SHORT
+                    ).show()
             }
         }
-
 
 
         setContent {
@@ -112,6 +139,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black,
                 ) {
+
                     AppNavigator()
                 }
             }
@@ -129,6 +157,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
 @OptIn(
     ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
     ExperimentalPermissionsApi::class
@@ -137,7 +166,7 @@ class MainActivity : ComponentActivity() {
 fun Dashboard(
     navController: NavController,
     userviewModel: UserViewModel = hiltViewModel(),
-    locationviewModel: ILocationClientViewModel= hiltViewModel()
+    locationviewModel: ILocationClientViewModel = hiltViewModel()
 ) {
 
     if (userviewModel.count!! <= 0)
@@ -163,8 +192,25 @@ fun Dashboard(
         )
     )
 
-    val mapProperties by remember { mutableStateOf(MapProperties(isBuildingEnabled = true,isIndoorEnabled = true, isMyLocationEnabled = true)) }
-    val mapUiSettings by remember{ mutableStateOf(MapUiSettings(compassEnabled = true, zoomControlsEnabled = false, zoomGesturesEnabled = true, rotationGesturesEnabled = true)) }
+    val mapProperties by remember {
+        mutableStateOf(
+            MapProperties(
+                isBuildingEnabled = true,
+                isIndoorEnabled = true,
+                isMyLocationEnabled = true
+            )
+        )
+    }
+    val mapUiSettings by remember {
+        mutableStateOf(
+            MapUiSettings(
+                compassEnabled = true,
+                zoomControlsEnabled = false,
+                zoomGesturesEnabled = true,
+                rotationGesturesEnabled = true
+            )
+        )
+    }
     LaunchedEffect(Unit) {
         multiplePermissionState.launchMultiplePermissionRequest()
     }

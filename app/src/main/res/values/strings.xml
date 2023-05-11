@@ -4,6 +4,12 @@
     <string name="cancel">Cancel</string>
     <string name="signin">Sing-in</string>
     <string name="email">E-mail</string>
+
+    <string name="internetdisconnected">Device internet is disconnected! Please check internet connection</string>
+    <string name="internetconnected">Device internet is connected!</string>
+    <string name="internetwifeconnected">Device is connecting over wifi!</string>
+    <string name="internetcellularconnected">Device is connecting with cellular data, this service may overcharge your communication quota!</string>
+
     <string name="back4app_server_url">https://parseapi.back4app.com</string>
 
     <!-- Paste BOTH strings as required -->
