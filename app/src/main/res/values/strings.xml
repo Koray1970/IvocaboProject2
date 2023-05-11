@@ -24,4 +24,10 @@
     <string name="formelementisempty">Please don not leave empty!</string>
     <string name="parseerror208">User already registred! Please sing-in or click to "forget my user details" button.</string>
     <string name="userisauthenticated">User is reauthenticated!!!</string>
+
+    <string name="deviceregistretionformtitle">Device Registretion Form</string>
+    <string name="deviceregistretionformwarning">Please input all form fields completely.</string>
+    <string name="adddevice">Add Device</string>
+    <string name="macaddress">Mac Address</string>
+    <string name="devicename">Device Name</string>
 </resources>

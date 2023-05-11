@@ -2,7 +2,6 @@ package com.example.ivocaboproject
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
-import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -13,29 +12,29 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -49,7 +48,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -71,14 +69,12 @@ import com.example.ivocaboproject.database.localdb.User
 import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.material.snackbar.Snackbar
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -88,8 +84,6 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 val appHelpers = AppHelpers()
@@ -106,31 +100,14 @@ class MainActivity : ComponentActivity() {
 
         val cld = FetchNetworkConnectivity(application)
         cld.observe(this) { isConnected ->
-            when (isConnected) {
-                InternetConnectionStatus.DISCONNECTED -> Toast.makeText(
+            if (isConnected == InternetConnectionStatus.DISCONNECTED) {
+                Toast.makeText(
                     context,
                     getString(R.string.internetdisconnected),
                     Toast.LENGTH_LONG
                 ).show()
-                InternetConnectionStatus.CHANGE_TO_CELL->Toast.makeText(
-                    context,
-                    getString(R.string.internetcellularconnected),
-                    Toast.LENGTH_LONG
-                ).show()
-                InternetConnectionStatus.CHANGE_TO_WIFI->Toast.makeText(
-                    context,
-                    getString(R.string.internetwifeconnected),
-                    Toast.LENGTH_LONG
-                ).show()
-                else ->
-                    Toast.makeText(
-                        context,
-                        getString(R.string.internetconnected),
-                        Toast.LENGTH_SHORT
-                    ).show()
             }
         }
-
 
         setContent {
             IvocaboProjectTheme {
@@ -139,7 +116,6 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black,
                 ) {
-
                     AppNavigator()
                 }
             }
@@ -158,17 +134,14 @@ class MainActivity : ComponentActivity() {
 }
 
 
-@OptIn(
-    ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class,
-    ExperimentalPermissionsApi::class
-)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun Dashboard(
     navController: NavController,
     userviewModel: UserViewModel = hiltViewModel(),
     locationviewModel: ILocationClientViewModel = hiltViewModel()
 ) {
-
+    val scope = rememberCoroutineScope()
     if (userviewModel.count!! <= 0)
         navController.navigate("registeruser")
     else {
@@ -224,8 +197,11 @@ fun Dashboard(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(singapore, 10f)
     }
+    val deviceformsheetState = rememberBottomSheetScaffoldState()
+
+
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             GoogleMap(
@@ -248,9 +224,31 @@ fun Dashboard(
                     .align(Alignment.BottomStart),
                 cameraPositionState = cameraPositionState
             )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+        ) {
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        deviceformsheetState.bottomSheetState.expand()
+                    }
+                },
+
+                ) {
+                val description = stringResource(id = R.string.adddevice)
+                Icon(
+                    painter = painterResource(id = R.drawable.baseline_add_black_24),
+                    contentDescription = description
+                )
+                Text(text = description)
+            }
+
 
         }
     }
+    DeviceForm(deviceformsheetState.bottomSheetState)
 
 }
 
@@ -405,6 +403,92 @@ fun RegisterUser(
     }
 }
 
+//@OptIn(ExperimentalMaterial3Api::class)
+@ExperimentalMaterial3Api
+@Composable
+fun DeviceForm(sheetState: SheetState) {
+    val scope = rememberCoroutineScope()
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(sheetState)
+
+    var txtmacaddress by rememberSaveable { mutableStateOf("") }
+    val ismacaddressVisible by remember { derivedStateOf { txtmacaddress.isNotBlank() } }
+    var iserrormacaddress by rememberSaveable { mutableStateOf(false) }
+
+    var txtdevicename by rememberSaveable { mutableStateOf("") }
+    val isdevicenameVisible by remember { derivedStateOf { txtdevicename.isNotBlank() } }
+    var iserrordevicename by rememberSaveable { mutableStateOf(false) }
+    BottomSheetScaffold(
+        scaffoldState = bottomSheetScaffoldState,
+        sheetContainerColor = Color.Black,
+        sheetPeekHeight = 0.dp,
+        sheetContent = {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Text(text = stringResource(id = R.string.deviceregistretionformtitle))
+                OutlinedTextField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    onValueChange = {
+                        txtmacaddress = it
+                    },
+                    label = { Text(text = stringResource(id = R.string.macaddress)) },
+                    value = txtmacaddress,
+                    textStyle = TextStyle(color = Color.White),
+                    isError = iserrormacaddress,
+                    keyboardActions = KeyboardActions { iserrormacaddress=txtmacaddress.isEmpty() },
+                    trailingIcon = {
+                        if (ismacaddressVisible) {
+                            IconButton(
+                                onClick = { txtmacaddress = "" }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear"
+                                )
+                            }
+                        }
+                    })
+                OutlinedTextField(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    onValueChange = { txtdevicename = it },
+                    label = { Text(text = stringResource(id = R.string.devicename)) },
+                    value = txtdevicename,
+                    textStyle = TextStyle(color = Color.White),
+                    isError = iserrordevicename,
+                    keyboardActions = KeyboardActions { iserrordevicename=txtmacaddress.isEmpty() },
+                    trailingIcon = {
+                        if (isdevicenameVisible) {
+                            IconButton(
+                                onClick = { txtdevicename = "" }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear"
+                                )
+                            }
+                        }
+                    })
+                Text(text = stringResource(id = R.string.deviceregistretionformwarning))
+                OutlinedButton(onClick = {
+                    if (!(txtmacaddress.isEmpty() || txtmacaddress.isEmpty())) {
+                        scope.launch {
+                            bottomSheetScaffoldState.bottomSheetState.partialExpand()
+                        }
+                    }
+                    else{
+                        if(txtmacaddress.isEmpty())
+                            iserrormacaddress=true
+                        if(txtdevicename.isEmpty())
+                            iserrordevicename=true
+                    }
+                }) {
+                    Text(text = context.getString(R.string.save))
+                }
+            }
+        }) {
+
+    }
+}
 /*
 @Preview(showBackground = true)
 @Composable

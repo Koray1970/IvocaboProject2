@@ -17,10 +17,10 @@ class FetchNetworkConnectivity(private val connectivity: ConnectivityManager) :
     constructor(appContext: Application) : this(
         appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     )
+
     private val networkCallback=object:ConnectivityManager.NetworkCallback(){
         override fun onAvailable(network: Network) {
             super.onAvailable(network)
-
             postValue(InternetConnectionStatus.CONNECTED)
         }
 
