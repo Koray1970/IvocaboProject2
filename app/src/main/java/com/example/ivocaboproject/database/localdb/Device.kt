@@ -1,5 +1,7 @@
 package com.example.ivocaboproject.database.localdb
 
+import android.os.Parcelable
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.room.ColumnInfo
 import androidx.room.Dao
@@ -11,8 +13,10 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import kotlinx.parcelize.Parcelize
 import java.sql.Date
 
+@Parcelize
 @Entity(tableName = "devices")
 data class Device(
     @PrimaryKey(autoGenerate = true)
@@ -29,7 +33,7 @@ data class Device(
     val longitude: String,
     @ColumnInfo(name = "parsedeviceid")
     var objectId: String,
-)
+): Parcelable
 
 @Dao
 interface deviceDao {
@@ -37,7 +41,7 @@ interface deviceDao {
     fun count(): Int
 
     @Query("SELECT * FROM devices")
-    fun list(): List<Device>
+    fun list():List<Device>
 
     @Query("SELECT * FROM devices WHERE macaddress=:macaddress LIMIT 1")
     fun findbyMacAddress(macaddress: String): Device

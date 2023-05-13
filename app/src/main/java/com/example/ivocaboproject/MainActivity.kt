@@ -5,6 +5,7 @@ import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
@@ -46,6 +46,8 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -79,7 +81,8 @@ import com.example.ivocaboproject.database.localdb.User
 import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.example.ivocaboproject.database.localdb.Device
@@ -97,7 +100,15 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.last
+import kotlinx.coroutines.flow.single
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import okhttp3.internal.wait
 
 val appHelpers = AppHelpers()
 lateinit var context: Context
@@ -142,15 +153,16 @@ class MainActivity : ComponentActivity() {
         {
             composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
+            composable("DeviceList") { RegisterUser(navController) }
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun Dashboard(
     navController: NavController,
     userviewModel: UserViewModel = hiltViewModel(),
+    deviceViewModel: DeviceViewModel = hiltViewModel(),
     locationviewModel: ILocationClientViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
@@ -219,7 +231,7 @@ fun Dashboard(
             GoogleMap(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(420.dp),
+                    .height(320.dp),
                 cameraPositionState = cameraPositionState,
                 properties = mapProperties,
                 uiSettings = mapUiSettings
@@ -257,23 +269,19 @@ fun Dashboard(
                 Text(text = description)
             }
         }
-
         //device list
-        DeviceList()
+        DeviceList(navController)
 
     }
-    DeviceForm(deviceformsheetState.bottomSheetState)
+    DeviceForm(deviceformsheetState.bottomSheetState,navController)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceList(deviceViewModel: DeviceViewModel = hiltViewModel()) {
-    val devices= remember {
-        deviceViewModel.list
-    }
-
+fun DeviceList(navController: NavController,deviceViewModel: DeviceViewModel= hiltViewModel()) {
+    Text(text = "Toplam Kayıt : "+deviceViewModel.list.value!!.size, style = TextStyle(color = Color.Green))
     LazyColumn(modifier = Modifier.fillMaxWidth()){
-        itemsIndexed(devices.value){
+        itemsIndexed(deviceViewModel.list.value!!){
             index,item->
 
             val dismissState = rememberDismissState()
@@ -464,6 +472,7 @@ fun RegisterUser(
 @Composable
 fun DeviceForm(
     sheetState: SheetState,
+    navController: NavController,
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
@@ -558,9 +567,8 @@ fun DeviceForm(
                         )
                         if (dbresponse.eventResultFlags == EventResultFlags.SUCCESS) {
                             scope.launch {
-                                deviceViewModel.updateList()
-
                                 bottomSheetScaffoldState.bottomSheetState.partialExpand()
+                                navController.navigate("dashboard")
                             }
                         }
                     } else {

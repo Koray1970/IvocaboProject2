@@ -99,7 +99,7 @@ class ParseEvents {
             parseObject.put("parseUserId", parseuserid)
             parseObject.delete()
             if (!parseObject.isDataAvailable) {
-                deviceViewModel.updateList()
+                deviceViewModel.delete(device)
                 eventResult.eventResultFlags = EventResultFlags.SUCCESS
                 eventResult.result = true
             }
