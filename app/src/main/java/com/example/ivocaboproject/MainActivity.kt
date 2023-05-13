@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -19,22 +20,30 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.Card
+import androidx.compose.material3.DismissValue
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -53,6 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -69,8 +79,11 @@ import com.example.ivocaboproject.database.localdb.User
 import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.MutableLiveData
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
+import com.example.ivocaboproject.database.localdb.Device
+import com.example.ivocaboproject.database.localdb.DeviceViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.model.CameraPosition
@@ -132,7 +145,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -244,12 +256,56 @@ fun Dashboard(
                 )
                 Text(text = description)
             }
-
-
         }
+
+        //device list
+        DeviceList()
+
     }
     DeviceForm(deviceformsheetState.bottomSheetState)
+}
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DeviceList(deviceViewModel: DeviceViewModel = hiltViewModel()) {
+    val devices= remember {
+        deviceViewModel.list
+    }
+
+    LazyColumn(modifier = Modifier.fillMaxWidth()){
+        itemsIndexed(devices.value){
+            index,item->
+
+            val dismissState = rememberDismissState()
+            SwipeToDismiss(
+                state = dismissState,
+                background = {
+                    val color by animateColorAsState(
+                        when (dismissState.targetValue) {
+                            DismissValue.Default -> Color.LightGray
+                            DismissValue.DismissedToEnd -> Color.Green
+                            DismissValue.DismissedToStart -> Color.Red
+                        }
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(color))
+                },
+                dismissContent = {
+                    Card {
+                        ListItem(
+                            headlineContent = {
+                                Text(item.name)
+                            },
+                            supportingContent = { Text(item.macaddress) }
+                        )
+                        Divider()
+                    }
+                }
+            )
+        }
+    }
 }
 
 @Composable
@@ -392,7 +448,7 @@ fun RegisterUser(
                     )
                     var dbresult = parseEvents.AddUser(user, userviewModel)
                     if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-
+                        navController.navigate("dashboard")
                     }
                 },
             ) {
@@ -406,7 +462,10 @@ fun RegisterUser(
 //@OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalMaterial3Api
 @Composable
-fun DeviceForm(sheetState: SheetState) {
+fun DeviceForm(
+    sheetState: SheetState,
+    deviceViewModel: DeviceViewModel = hiltViewModel(),
+) {
     val scope = rememberCoroutineScope()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(sheetState)
 
@@ -434,7 +493,13 @@ fun DeviceForm(sheetState: SheetState) {
                     value = txtmacaddress,
                     textStyle = TextStyle(color = Color.White),
                     isError = iserrormacaddress,
-                    keyboardActions = KeyboardActions { iserrormacaddress=txtmacaddress.isEmpty() },
+                    keyboardOptions = KeyboardOptions(
+                        autoCorrect = false,
+                        keyboardType = KeyboardType.Number
+                    ),
+                    keyboardActions = KeyboardActions {
+                        iserrormacaddress = txtmacaddress.isEmpty()
+                    },
                     trailingIcon = {
                         if (ismacaddressVisible) {
                             IconButton(
@@ -455,7 +520,14 @@ fun DeviceForm(sheetState: SheetState) {
                     value = txtdevicename,
                     textStyle = TextStyle(color = Color.White),
                     isError = iserrordevicename,
-                    keyboardActions = KeyboardActions { iserrordevicename=txtmacaddress.isEmpty() },
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Words,
+                        autoCorrect = false,
+                        keyboardType = KeyboardType.Text
+                    ),
+                    keyboardActions = KeyboardActions {
+                        iserrordevicename = txtmacaddress.isEmpty()
+                    },
                     trailingIcon = {
                         if (isdevicenameVisible) {
                             IconButton(
@@ -470,16 +542,32 @@ fun DeviceForm(sheetState: SheetState) {
                     })
                 Text(text = stringResource(id = R.string.deviceregistretionformwarning))
                 OutlinedButton(onClick = {
-                    if (!(txtmacaddress.isEmpty() || txtmacaddress.isEmpty())) {
-                        scope.launch {
-                            bottomSheetScaffoldState.bottomSheetState.partialExpand()
+                    if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
+                        val parseEvents = ParseEvents()
+                        val appHelpers = AppHelpers()
+                        val dbresponse = parseEvents.AddEditDevice(
+                            Device(
+                                0,
+                                appHelpers.getNOWasSQLDate(),
+                                txtmacaddress,
+                                txtdevicename,
+                                "",
+                                "",
+                                ""
+                            ), deviceViewModel
+                        )
+                        if (dbresponse.eventResultFlags == EventResultFlags.SUCCESS) {
+                            scope.launch {
+                                deviceViewModel.updateList()
+
+                                bottomSheetScaffoldState.bottomSheetState.partialExpand()
+                            }
                         }
-                    }
-                    else{
-                        if(txtmacaddress.isEmpty())
-                            iserrormacaddress=true
-                        if(txtdevicename.isEmpty())
-                            iserrordevicename=true
+                    } else {
+                        if (txtmacaddress.isEmpty())
+                            iserrormacaddress = true
+                        if (txtdevicename.isEmpty())
+                            iserrordevicename = true
                     }
                 }) {
                     Text(text = context.getString(R.string.save))

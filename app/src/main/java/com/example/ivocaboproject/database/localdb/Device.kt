@@ -11,33 +11,36 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import java.sql.Date
 
 @Entity(tableName = "devices")
 data class Device(
     @PrimaryKey(autoGenerate = true)
     val id: Int,
     @ColumnInfo(name = "registerdate")
-    val registerdate: String,
+    val registerdate: Date,
     @ColumnInfo(name = "macaddress")
     val macaddress: String,
     @ColumnInfo(name = "name")
     val name: String,
-    @ColumnInfo(name = "password")
-    val password: String,
+    @ColumnInfo(name = "latitude")
+    val latitude: String,
+    @ColumnInfo(name = "longitude")
+    val longitude: String,
     @ColumnInfo(name = "parsedeviceid")
-    val objectId: String,
+    var objectId: String,
 )
 
 @Dao
 interface deviceDao {
     @Query("SELECT COUNT(*) FROM devices")
-    fun count(): Flow<Int>
+    fun count(): Int
 
     @Query("SELECT * FROM devices")
-    fun list(): Flow<List<Device>>
+    fun list(): List<Device>
 
     @Query("SELECT * FROM devices WHERE macaddress=:macaddress LIMIT 1")
-    fun findbyMacAddress(macaddress: String): Flow<Device>
+    fun findbyMacAddress(macaddress: String): Device
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg device: Device)

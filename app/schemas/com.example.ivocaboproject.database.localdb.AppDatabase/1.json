@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "9882feca2b892d63940a472729037a6d",
+    "identityHash": "5d54025e8ce33235bb24586930f3b7a7",
     "entities": [
       {
         "tableName": "users",
@@ -56,7 +56,7 @@
       },
       {
         "tableName": "devices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `registerdate` TEXT NOT NULL, `macaddress` TEXT NOT NULL, `name` TEXT NOT NULL, `password` TEXT NOT NULL, `parsedeviceid` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `registerdate` INTEGER NOT NULL, `macaddress` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` TEXT NOT NULL, `longitude` TEXT NOT NULL, `parsedeviceid` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -67,7 +67,7 @@
           {
             "fieldPath": "registerdate",
             "columnName": "registerdate",
-            "affinity": "TEXT",
+            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -83,8 +83,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "password",
-            "columnName": "password",
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -276,7 +282,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9882feca2b892d63940a472729037a6d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5d54025e8ce33235bb24586930f3b7a7')"
     ]
   }
 }
