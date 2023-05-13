@@ -17,6 +17,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 @HiltViewModel
 class DeviceViewModel @Inject constructor(
@@ -24,37 +27,57 @@ class DeviceViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     val appHandle = AppHelpers()
-    var device by mutableStateOf(Device(0, appHelpers.getNOWasSQLDate(), "", "", "", "", ""))
-        private set
-    var count = viewModelScope.launch { repo.count() }
-    private var _list = repo.list()
-    var list = MutableLiveData<List<Device>>()
-        get() = MutableLiveData<List<Device>>( _list)
+
+    private val uiState = MutableStateFlow(DeviceListViewState(false, emptyList()))
+
+    fun consumableState() = uiState.asStateFlow()
 
     init {
-        list.observeForever{
-            list=MutableLiveData<List<Device>>( _list)
+        fetchDeviceListData()
+    }
+
+
+    fun handleViewEvent(viewEvent: DeviceListViewEvent) {
+        when (viewEvent) {
+            is DeviceListViewEvent.AddItem -> {
+                val currentState = uiState.value
+                val items = currentState.devices.toMutableList().apply {
+                    add(viewEvent.device)
+                }.toList()
+                uiState.value = uiState.value.copy(devices = items)
+            }
+            is DeviceListViewEvent.RemoveItem -> {}
         }
     }
 
-    fun updateList() {
+    private fun fetchDeviceListData() {
         viewModelScope.launch {
-            list=MutableLiveData<List<Device>>( _list)
+            delay(2000)
+            uiState.value = uiState.value.copy(false, repo.list())
         }
     }
 
     fun insert(device: Device) = viewModelScope.launch {
         repo.insert(device)
-
     }
 
     fun update(device: Device) = viewModelScope.launch {
         repo.update(device)
-
     }
 
     fun delete(device: Device) = viewModelScope.launch {
         repo.delete(device)
-
     }
+
+}
+
+data class DeviceListViewState(
+    val isloading: Boolean = true,
+    val devices: List<Device>,
+    val errorMessage: String? = null
+)
+
+sealed class DeviceListViewEvent {
+    data class AddItem(val device: Device) : DeviceListViewEvent()
+    data class RemoveItem(val device: Device) : DeviceListViewEvent()
 }

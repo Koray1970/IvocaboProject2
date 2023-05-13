@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -47,6 +48,7 @@ import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -86,6 +88,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.example.ivocaboproject.database.localdb.Device
+import com.example.ivocaboproject.database.localdb.DeviceListViewEvent
+import com.example.ivocaboproject.database.localdb.DeviceListViewState
 import com.example.ivocaboproject.database.localdb.DeviceViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
@@ -222,7 +226,7 @@ fun Dashboard(
         position = CameraPosition.fromLatLngZoom(singapore, 10f)
     }
     val deviceformsheetState = rememberBottomSheetScaffoldState()
-
+    val deviceViewState=deviceViewModel.consumableState().collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -270,18 +274,19 @@ fun Dashboard(
             }
         }
         //device list
-        DeviceList(navController)
+        DeviceList(navController,deviceViewState)
 
     }
-    DeviceForm(deviceformsheetState.bottomSheetState,navController)
+    DeviceForm(deviceformsheetState.bottomSheetState,navController,deviceViewState)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceList(navController: NavController,deviceViewModel: DeviceViewModel= hiltViewModel()) {
-    Text(text = "Toplam Kayıt : "+deviceViewModel.list.value!!.size, style = TextStyle(color = Color.Green))
-    LazyColumn(modifier = Modifier.fillMaxWidth()){
-        itemsIndexed(deviceViewModel.list.value!!){
+fun DeviceList(navController: NavController,state: State<DeviceListViewState>) {
+    Text(text = "Toplam Kayıt : "+state.value.devices.size, style = TextStyle(color = Color.Green))
+    val listState= rememberLazyListState()
+    LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState, userScrollEnabled = true){
+        itemsIndexed(state.value.devices){
             index,item->
 
             val dismissState = rememberDismissState()
@@ -473,7 +478,8 @@ fun RegisterUser(
 fun DeviceForm(
     sheetState: SheetState,
     navController: NavController,
-    deviceViewModel: DeviceViewModel = hiltViewModel(),
+    deviceViewState: State<DeviceListViewState>,
+    deviceViewModel: DeviceViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(sheetState)
@@ -554,21 +560,21 @@ fun DeviceForm(
                     if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
                         val parseEvents = ParseEvents()
                         val appHelpers = AppHelpers()
-                        val dbresponse = parseEvents.AddEditDevice(
-                            Device(
-                                0,
-                                appHelpers.getNOWasSQLDate(),
-                                txtmacaddress,
-                                txtdevicename,
-                                "",
-                                "",
-                                ""
-                            ), deviceViewModel
+                        val lDevice=Device(
+                            0,
+                            appHelpers.getNOWasSQLDate(),
+                            txtmacaddress,
+                            txtdevicename,
+                            "",
+                            "",
+                            ""
                         )
+                        val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)
                         if (dbresponse.eventResultFlags == EventResultFlags.SUCCESS) {
                             scope.launch {
+                                deviceViewModel.handleViewEvent(DeviceListViewEvent.AddItem(lDevice))
                                 bottomSheetScaffoldState.bottomSheetState.partialExpand()
-                                navController.navigate("dashboard")
+                                //navController.navigate("dashboard")
                             }
                         }
                     } else {
