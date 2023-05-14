@@ -46,7 +46,13 @@ class DeviceViewModel @Inject constructor(
                 }.toList()
                 uiState.value = uiState.value.copy(devices = items)
             }
-            is DeviceListViewEvent.RemoveItem -> {}
+            is DeviceListViewEvent.RemoveItem -> {
+                val currentState = uiState.value
+                val items = currentState.devices.toMutableList().apply {
+                    remove(viewEvent.device)
+                }.toList()
+                uiState.value = uiState.value.copy(devices = items)
+            }
         }
     }
 
@@ -56,7 +62,9 @@ class DeviceViewModel @Inject constructor(
             uiState.value = uiState.value.copy(false, repo.list())
         }
     }
-
+    fun getDeviceDetail(macaddress:String):Device{
+        return repo.findbyMacAddress(macaddress)
+    }
     fun insert(device: Device) = viewModelScope.launch {
         repo.insert(device)
     }

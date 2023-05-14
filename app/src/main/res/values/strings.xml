@@ -30,4 +30,5 @@
     <string name="adddevice">Add Device</string>
     <string name="macaddress">Mac Address</string>
     <string name="devicename">Device Name</string>
+    <string name="devicedelete">Selected device is deleted.</string>
 </resources>

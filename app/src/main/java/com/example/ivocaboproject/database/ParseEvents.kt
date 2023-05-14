@@ -103,9 +103,23 @@ class ParseEvents {
                 eventResult.eventResultFlags = EventResultFlags.SUCCESS
                 eventResult.result = true
             }
+            else{
+                if(deviceViewModel.getDeviceDetail(device.macaddress)!=null){
+                    deviceViewModel.delete(device)
+                    eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                    eventResult.result = true
+                }
+            }
         }
         catch (exception:Exception){
-            eventResult.exception=exception
+            if(deviceViewModel.getDeviceDetail(device.macaddress)!=null){
+                deviceViewModel.delete(device)
+                eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                eventResult.result = true
+            }
+            else {
+                eventResult.exception = exception
+            }
         }
         return eventResult
     }
