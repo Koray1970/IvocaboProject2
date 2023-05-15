@@ -3,8 +3,10 @@ package com.example.ivocaboproject
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.annotation.SuppressLint
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -92,6 +94,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -109,9 +112,11 @@ import com.example.ivocaboproject.database.localdb.UserViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
+import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -168,6 +173,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+lateinit var latLng: LatLng
+lateinit var camState: CameraPositionState
+
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -175,7 +183,6 @@ fun Dashboard(
     navController: NavController,
     userviewModel: UserViewModel = hiltViewModel(),
     deviceViewModel: DeviceViewModel = hiltViewModel(),
-    locationviewModel: ILocationClientViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
@@ -198,6 +205,43 @@ fun Dashboard(
         )
     )
 
+
+    latLng = LatLng(0.0, 0.0)
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(latLng, 20f)
+    }
+
+    val broadCastLocationMessage = remember { mutableStateOf(latLng) }
+
+    LaunchedEffect(Unit) {
+        multiplePermissionState.launchMultiplePermissionRequest()
+    }
+
+
+    Intent(context, LocationService::class.java).apply {
+        action = LocationService.ACTION_START
+        context.startService(this)
+    }
+    val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        // we will receive data updates in onReceive method.
+        override fun onReceive(context: Context?, intent: Intent) {
+            // Get extra data included in the Intent
+            if (intent.hasExtra("latitude") && intent.hasExtra("longitude")) {
+                latLng=LatLng(intent.getDoubleExtra("latitude", 0.0), intent.getDoubleExtra("longitude", 0.0))
+                // on below line we are updating the data in our text view.
+                broadCastLocationMessage.value =latLng
+
+                cameraPositionState.move(
+                    CameraUpdateFactory.newLatLng(
+                        broadCastLocationMessage.value
+                    )
+                )
+            }
+        }
+    }
+    LocalBroadcastManager.getInstance(context).registerReceiver(
+        broadcastLocationReceiver, IntentFilter("currentlocation")
+    )
     val mapProperties by remember {
         mutableStateOf(
             MapProperties(
@@ -215,19 +259,7 @@ fun Dashboard(
             )
         )
     }
-    LaunchedEffect(Unit) {
-        multiplePermissionState.launchMultiplePermissionRequest()
-    }
 
-
-    Intent(context, LocationService::class.java).apply {
-        action = LocationService.ACTION_START
-        context.startService(this)
-    }
-    val singapore = LatLng(locationviewModel.latitude, locationviewModel.longitude)
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(singapore, 10f)
-    }
     val deviceformsheetState = rememberBottomSheetScaffoldState()
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
     Scaffold(
@@ -258,11 +290,7 @@ fun Dashboard(
                     properties = mapProperties,
                     uiSettings = mapUiSettings
                 ) {
-                    Marker(
-                        state = MarkerState(position = singapore),
-                        title = "Singapore",
-                        snippet = "Marker in Singapore"
-                    )
+                    Marker(state = MarkerState(position = broadCastLocationMessage.value))
                 }
                 ScaleBar(
                     modifier = Modifier
@@ -612,8 +640,8 @@ fun DeviceForm(
                                 appHelpers.getNOWasSQLDate(),
                                 txtmacaddress,
                                 txtdevicename,
-                                "",
-                                "",
+                                latLng.latitude.toString(),
+                                latLng.longitude.toString(),
                                 ""
                             )
                             val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)

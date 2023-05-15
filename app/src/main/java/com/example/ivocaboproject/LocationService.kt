@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +57,10 @@ class LocationService : Service() {
                 val updatedNotification = notification.setContentText(
                     "Location: ($lat, $long)"
                 )
+                val intlatlng=Intent("currentlocation")
+                intlatlng.putExtra("latitude",location.latitude)
+                intlatlng.putExtra("longitude",location.longitude)
+                LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intlatlng)
                 notificationManager.notify(1, updatedNotification.build())
             }
             .launchIn(serviceScope)

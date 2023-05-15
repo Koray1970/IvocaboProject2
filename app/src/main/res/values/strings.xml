@@ -2,6 +2,7 @@
     <string name="app_name">Ivocabo</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+    ,<string name="goback">Go back</string>
     <string name="signin">Sing-in</string>
     <string name="email">E-mail</string>
 
@@ -32,4 +33,6 @@
     <string name="devicename">Device Name</string>
     <string name="devicedelete">Selected device is deleted.</string>
     <string name="title_activity_device">DeviceActivity</string>
+    <string name="deviceeventalerttitle">Device Event Form</string>
+    <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
 </resources>
