@@ -48,7 +48,7 @@ fun DeviceEvents(deviceViewModel: DeviceViewModel = hiltViewModel()) {
     var macaddress=activity.intent.getStringExtra("macaddress").toString()
     val dbdetails=deviceViewModel.getDeviceDetail()
 
-    Text(text = ttt)
+   // Text(text = ttt)
 }
 
 /*
