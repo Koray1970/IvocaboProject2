@@ -46,7 +46,7 @@ fun DeviceEvents(deviceViewModel: DeviceViewModel = hiltViewModel()) {
     val context = LocalContext.current.applicationContext
     val activity = LocalContext.current as Activity
     var macaddress=activity.intent.getStringExtra("macaddress").toString()
-    val dbdetails=deviceViewModel.getDeviceDetail()
+    val dbdetails=deviceViewModel.getDeviceDetail(macaddress)
 
    // Text(text = ttt)
 }
