@@ -7,21 +7,25 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.os.Handler
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -43,6 +47,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -62,11 +67,13 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class DeviceActivity : ComponentActivity() {
     private val deviceViewModel by viewModels<DeviceViewModel>()
-
+    private val appHelpers=AppHelpers()
     @OptIn(ExperimentalMaterial3Api::class)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -108,18 +115,25 @@ class DeviceActivity : ComponentActivity() {
                     containerColor = Color.Black,
                     topBar = {
                         TopAppBar(
-                            colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Black, titleContentColor = Color.White),
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = Color.Black,
+                                titleContentColor = Color.White
+                            ),
                             title = {
                                 Column {
                                     Text(text = dbdetails.name)
-                                    Text(text = dbdetails.macaddress, style = MaterialTheme.typography.labelSmall)
+                                    Text(
+                                        text = dbdetails.macaddress,
+                                        style = MaterialTheme.typography.labelSmall
+                                    )
                                 }
                             },
                             navigationIcon = {
-                                IconButton(onClick = {
-                                    GoBackEvent()
-                                },
-                                colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                                IconButton(
+                                    onClick = {
+                                        GoBackEvent()
+                                    },
+                                    colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
                                 ) {
                                     Icon(Icons.Filled.ArrowBack, "")
                                 }
@@ -127,12 +141,26 @@ class DeviceActivity : ComponentActivity() {
                         )
                     }
                 ) {
+
                     DeviceEvents(dbdetails)
                 }
             }
         }
     }
+    fun getDateTimeTick():String{
+        var result=""
+        try{
+            this.lifecycleScope.launch {
+                delay(1000)
+                result= com.example.ivocaboproject.appHelpers.getNOWasString()
+                return@launch
+            }
+        }
+        catch (exceptition:Exception){
 
+        }
+        return result
+    }
     private fun GoBackEvent() {
         val intent =
             Intent(this@DeviceActivity, MainActivity::class.java)
@@ -208,9 +236,11 @@ fun DeviceEvents(device: Device) {
             .fillMaxWidth()
             .wrapContentHeight()
     ) {
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .padding(0.dp, 64.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(0.dp, 64.dp)
+        ) {
             GoogleMap(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,14 +257,40 @@ fun DeviceEvents(device: Device) {
                     .align(Alignment.BottomStart), cameraPositionState = cameraPositionState
             )
         }
-        Column() {
+        Column(modifier = Modifier.padding(40.dp,0.dp)) {
+            Text(text = DeviceActivity().getDateTimeTick(), color = Color.White, modifier = Modifier)
             Row() {
-                IconButton(onClick = { /*TODO*/ },
-                colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
-                    ) {
-                    Icon(painter = painterResource(id = R.drawable.tracking_24), contentDescription ="" )
-                    Text(text = stringResource(id = R.string.tracking))
+                TextButton(
+                    onClick = { /*TODO*/ },
+                    modifier = Modifier.wrapContentWidth(),
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.tracking_24),
+                            contentDescription = ""
+                        )
+                        Text(text = stringResource(id = R.string.tracking))
+                    }
                 }
+                Spacer(modifier = Modifier.weight(1f))
+                TextButton(
+                    onClick = { /*TODO*/ },
+                    modifier = Modifier.wrapContentWidth(),
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.find_24),
+                            contentDescription = ""
+                        )
+                        Text(text = stringResource(id = R.string.find))
+                    }
+                }
+
+            }
+            Row(){
+
             }
         }
     }

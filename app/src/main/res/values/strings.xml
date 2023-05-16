@@ -37,6 +37,6 @@
     <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
     <string name="tracking">Tracking</string>
     <string name="find">Find</string>
-    <string name="outofrange">Out Of Range</string>
+    <string name="notifications">Notifications</string>
     <string name="missing">Missing</string>
 </resources>
