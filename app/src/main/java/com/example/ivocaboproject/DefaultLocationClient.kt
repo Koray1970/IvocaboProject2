@@ -33,7 +33,7 @@ class DefaultLocationClient(
                 throw ILocationClient.LocationException("GPS is disabled")
             }
 
-            val request =LocationRequest.Builder(10000).setDurationMillis(10000).setPriority(Priority.PRIORITY_LOW_POWER).build()
+            val request =LocationRequest.Builder(10000).setDurationMillis(10000).setPriority(Priority.PRIORITY_BALANCED_POWER_ACCURACY).build()
             /*LocationRequest.create()
                 .setInterval(interval)
                 .setFastestInterval(interval)*/

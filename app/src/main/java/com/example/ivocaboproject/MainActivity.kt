@@ -201,8 +201,10 @@ fun Dashboard(
             ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
         )
     )
-    LaunchedEffect(Unit) {
-        multiplePermissionState.launchMultiplePermissionRequest()
+    if(!context.hasLocationPermission()) {
+        LaunchedEffect(Unit) {
+            multiplePermissionState.launchMultiplePermissionRequest()
+        }
     }
 
     latLng = LatLng(0.0, 0.0)

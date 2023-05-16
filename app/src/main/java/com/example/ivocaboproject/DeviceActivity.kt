@@ -1,15 +1,27 @@
 package com.example.ivocaboproject
 
+import android.Manifest
+import android.Manifest.permission.ACCESS_COARSE_LOCATION
+import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.Manifest.permission.BLUETOOTH
+import android.Manifest.permission.BLUETOOTH_ADVERTISE
+import android.Manifest.permission.BLUETOOTH_CONNECT
+import android.Manifest.permission.BLUETOOTH_SCAN
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Build
+import android.os.Build.VERSION
 import android.os.Bundle
-import android.os.Handler
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -55,6 +68,8 @@ import androidx.navigation.compose.rememberNavController
 import com.example.ivocaboproject.database.localdb.Device
 import com.example.ivocaboproject.database.localdb.DeviceViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -73,11 +88,16 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class DeviceActivity : ComponentActivity() {
     private val deviceViewModel by viewModels<DeviceViewModel>()
-    private val appHelpers=AppHelpers()
+    private val appHelpers = AppHelpers()
+    private lateinit var bluetoothAdapter: BluetoothAdapter
+    private val REQUEST_ENABLE_BT = 100
+
     @OptIn(ExperimentalMaterial3Api::class)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
         var macaddress = intent.getStringExtra("macaddress").toString()
         val dbdetails = deviceViewModel.getDeviceDetail(macaddress)
 
@@ -87,6 +107,8 @@ class DeviceActivity : ComponentActivity() {
         }
         setContent {
             IvocaboProjectTheme {
+                BluetoothPermissionRequest()
+                SetUpBluetooth()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
                 if (dbdetails == null) {
                     openDeviceEventFormDialog.value = true
@@ -147,24 +169,45 @@ class DeviceActivity : ComponentActivity() {
             }
         }
     }
-    fun getDateTimeTick():String{
-        var result=""
-        try{
+
+    fun getDateTimeTick(): String {
+        var result = ""
+        try {
             this.lifecycleScope.launch {
                 delay(1000)
-                result= com.example.ivocaboproject.appHelpers.getNOWasString()
+                result = com.example.ivocaboproject.appHelpers.getNOWasString()
                 return@launch
             }
-        }
-        catch (exceptition:Exception){
+        } catch (exceptition: Exception) {
 
         }
         return result
     }
+
     private fun GoBackEvent() {
         val intent =
             Intent(this@DeviceActivity, MainActivity::class.java)
         startActivity(intent)
+    }
+
+    @SuppressLint("MissingPermission")
+    @Composable
+    private fun SetUpBluetooth() {
+        val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
+        bluetoothAdapter = bluetoothManager.getAdapter()
+        if (bluetoothAdapter == null) {
+            // Device doesn't support Bluetooth
+        } else {
+            if (bluetoothAdapter?.isEnabled == false) {
+                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+                val launcheractivity=rememberLauncherForActivityResult(contract =ActivityResultContracts.StartActivityForResult(), onResult = {r->
+                    r.resultCode
+                } )
+                launcheractivity.launch(enableBtIntent)
+
+                //startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+            }
+        }
     }
 
     @Composable
@@ -173,6 +216,27 @@ class DeviceActivity : ComponentActivity() {
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
+        }
+    }
+
+    @OptIn(ExperimentalPermissionsApi::class)
+    @Composable
+    fun BluetoothPermissionRequest() {
+        val multiplePermissionState = rememberMultiplePermissionsState(
+            permissions =
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
+                listOf(BLUETOOTH, ACCESS_FINE_LOCATION)
+            } else {
+                listOf(
+                    BLUETOOTH_SCAN,
+                    BLUETOOTH_ADVERTISE,
+                    BLUETOOTH_CONNECT,
+                    ACCESS_COARSE_LOCATION
+                )
+            }
+        )
+        LaunchedEffect(Unit) {
+            multiplePermissionState.launchMultiplePermissionRequest()
         }
     }
 }
@@ -184,6 +248,7 @@ private lateinit var camState: CameraPositionState
 fun DeviceEvents(device: Device) {
     val context = LocalContext.current.applicationContext
     val activity = LocalContext.current as Activity
+
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(latLng, 20f)
@@ -249,7 +314,7 @@ fun DeviceEvents(device: Device) {
                 properties = mapProperties,
                 uiSettings = mapUiSettings
             ) {
-                Marker(state = MarkerState(position = broadCastLocationMessage.value))
+                //Marker(state = MarkerState(position = broadCastLocationMessage.value))
             }
             ScaleBar(
                 modifier = Modifier
@@ -257,8 +322,8 @@ fun DeviceEvents(device: Device) {
                     .align(Alignment.BottomStart), cameraPositionState = cameraPositionState
             )
         }
-        Column(modifier = Modifier.padding(40.dp,0.dp)) {
-            Text(text = DeviceActivity().getDateTimeTick(), color = Color.White, modifier = Modifier)
+        Column(modifier = Modifier.padding(40.dp, 0.dp)) {
+            /*Text(text = DeviceActivity().getDateTimeTick(), color = Color.White, modifier = Modifier)*/
             Row() {
                 TextButton(
                     onClick = { /*TODO*/ },
@@ -289,7 +354,7 @@ fun DeviceEvents(device: Device) {
                 }
 
             }
-            Row(){
+            Row() {
 
             }
         }
