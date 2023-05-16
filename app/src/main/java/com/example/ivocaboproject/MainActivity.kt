@@ -34,13 +34,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CardElevation
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissState
 import androidx.compose.material3.DismissValue
@@ -115,7 +113,6 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
@@ -162,19 +159,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun AppNavigator() {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
-            composable("DeviceList") { RegisterUser(navController) }
         }
     }
 }
 
-lateinit var latLng: LatLng
-lateinit var camState: CameraPositionState
+private lateinit var latLng: LatLng
+private lateinit var camState: CameraPositionState
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -204,7 +201,9 @@ fun Dashboard(
             ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
         )
     )
-
+    LaunchedEffect(Unit) {
+        multiplePermissionState.launchMultiplePermissionRequest()
+    }
 
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
@@ -212,11 +211,6 @@ fun Dashboard(
     }
 
     val broadCastLocationMessage = remember { mutableStateOf(latLng) }
-
-    LaunchedEffect(Unit) {
-        multiplePermissionState.launchMultiplePermissionRequest()
-    }
-
 
     Intent(context, LocationService::class.java).apply {
         action = LocationService.ACTION_START
@@ -346,6 +340,7 @@ fun DeviceList(
             }, dismissContent = {
                 Card(
                     onClick = {
+
                         val intent = Intent(context, DeviceActivity::class.java)
                         intent.putExtra("macaddress", item.macaddress)
                         context.startActivity(intent)
@@ -574,7 +569,7 @@ fun DeviceForm(
                     textStyle = TextStyle(color = Color.White),
                     isError = iserrormacaddress,
                     keyboardOptions = KeyboardOptions(
-                        autoCorrect = false, keyboardType = KeyboardType.Number
+                        autoCorrect = false, keyboardType = KeyboardType.Text
                     ),
                     keyboardActions = KeyboardActions {
                         iserrormacaddress = txtmacaddress.isEmpty()

@@ -35,4 +35,8 @@
     <string name="title_activity_device">DeviceActivity</string>
     <string name="deviceeventalerttitle">Device Event Form</string>
     <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
+    <string name="tracking">Tracking</string>
+    <string name="find">Find</string>
+    <string name="outofrange">Out Of Range</string>
+    <string name="missing">Missing</string>
 </resources>
