@@ -296,7 +296,7 @@ fun Dashboard(
             }
 
             //device list
-            DeviceList(navController, deviceViewState, deviceformsheetState)
+            DeviceList(navController, deviceViewState)
 
         }
     }
@@ -309,7 +309,6 @@ fun Dashboard(
 fun DeviceList(
     navController: NavController,
     state: State<DeviceListViewState>,
-    deviceformsheetState: BottomSheetScaffoldState,
     deviceViewModel: DeviceViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current.applicationContext
@@ -342,11 +341,9 @@ fun DeviceList(
             }, dismissContent = {
                 Card(
                     onClick = {
-
                         val intent = Intent(context, DeviceActivity::class.java)
                         intent.putExtra("macaddress", item.macaddress)
                         context.startActivity(intent)
-
                     },
                     shape = RoundedCornerShape(0.dp),
                     elevation = CardDefaults.cardElevation(1.dp, 1.dp, 1.dp, 2.dp)

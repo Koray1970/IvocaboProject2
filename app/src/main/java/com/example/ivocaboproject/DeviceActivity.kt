@@ -1,6 +1,5 @@
 package com.example.ivocaboproject
 
-import android.Manifest
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.BLUETOOTH
@@ -16,8 +15,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
-import android.os.Build.VERSION
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -37,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,15 +44,20 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SheetState
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,11 +65,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.ivocaboproject.bluetooth.BluetoothClientService
+import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
 import com.example.ivocaboproject.database.localdb.Device
 import com.example.ivocaboproject.database.localdb.DeviceViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
@@ -77,11 +85,10 @@ import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
-import com.google.maps.android.compose.Marker
-import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -200,9 +207,11 @@ class DeviceActivity : ComponentActivity() {
         } else {
             if (bluetoothAdapter?.isEnabled == false) {
                 val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                val launcheractivity=rememberLauncherForActivityResult(contract =ActivityResultContracts.StartActivityForResult(), onResult = {r->
-                    r.resultCode
-                } )
+                val launcheractivity = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.StartActivityForResult(),
+                    onResult = { r ->
+                        r.resultCode
+                    })
                 launcheractivity.launch(enableBtIntent)
 
                 //startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
@@ -244,10 +253,13 @@ class DeviceActivity : ComponentActivity() {
 private lateinit var latLng: LatLng
 private lateinit var camState: CameraPositionState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceEvents(device: Device) {
+    val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
     val activity = LocalContext.current as Activity
+    var trackBottomSheetState=SheetState(skipPartiallyExpanded = false, initialValue = SheetValue.PartiallyExpanded)
 
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
@@ -326,7 +338,11 @@ fun DeviceEvents(device: Device) {
             /*Text(text = DeviceActivity().getDateTimeTick(), color = Color.White, modifier = Modifier)*/
             Row() {
                 TextButton(
-                    onClick = { /*TODO*/ },
+                    onClick = {
+                        scope.launch {
+                            trackBottomSheetState.expand()
+                        }
+                    },
                     modifier = Modifier.wrapContentWidth(),
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
                 ) {
@@ -359,9 +375,47 @@ fun DeviceEvents(device: Device) {
             }
         }
     }
-
+    DeviceTrackPlaceholder(
+        device,
+        trackBottomSheetState
+    )
 }
 
+@ExperimentalMaterial3Api
+@Composable
+fun DeviceTrackPlaceholder(
+    device: Device,
+    bottomSheetState:SheetState,
+    iBluetoothClientViewModel: IBluetoothClientViewModel = hiltViewModel(),
+) {
+    val context= LocalContext.current.applicationContext
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
+    BottomSheetScaffold(
+        scaffoldState = bottomSheetScaffoldState,
+        sheetContainerColor = Color.Black,
+        sheetPeekHeight = 0.dp,
+        topBar = {
+            TopAppBar(modifier = Modifier.fillMaxWidth(),
+                title = {
+                    Column {
+                        Text(text = device.name)
+                        Text(text = device.macaddress, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            )
+        },
+        sheetContent = {
+            Column() {
+                Text(text = "hello")
+            }
+        }
+    ) {}
+    /*Intent(context, BluetoothClientService::class.java).apply {
+        action = BluetoothClientService.ACTION_START
+        putExtra("macaddress", device.macaddress)
+        context.startService(this)
+    }*/
+}
 /*
 @Preview(showBackground = true)
 @Composable

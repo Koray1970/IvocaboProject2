@@ -19,6 +19,8 @@ class ivocaboprojectApplication: Application() {
                 .server(getString(R.string.back4app_server_url))
                 .build());
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            //location track notification
             val channel = NotificationChannel(
                 "location",
                 "Location",
@@ -26,6 +28,15 @@ class ivocaboprojectApplication: Application() {
             )
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
+
+            //Bluetooth track notification
+            val bluetoothchannel = NotificationChannel(
+                "ivocabobluetooth",
+                "IvocaboBluetooth",
+                NotificationManager.IMPORTANCE_DEFAULT
+            )
+            val bluetoothnotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            bluetoothnotificationManager.createNotificationChannel(bluetoothchannel)
         }
     }
 }
