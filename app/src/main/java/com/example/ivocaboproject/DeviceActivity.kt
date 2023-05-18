@@ -14,14 +14,18 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -71,6 +75,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
@@ -100,7 +106,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-private val TAG= DeviceActivity::class.java.simpleName
+
+private val TAG = DeviceActivity::class.java.simpleName
+
 @AndroidEntryPoint
 class DeviceActivity : ComponentActivity() {
     private val deviceViewModel by viewModels<DeviceViewModel>()
@@ -122,9 +130,19 @@ class DeviceActivity : ComponentActivity() {
         }
         setContent {
             IvocaboProjectTheme {
-                BluetoothPermissionRequest()
-                SetUpBluetooth()
-                var trackBottomSheetState= rememberBottomSheetScaffoldState()
+                val launcherMultiplePermissions = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions()
+                ) { permissionsMap ->
+                    val areGranted = permissionsMap.values.reduce { acc, next -> acc && next }
+                    if (areGranted) {
+                        // Use location
+                    } else {
+                        // Show dialog
+                    }
+                }
+
+
+                var trackBottomSheetState = rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
                 if (dbdetails == null) {
                     openDeviceEventFormDialog.value = true
@@ -179,8 +197,9 @@ class DeviceActivity : ComponentActivity() {
                         )
                     }
                 ) {
-
-                    DeviceEvents(dbdetails,trackBottomSheetState)
+                    BluetoothPermissionRequest(launcherMultiplePermissions)
+                    SetUpBluetooth()
+                    DeviceEvents(dbdetails, trackBottomSheetState)
                 }
 
                 DeviceTrackPlaceholder(
@@ -244,8 +263,19 @@ class DeviceActivity : ComponentActivity() {
 
     @OptIn(ExperimentalPermissionsApi::class)
     @Composable
-    fun BluetoothPermissionRequest() {
-        val multiplePermissionState = rememberMultiplePermissionsState(
+    fun BluetoothPermissionRequest(launcher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>) {
+        val permissions =
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
+                arrayOf(BLUETOOTH, ACCESS_FINE_LOCATION)
+            } else {
+                arrayOf(
+                    BLUETOOTH_SCAN,
+                    BLUETOOTH_ADVERTISE,
+                    BLUETOOTH_CONNECT,
+                    ACCESS_FINE_LOCATION
+                )
+            }
+        /*val multiplePermissionState = rememberMultiplePermissionsState(
             permissions =
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
                 listOf(BLUETOOTH, ACCESS_FINE_LOCATION)
@@ -257,9 +287,24 @@ class DeviceActivity : ComponentActivity() {
                     ACCESS_COARSE_LOCATION
                 )
             }
-        )
-        LaunchedEffect(Unit) {
-            multiplePermissionState.launchMultiplePermissionRequest()
+        )*/
+
+
+        if (
+            permissions.all {
+                ContextCompat.checkSelfPermission(
+                    LocalContext.current.applicationContext,
+                    it
+                ) == PackageManager.PERMISSION_GRANTED
+            }
+        ) {
+        } else {
+            LaunchedEffect(Unit){
+                delay(4000)
+                launcher.launch(permissions)
+            }
+            // Request permissions
+
         }
     }
 }
@@ -269,7 +314,7 @@ private lateinit var camState: CameraPositionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceEvents(device: Device,deviceBottomSheetScaffoldState: BottomSheetScaffoldState) {
+fun DeviceEvents(device: Device, deviceBottomSheetScaffoldState: BottomSheetScaffoldState) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
     val activity = LocalContext.current as Activity
@@ -399,21 +444,24 @@ fun DeviceEvents(device: Device,deviceBottomSheetScaffoldState: BottomSheetScaff
 @Composable
 fun DeviceTrackPlaceholder(
     device: Device,
-    bottomSheetState:SheetState,
+    bottomSheetState: SheetState,
     iBluetoothClientViewModel: IBluetoothClientViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
-    val context= LocalContext.current.applicationContext
-    val broadCastDeviceSearchMessage = remember { mutableStateOf(BluetoothClientItemState(false,null,null)) }
+    var connectionController = 0
+    val context = LocalContext.current.applicationContext
+    val broadCastDeviceSearchMessage =
+        remember { mutableStateOf(BluetoothClientItemState(false, null, null)) }
 
     val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         // we will receive data updates in onReceive method.
         override fun onReceive(context: Context?, intent: Intent) {
             // Get extra data included in the Intent
             if (intent.hasExtra("ivocabosearchresult")) {
-                val bluetoothClientItemState= intent.getParcelableExtra<BluetoothClientItemState>("ivocabosearchresult")
+                val bluetoothClientItemState =
+                    intent.getParcelableExtra<BluetoothClientItemState>("ivocabosearchresult")
                 // on below line we are updating the data in our text view.
-                broadCastDeviceSearchMessage.value =bluetoothClientItemState!!
+                broadCastDeviceSearchMessage.value = bluetoothClientItemState!!
             }
         }
     }
@@ -423,29 +471,41 @@ fun DeviceTrackPlaceholder(
 
     val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
+    val backgroundcolor by animateColorAsState(
+        if (!broadCastDeviceSearchMessage.value.errorMassage.isNullOrEmpty())
+            Color.Red
+        else
+            if (broadCastDeviceSearchMessage.value.isloading) {
+                Color.Green
+            } else {
+                Color.LightGray
+            }
+
+    )
+    Log.v(TAG, "isLoading : ${broadCastDeviceSearchMessage.value.isloading} ")
+    Log.v(TAG, "RSSI: ${broadCastDeviceSearchMessage.value.rssi}")
+    Log.v(TAG, "Error: ${broadCastDeviceSearchMessage.value.errorMassage}")
 
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
         sheetPeekHeight = 0.dp,
         sheetSwipeEnabled = true,
+        containerColor = Color.Black,
         sheetContent = {
-            Surface(modifier = Modifier.fillMaxSize()) {
-
+            Surface(modifier = Modifier.fillMaxSize(), color = backgroundcolor) {
                 Text(text = "RSSI : ${broadCastDeviceSearchMessage.value.rssi}")
-
             }
         }
     ) {}
-    Log.v(TAG," : ${bottomSheetState.currentValue}")
-    if(bottomSheetState.currentValue==SheetValue.Expanded){
+    Log.v(TAG, " : ${bottomSheetState.currentValue}")
+    if (bottomSheetState.currentValue == SheetValue.Expanded) {
         Intent(context, BluetoothClientService::class.java).apply {
             action = BluetoothClientService.ACTION_START
             putExtra("macaddress", device.macaddress)
             context.startService(this)
         }
-    }
-    else{
+    } else {
         Intent(context, BluetoothClientService::class.java).apply {
             action = BluetoothClientService.ACTION_START
             putExtra("macaddress", device.macaddress)

@@ -123,6 +123,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 val appHelpers = AppHelpers()
@@ -201,7 +202,7 @@ fun Dashboard(
             ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
         )
     )
-    if(!context.hasLocationPermission()) {
+    if (!context.hasLocationPermission()) {
         LaunchedEffect(Unit) {
             multiplePermissionState.launchMultiplePermissionRequest()
         }
@@ -223,9 +224,12 @@ fun Dashboard(
         override fun onReceive(context: Context?, intent: Intent) {
             // Get extra data included in the Intent
             if (intent.hasExtra("latitude") && intent.hasExtra("longitude")) {
-                latLng=LatLng(intent.getDoubleExtra("latitude", 0.0), intent.getDoubleExtra("longitude", 0.0))
+                latLng = LatLng(
+                    intent.getDoubleExtra("latitude", 0.0),
+                    intent.getDoubleExtra("longitude", 0.0)
+                )
                 // on below line we are updating the data in our text view.
-                broadCastLocationMessage.value =latLng
+                broadCastLocationMessage.value = latLng
 
                 cameraPositionState.move(
                     CameraUpdateFactory.newLatLng(
@@ -341,9 +345,12 @@ fun DeviceList(
             }, dismissContent = {
                 Card(
                     onClick = {
-                        val intent = Intent(context, DeviceActivity::class.java)
-                        intent.putExtra("macaddress", item.macaddress)
-                        context.startActivity(intent)
+                        scope.launch {
+                            val intent = Intent(context, DeviceActivity::class.java)
+                            intent.putExtra("macaddress", item.macaddress)
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            context.startActivity(intent)
+                        }
                     },
                     shape = RoundedCornerShape(0.dp),
                     elevation = CardDefaults.cardElevation(1.dp, 1.dp, 1.dp, 2.dp)

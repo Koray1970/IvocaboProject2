@@ -5,7 +5,11 @@ import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.app.Service
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothProfile
 import android.bluetooth.le.BluetoothLeScanner
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -51,7 +55,7 @@ data class BluetoothClientItemState(
     val isloading: Boolean = true,
     val rssi: Int? = null,
     val errorMassage: String? = null,
-): Parcelable
+) : Parcelable
 
 interface IBluetoothClient {
     fun getDeviceTrack(): Flow<BluetoothClientItemState>
@@ -98,27 +102,81 @@ class BluetoothClient(
     val macaddress: String,
 ) : IBluetoothClient {
     private lateinit var bluetoothLeScanner: BluetoothLeScanner
+    private val TAG = BluetoothClient::class.java.simpleName
+    private lateinit var bluetoothGatt: BluetoothGatt
 
     @SuppressLint("MissingPermission")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun getDeviceTrack(): Flow<BluetoothClientItemState> {
         return callbackFlow {
-            if (!context.hasBluetoothPermission()) {
+            /*if (!context.hasBluetoothPermission()) {
                 throw IBluetoothClient.BluetoothClientException("Missing Bluetooth Permission")
+            }*/
+            var device = bluetoothAdapter.getRemoteDevice(macaddress)
+            //device.createBond()
+
+            val bluetoothGattCallback = object : BluetoothGattCallback() {
+                override fun onConnectionStateChange(
+                    gatt: BluetoothGatt?,
+                    status: Int,
+                    newState: Int
+                ) {
+                    super.onConnectionStateChange(gatt, status, newState)
+                    Log.v(TAG, "Read Remote RSSI : ${gatt?.readRemoteRssi()}")
+                    Log.v(TAG, "Status : $status")
+                    Log.v(TAG, "newState : $newState")
+                    /*when (newState) {
+                        133,
+                        BluetoothProfile.STATE_DISCONNECTING,
+                        BluetoothProfile.STATE_DISCONNECTED -> gatt?.connect()
+
+                        *//*BluetoothProfile.STATE_CONNECTED,
+                        BluetoothProfile.STATE_CONNECTING -> {
+                            gatt?.discoverServices()
+                            gatt?.readPhy()
+                            gatt?.readRemoteRssi()
+                        }*//*
+                    }*/
+                    /*when(status){
+                        BluetoothGatt.GATT_FAILURE->gatt?.connect()
+                        BluetoothGatt.GATT_SUCCESS->{
+                            gatt?.discoverServices()
+                            gatt?.readPhy()
+                            gatt?.readRemoteRssi()}
+                    }*/
+                }
+
+                override fun onReadRemoteRssi(gatt: BluetoothGatt?, rssi: Int, status: Int) {
+                    super.onReadRemoteRssi(gatt, rssi, status)
+                    Log.v(TAG, "RSSI : $rssi")
+                    Log.v(TAG, "onReadRemoteRssi status : $status")
+                    launch {
+                        send(BluetoothClientItemState(true, rssi, null))
+                    }
+                }
             }
-            bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
+
+
+
+            bluetoothGatt = device.connectGatt(context, true, bluetoothGattCallback)
+            bluetoothGatt.readRemoteRssi()
+            bluetoothGatt.readPhy()
+
+            /*bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
             val request = ScanSettings.Builder()
-                .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-                /*.setLegacy(true)
-                .setMatchMode(ScanSettings.MATCH_MODE_STICKY)*/
+                .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                .setNumOfMatches(ScanSettings.MATCH_NUM_ONE_ADVERTISEMENT)
+                *//*.setLegacy(true)
+                .setMatchMode(ScanSettings.MATCH_MODE_STICKY)*//*
                 .build()
-            val filters= mutableListOf<ScanFilter>()
+            val filters = mutableListOf<ScanFilter>()
             filters.add(ScanFilter.Builder().setDeviceAddress(macaddress).build())
+
+
 
             val leScanCallback: ScanCallback = object : ScanCallback() {
                 override fun onScanResult(callbackType: Int, result: ScanResult) {
                     super.onScanResult(callbackType, result)
-                    Log.v("BluetoothClient",result.rssi.toString())
                     launch {
                         send(BluetoothClientItemState(true, result.rssi, null))
                     }
@@ -126,18 +184,24 @@ class BluetoothClient(
 
                 override fun onBatchScanResults(results: MutableList<ScanResult>?) {
                     super.onBatchScanResults(results)
-                    Log.v("BluetoothClient",results?.last()?.rssi.toString())
+                    Log.v("BluetoothClient", results?.last()?.rssi.toString())
                     launch {
                         send(BluetoothClientItemState(true, results?.last()?.rssi, null))
+
                     }
                 }
+
                 override fun onScanFailed(errorCode: Int) {
                     super.onScanFailed(errorCode)
+                    launch {
+                        Log.v(TAG,"Error Code : $errorCode")
+                        send(BluetoothClientItemState(true, null, errorCode.toString()))
+                    }
                 }
             }
 
-            bluetoothLeScanner.startScan(filters,request,leScanCallback)
 
+            bluetoothLeScanner.startScan(filters, request, leScanCallback)*/
 
             awaitClose {
                 if (Build.VERSION.SDK_INT > Build.VERSION_CODES.O) {
@@ -147,9 +211,11 @@ class BluetoothClient(
                             100
                         ) == PackageManager.PERMISSION_GRANTED
                     )
-                        bluetoothLeScanner.stopScan(leScanCallback)
+                        bluetoothGatt.close()
+                    //bluetoothLeScanner.stopScan(leScanCallback)
                 } else {
-                    bluetoothLeScanner.stopScan(leScanCallback)
+                    bluetoothGatt.close()
+                    //bluetoothLeScanner.stopScan(leScanCallback)
                 }
             }
         }
@@ -168,7 +234,7 @@ class BluetoothClientService : Service() {
     override fun onCreate() {
         super.onCreate()
         val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
-        bluetoothAdapter= bluetoothManager.getAdapter()
+        bluetoothAdapter = bluetoothManager.getAdapter()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -179,8 +245,7 @@ class BluetoothClientService : Service() {
             if (bluetoothAdapter != null) {
                 iBluetoothClient =
                     BluetoothClient(applicationContext, bluetoothAdapter!!, macaddress)
-            }
-            else
+            } else
                 stop()
         }
         when (intent?.action) {
