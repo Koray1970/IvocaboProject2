@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -54,23 +56,29 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.ivocaboproject.bluetooth.BluetoothClientItemState
 import com.example.ivocaboproject.bluetooth.BluetoothClientService
 import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
 import com.example.ivocaboproject.database.localdb.Device
@@ -89,9 +97,10 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
+private val TAG= DeviceActivity::class.java.simpleName
 @AndroidEntryPoint
 class DeviceActivity : ComponentActivity() {
     private val deviceViewModel by viewModels<DeviceViewModel>()
@@ -104,7 +113,6 @@ class DeviceActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
         var macaddress = intent.getStringExtra("macaddress").toString()
         val dbdetails = deviceViewModel.getDeviceDetail(macaddress)
 
@@ -116,6 +124,7 @@ class DeviceActivity : ComponentActivity() {
             IvocaboProjectTheme {
                 BluetoothPermissionRequest()
                 SetUpBluetooth()
+                var trackBottomSheetState= rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
                 if (dbdetails == null) {
                     openDeviceEventFormDialog.value = true
@@ -171,8 +180,13 @@ class DeviceActivity : ComponentActivity() {
                     }
                 ) {
 
-                    DeviceEvents(dbdetails)
+                    DeviceEvents(dbdetails,trackBottomSheetState)
                 }
+
+                DeviceTrackPlaceholder(
+                    dbdetails,
+                    trackBottomSheetState.bottomSheetState
+                )
             }
         }
     }
@@ -255,11 +269,12 @@ private lateinit var camState: CameraPositionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DeviceEvents(device: Device) {
+fun DeviceEvents(device: Device,deviceBottomSheetScaffoldState: BottomSheetScaffoldState) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
     val activity = LocalContext.current as Activity
-    var trackBottomSheetState=SheetState(skipPartiallyExpanded = false, initialValue = SheetValue.PartiallyExpanded)
+
+
 
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
@@ -340,7 +355,7 @@ fun DeviceEvents(device: Device) {
                 TextButton(
                     onClick = {
                         scope.launch {
-                            trackBottomSheetState.expand()
+                            deviceBottomSheetScaffoldState.bottomSheetState.expand()
                         }
                     },
                     modifier = Modifier.wrapContentWidth(),
@@ -374,13 +389,12 @@ fun DeviceEvents(device: Device) {
 
             }
         }
+
     }
-    DeviceTrackPlaceholder(
-        device,
-        trackBottomSheetState
-    )
+
 }
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @ExperimentalMaterial3Api
 @Composable
 fun DeviceTrackPlaceholder(
@@ -388,33 +402,56 @@ fun DeviceTrackPlaceholder(
     bottomSheetState:SheetState,
     iBluetoothClientViewModel: IBluetoothClientViewModel = hiltViewModel(),
 ) {
+    val scope = rememberCoroutineScope()
     val context= LocalContext.current.applicationContext
+    val broadCastDeviceSearchMessage = remember { mutableStateOf(BluetoothClientItemState(false,null,null)) }
+
+    val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        // we will receive data updates in onReceive method.
+        override fun onReceive(context: Context?, intent: Intent) {
+            // Get extra data included in the Intent
+            if (intent.hasExtra("ivocabosearchresult")) {
+                val bluetoothClientItemState= intent.getParcelableExtra<BluetoothClientItemState>("ivocabosearchresult")
+                // on below line we are updating the data in our text view.
+                broadCastDeviceSearchMessage.value =bluetoothClientItemState!!
+            }
+        }
+    }
+    LocalBroadcastManager.getInstance(context).registerReceiver(
+        broadcastLocationReceiver, IntentFilter("bluetoothscanresult")
+    )
+
+    val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
+
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
         sheetPeekHeight = 0.dp,
-        topBar = {
-            TopAppBar(modifier = Modifier.fillMaxWidth(),
-                title = {
-                    Column {
-                        Text(text = device.name)
-                        Text(text = device.macaddress, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
-            )
-        },
+        sheetSwipeEnabled = true,
         sheetContent = {
-            Column() {
-                Text(text = "hello")
+            Surface(modifier = Modifier.fillMaxSize()) {
+
+                Text(text = "RSSI : ${broadCastDeviceSearchMessage.value.rssi}")
+
             }
         }
     ) {}
-    /*Intent(context, BluetoothClientService::class.java).apply {
-        action = BluetoothClientService.ACTION_START
-        putExtra("macaddress", device.macaddress)
-        context.startService(this)
-    }*/
+    Log.v(TAG," : ${bottomSheetState.currentValue}")
+    if(bottomSheetState.currentValue==SheetValue.Expanded){
+        Intent(context, BluetoothClientService::class.java).apply {
+            action = BluetoothClientService.ACTION_START
+            putExtra("macaddress", device.macaddress)
+            context.startService(this)
+        }
+    }
+    else{
+        Intent(context, BluetoothClientService::class.java).apply {
+            action = BluetoothClientService.ACTION_START
+            putExtra("macaddress", device.macaddress)
+            context.stopService(this)
+        }
+    }
 }
 /*
 @Preview(showBackground = true)

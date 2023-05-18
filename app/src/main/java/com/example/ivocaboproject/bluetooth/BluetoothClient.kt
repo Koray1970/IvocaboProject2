@@ -16,12 +16,16 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
+import android.os.Parcelable
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.example.ivocaboproject.R
 import com.example.ivocaboproject.hasBluetoothPermission
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,13 +43,15 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.parcelize.Parcelize
 import javax.inject.Inject
 
+@Parcelize
 data class BluetoothClientItemState(
     val isloading: Boolean = true,
     val rssi: Int? = null,
     val errorMassage: String? = null,
-)
+): Parcelable
 
 interface IBluetoothClient {
     fun getDeviceTrack(): Flow<BluetoothClientItemState>
@@ -167,6 +173,7 @@ class BluetoothClientService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
         if (intent?.hasExtra("macaddress") == true) {
             macaddress = intent?.getStringExtra("macaddress").toString()
             if (bluetoothAdapter != null) {
@@ -185,6 +192,7 @@ class BluetoothClientService : Service() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun start() {
+
         val notification = NotificationCompat.Builder(this, "ivocabobluetooth")
             .setContentTitle("Tracking Ivocabo...")
             .setContentText("RSSI: null")
@@ -197,7 +205,14 @@ class BluetoothClientService : Service() {
             val updatedNotification = notification.setContentText(
                 "RSSI: ${it.rssi}"
             )
+            Intent("bluetoothscanresult").apply {
+                putExtra("ivocabosearchresult", it)
+                LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(this)
+            }
+
             notificationManager.notify(1, updatedNotification.build())
+
+
         }.launchIn(serviceScope)
 
         startForeground(1, notification.build())
