@@ -299,7 +299,7 @@ class DeviceActivity : ComponentActivity() {
             }
         ) {
         } else {
-            LaunchedEffect(Unit){
+            LaunchedEffect(Unit) {
                 delay(4000)
                 launcher.launch(permissions)
             }
@@ -472,15 +472,17 @@ fun DeviceTrackPlaceholder(
     val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
     val backgroundcolor by animateColorAsState(
-        if (!broadCastDeviceSearchMessage.value.errorMassage.isNullOrEmpty())
-            Color.Red
-        else
+        if (!broadCastDeviceSearchMessage.value.errorMassage.isNullOrEmpty()) {
+            when (broadCastDeviceSearchMessage.value.errorMassage) {
+                "-100" -> Color.LightGray
+                else -> Color.Red
+            }
+        } else
             if (broadCastDeviceSearchMessage.value.isloading) {
                 Color.Green
             } else {
                 Color.LightGray
             }
-
     )
     Log.v(TAG, "isLoading : ${broadCastDeviceSearchMessage.value.isloading} ")
     Log.v(TAG, "RSSI: ${broadCastDeviceSearchMessage.value.rssi}")

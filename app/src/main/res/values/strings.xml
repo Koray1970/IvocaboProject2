@@ -39,4 +39,7 @@
     <string name="find">Find</string>
     <string name="notifications">Notifications</string>
     <string name="missing">Missing</string>
+    <string name="ivocaboisfarfromyou">Ivocabo is far from you</string>
+    <string name="youareapproaching">You are approaching to Ivocabo</string>
+    <string name="ivocaboisaround">Ivocabo is around</string>
 </resources>
