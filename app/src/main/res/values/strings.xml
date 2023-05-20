@@ -2,6 +2,7 @@
     <string name="app_name">Ivocabo</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
     ,<string name="goback">Go back</string>
     <string name="signin">Sing-in</string>
     <string name="email">E-mail</string>
@@ -42,4 +43,5 @@
     <string name="ivocaboisfarfromyou">Ivocabo is far from you</string>
     <string name="youareapproaching">You are approaching to Ivocabo</string>
     <string name="ivocaboisaround">Ivocabo is around</string>
+    <string name="devicepermissionalerttitle">Ivocabo Device Connect Permissions</string>
 </resources>

@@ -1,6 +1,7 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.example.ivocaboproject
 
-import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.Manifest.permission.BLUETOOTH
 import android.Manifest.permission.BLUETOOTH_ADVERTISE
@@ -25,7 +26,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,6 +38,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
@@ -57,41 +58,52 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.work.Constraints
+import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.PeriodicWorkRequest
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.ivocaboproject.bluetooth.BleScanWorker
 import com.example.ivocaboproject.bluetooth.BluetoothClientItemState
-import com.example.ivocaboproject.bluetooth.BluetoothClientService
+import com.example.ivocaboproject.bluetooth.BluetoothFindRepository
+import com.example.ivocaboproject.bluetooth.BluetoothFindViewModel
 import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
+import com.example.ivocaboproject.bluetooth.dbBluetoothData
 import com.example.ivocaboproject.database.localdb.Device
 import com.example.ivocaboproject.database.localdb.DeviceViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -102,10 +114,11 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.CoroutineContext
 
 private val TAG = DeviceActivity::class.java.simpleName
 
@@ -130,19 +143,10 @@ class DeviceActivity : ComponentActivity() {
         }
         setContent {
             IvocaboProjectTheme {
-                val launcherMultiplePermissions = rememberLauncherForActivityResult(
-                    ActivityResultContracts.RequestMultiplePermissions()
-                ) { permissionsMap ->
-                    val areGranted = permissionsMap.values.reduce { acc, next -> acc && next }
-                    if (areGranted) {
-                        // Use location
-                    } else {
-                        // Show dialog
-                    }
-                }
 
 
                 var trackBottomSheetState = rememberBottomSheetScaffoldState()
+                var findDeviceBottomSheetState = rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
                 if (dbdetails == null) {
                     openDeviceEventFormDialog.value = true
@@ -197,14 +201,17 @@ class DeviceActivity : ComponentActivity() {
                         )
                     }
                 ) {
-                    BluetoothPermissionRequest(launcherMultiplePermissions)
                     SetUpBluetooth()
-                    DeviceEvents(dbdetails, trackBottomSheetState)
+                    DeviceEvents(dbdetails, trackBottomSheetState, findDeviceBottomSheetState)
                 }
 
                 DeviceTrackPlaceholder(
                     dbdetails,
                     trackBottomSheetState.bottomSheetState
+                )
+                DeviceFindPlaceholder(
+                    device = dbdetails,
+                    bottomSheetState = findDeviceBottomSheetState.bottomSheetState
                 )
             }
         }
@@ -309,17 +316,155 @@ class DeviceActivity : ComponentActivity() {
     }
 }
 
+
 private lateinit var latLng: LatLng
 private lateinit var camState: CameraPositionState
+private fun permmissions(): List<String> {
+    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
+        return listOf(BLUETOOTH, ACCESS_FINE_LOCATION)
+    }
+    return listOf(BLUETOOTH_SCAN, BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, ACCESS_FINE_LOCATION)
+}
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun DeviceEvents(device: Device, deviceBottomSheetScaffoldState: BottomSheetScaffoldState) {
+fun PermissionStateInit() {
+    val context = LocalContext.current.applicationContext
+    val openPermissionDialog = remember { mutableStateOf(false) }
+    val permissionsState = rememberMultiplePermissionsState(permissions = permmissions())
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(key1 = lifecycleOwner, effect = {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                permissionsState.launchMultiplePermissionRequest()
+                openPermissionDialog.value = true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    })
+    if (openPermissionDialog.value) {
+        AlertDialog(
+            onDismissRequest = {
+                openPermissionDialog.value = false
+            },
+            icon = { Icon(Icons.Filled.Info, "") },
+            title = { Text(text = context.getString(R.string.devicepermissionalerttitle)) },
+            text = {
+                Column {
+                    permissionsState.permissions.forEach {
+                        when (it.permission) {
+                            ACCESS_FINE_LOCATION -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Location permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Location permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the location permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH_SCAN -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth scan permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth scan permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth scan permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH_ADVERTISE -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth advertise permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth advertise permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth advertise permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH_CONNECT -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth connect permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth connect permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth connect permission.")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    openPermissionDialog.value = false
+                }) {
+                    Text(text = context.getString(R.string.ok))
+                }
+            }
+        )
+
+
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@Composable
+fun DeviceEvents(
+    device: Device,
+    deviceBottomSheetScaffoldState: BottomSheetScaffoldState,
+    findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState
+) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
     val activity = LocalContext.current as Activity
-
-
+    if (!context.hasBluetoothPermission())
+        PermissionStateInit()
 
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
@@ -399,9 +544,25 @@ fun DeviceEvents(device: Device, deviceBottomSheetScaffoldState: BottomSheetScaf
             Row() {
                 TextButton(
                     onClick = {
-                        scope.launch {
+                        /*val myConstraints = Constraints.Builder()
+                            .setRequiredNetworkType(NetworkType.CONNECTED)
+                            .build()*/
+
+                        val inptData =
+                            Data.Builder().putString("macaddress", device.macaddress).build()
+                        val startScanWorkRequest =
+                            PeriodicWorkRequestBuilder<BleScanWorker>(1, TimeUnit.MINUTES)
+                                //.setConstraints(myConstraints)
+                                //.setInitialDelay(1,TimeUnit.SECONDS)
+                                .setInputData(inptData).build()
+                        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                            "myWorkManager",
+                            ExistingPeriodicWorkPolicy.KEEP, startScanWorkRequest
+                        )
+
+                        /*scope.launch {
                             deviceBottomSheetScaffoldState.bottomSheetState.expand()
-                        }
+                        }*/
                     },
                     modifier = Modifier.wrapContentWidth(),
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
@@ -416,7 +577,11 @@ fun DeviceEvents(device: Device, deviceBottomSheetScaffoldState: BottomSheetScaf
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 TextButton(
-                    onClick = { /*TODO*/ },
+                    onClick = {
+                        scope.launch {
+                            findDeviceBottomSheetScaffoldState.bottomSheetState.expand()
+                        }
+                    },
                     modifier = Modifier.wrapContentWidth(),
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
                 ) {
@@ -439,6 +604,52 @@ fun DeviceEvents(device: Device, deviceBottomSheetScaffoldState: BottomSheetScaf
 
 }
 
+@Composable
+fun DeviceFindPlaceholder(
+    device: Device,
+    bottomSheetState: SheetState,
+    bluetoothFindViewModel: BluetoothFindViewModel = hiltViewModel()
+) {
+    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
+    val devicefinddata by bluetoothFindViewModel.consumableState().collectAsState(dbBluetoothData(null,""))
+    when (bottomSheetState.currentValue) {
+        SheetValue.Expanded -> {
+            LaunchedEffect(Unit) {
+                bluetoothFindViewModel.startScan(device.macaddress)
+                //Log.v(TAG, "RSSI: $rssi")
+            }
+        }
+
+        else -> {
+            LaunchedEffect(Unit) {
+                if (bluetoothFindViewModel.isScanning.value) {
+                    bluetoothFindViewModel.consumableState().value
+                    bluetoothFindViewModel.stopScanning()
+                }
+            }
+        }
+    }
+
+    BottomSheetScaffold(
+        scaffoldState = bottomSheetScaffoldState,
+        sheetContainerColor = Color.Black,
+        sheetPeekHeight = 0.dp,
+        sheetSwipeEnabled = true,
+        containerColor = Color.Black,
+        sheetContent = {
+            Surface(modifier = Modifier.fillMaxSize(), color = Color.Magenta) {
+                Column{
+                    Text(text = "RSSI : ${devicefinddata.rssi}")
+                    Text(text = "Distance : ${devicefinddata.distance}")
+                }
+
+            }
+        }
+    ) {}
+
+
+}
+
 @SuppressLint("StateFlowValueCalledInComposition")
 @ExperimentalMaterial3Api
 @Composable
@@ -450,10 +661,12 @@ fun DeviceTrackPlaceholder(
     val scope = rememberCoroutineScope()
     var connectionController = 0
     val context = LocalContext.current.applicationContext
+
+
     val broadCastDeviceSearchMessage =
         remember { mutableStateOf(BluetoothClientItemState(false, null, null)) }
 
-    val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+    /*val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         // we will receive data updates in onReceive method.
         override fun onReceive(context: Context?, intent: Intent) {
             // Get extra data included in the Intent
@@ -467,7 +680,7 @@ fun DeviceTrackPlaceholder(
     }
     LocalBroadcastManager.getInstance(context).registerReceiver(
         broadcastLocationReceiver, IntentFilter("bluetoothscanresult")
-    )
+    )*/
 
     val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
@@ -500,7 +713,7 @@ fun DeviceTrackPlaceholder(
             }
         }
     ) {}
-    Log.v(TAG, " : ${bottomSheetState.currentValue}")
+    /*Log.v(TAG, " : ${bottomSheetState.currentValue}")
     if (bottomSheetState.currentValue == SheetValue.Expanded) {
         Intent(context, BluetoothClientService::class.java).apply {
             action = BluetoothClientService.ACTION_START
@@ -513,7 +726,7 @@ fun DeviceTrackPlaceholder(
             putExtra("macaddress", device.macaddress)
             context.stopService(this)
         }
-    }
+    }*/
 }
 /*
 @Preview(showBackground = true)
