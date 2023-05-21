@@ -79,22 +79,17 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.viewModelScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.work.Constraints
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.NetworkType
-import androidx.work.PeriodicWorkRequest
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.example.ivocaboproject.bluetooth.BleScanWorker
 import com.example.ivocaboproject.bluetooth.BluetoothClientItemState
-import com.example.ivocaboproject.bluetooth.BluetoothFindRepository
 import com.example.ivocaboproject.bluetooth.BluetoothFindViewModel
+import com.example.ivocaboproject.bluetooth.BluetoothleConnect
 import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
 import com.example.ivocaboproject.bluetooth.dbBluetoothData
 import com.example.ivocaboproject.database.localdb.Device
@@ -114,11 +109,10 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.CoroutineContext
 
 private val TAG = DeviceActivity::class.java.simpleName
 
@@ -547,8 +541,14 @@ fun DeviceEvents(
                         /*val myConstraints = Constraints.Builder()
                             .setRequiredNetworkType(NetworkType.CONNECTED)
                             .build()*/
+                        val bluetoothleConnect =
+                            BluetoothleConnect(context, device.macaddress, false)
+                        GlobalScope.launch {
+                            bluetoothleConnect.startScan()
+                        }
 
-                        val inptData =
+
+                        /*val inptData =
                             Data.Builder().putString("macaddress", device.macaddress).build()
                         val startScanWorkRequest =
                             PeriodicWorkRequestBuilder<BleScanWorker>(1, TimeUnit.MINUTES)
@@ -558,7 +558,7 @@ fun DeviceEvents(
                         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                             "myWorkManager",
                             ExistingPeriodicWorkPolicy.KEEP, startScanWorkRequest
-                        )
+                        )*/
 
                         /*scope.launch {
                             deviceBottomSheetScaffoldState.bottomSheetState.expand()
@@ -611,7 +611,8 @@ fun DeviceFindPlaceholder(
     bluetoothFindViewModel: BluetoothFindViewModel = hiltViewModel()
 ) {
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    val devicefinddata by bluetoothFindViewModel.consumableState().collectAsState(dbBluetoothData(null,""))
+    val devicefinddata by bluetoothFindViewModel.consumableState()
+        .collectAsState(dbBluetoothData(null, ""))
     when (bottomSheetState.currentValue) {
         SheetValue.Expanded -> {
             LaunchedEffect(Unit) {
@@ -638,7 +639,7 @@ fun DeviceFindPlaceholder(
         containerColor = Color.Black,
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = Color.Magenta) {
-                Column{
+                Column {
                     Text(text = "RSSI : ${devicefinddata.rssi}")
                     Text(text = "Distance : ${devicefinddata.distance}")
                 }
