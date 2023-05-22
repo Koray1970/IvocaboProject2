@@ -46,7 +46,6 @@ class BluetoothFindRepository() : IBluetoothFind {
     override fun stopScan() {
         TODO("Not yet implemented")
     }
-
 }
 
 data class dbBluetoothData(var rssi: Int?, var distance: String)

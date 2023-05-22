@@ -326,7 +326,7 @@ class BluetoothClientService : Service() {
                 LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(this)
             }
 
-            notificationManager.notify(1, updatedNotification.build())
+            //notificationManager.notify(1, updatedNotification.build())
 
 
         }.launchIn(serviceScope)

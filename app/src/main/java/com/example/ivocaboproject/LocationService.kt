@@ -46,7 +46,7 @@ class LocationService : Service() {
             .setSmallIcon(R.drawable.ic_launcher_background)
             .setOngoing(true)
 
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        //val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         locationClient
             .getLocationUpdates(10000L)
@@ -54,18 +54,18 @@ class LocationService : Service() {
             .onEach { location ->
                 val lat = location.latitude.toString()//.takeLast(3)
                 val long = location.longitude.toString()//.takeLast(3)
-                val updatedNotification = notification.setContentText(
+               /* val updatedNotification = notification.setContentText(
                     "Location: ($lat, $long)"
-                )
+                )*/
                 val intlatlng=Intent("currentlocation")
                 intlatlng.putExtra("latitude",location.latitude)
                 intlatlng.putExtra("longitude",location.longitude)
                 LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intlatlng)
-                notificationManager.notify(1, updatedNotification.build())
+                //notificationManager.notify(1, updatedNotification.build())
             }
             .launchIn(serviceScope)
 
-        startForeground(1, notification.build())
+        //startForeground(1, notification.build())
     }
 
     private fun stop() {
