@@ -543,8 +543,15 @@ fun DeviceEvents(
                             .build()*/
                         val bluetoothleConnect =
                             BluetoothleConnect(context, device.macaddress, false)
+                        bluetoothleConnect.startScan()
+                        val scanInterval = 120000L
                         GlobalScope.launch {
-                            bluetoothleConnect.startScan()
+                            while (true) {
+                                delay(6000L)
+                                bluetoothleConnect.stopScan()
+                                delay(scanInterval)
+                                bluetoothleConnect.startScan()
+                            }
                         }
 
 
