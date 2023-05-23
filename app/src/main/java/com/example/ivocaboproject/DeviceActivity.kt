@@ -115,8 +115,10 @@ import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.EmptyCoroutineContext
 
 private val TAG = DeviceActivity::class.java.simpleName
 
@@ -543,7 +545,11 @@ fun DeviceEvents(
                 TextButton(
                     onClick = {
 
-
+                        Intent(context, BluetoothTrackService::class.java).apply {
+                            action = BluetoothTrackService.SERVICE_START
+                            putExtra("macaddress", device.macaddress)
+                            context.startService(this)
+                        }
                         scope.launch {
                             deviceBottomSheetScaffoldState.bottomSheetState.expand()
                         }
@@ -647,33 +653,33 @@ fun DeviceTrackPlaceholder(
     var connectionController = 0
     val context = LocalContext.current.applicationContext
 
-    var trackReceiveData = remember { mutableStateOf(BluetoothTrackResponseItems(false, false, null, null, null)) }
+
     val trackBroadcastReceiver= remember {
         val receiver=BluetoohTackReceiver()
         LocalBroadcastManager.getInstance(context).registerReceiver(receiver, IntentFilter("SCANNING_RESULT"))
         receiver
     }
+
+    val trackReceiveData by trackBroadcastReceiver.scanResult.collectAsState(BluetoothTrackResponseItems(false, false, null, null, null))
     SideEffect {
-        trackReceiveData.value=trackBroadcastReceiver.scanResult
+
+
     }
     val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
     val backgroundcolor by animateColorAsState(
-        if (trackReceiveData.value.hasError) {
-            when (trackReceiveData.value.errorCode) {
+        if (trackReceiveData.hasError) {
+            when (trackReceiveData.errorCode) {
                 "-100" -> Color.LightGray
                 else -> Color.Red
             }
         } else
-            if (trackReceiveData.value.isScanning == true) {
+            if (trackReceiveData.isScanning == true) {
                 Color.Green
             } else {
                 Color.LightGray
             }
     )
-    Log.v(TAG, "isLoading : ${trackReceiveData.value.isScanning} ")
-    Log.v(TAG, "RSSI: ${trackReceiveData.value.rssi}")
-    Log.v(TAG, "Error: ${trackReceiveData.value.errorCode}")
 
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
@@ -683,23 +689,21 @@ fun DeviceTrackPlaceholder(
         containerColor = Color.Black,
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = backgroundcolor) {
-                Text(text = "RSSI : ${trackReceiveData.value.rssi}")
+                Text(text = "RSSI : ${trackReceiveData.rssi}")
             }
         }
     ) {}
-
-    if (bottomSheetState.currentValue == SheetValue.Expanded) {
-        Intent(context, BluetoothTrackService::class.java).apply {
-            action = BluetoothTrackService.SERVICE_START
-            putExtra("macaddress", device.macaddress)
-            context.startService(this)
-        }
-    } else {
-        Intent(context, BluetoothTrackService::class.java).apply {
-            action = BluetoothTrackService.SERVICE_STOP
-            context.stopService(this)
+    LaunchedEffect(bottomSheetState.currentValue ){
+        Log.v(TAG,"bottomSheetState.targetValue : ${bottomSheetState.targetValue}")
+        if (bottomSheetState.currentValue==SheetValue.PartiallyExpanded) {
+            Intent(context, BluetoothTrackService::class.java).apply {
+                //action = BluetoothTrackService.SERVICE_STOP
+                context.stopService(this)
+            }
         }
     }
+
+
 }
 /*
 @Preview(showBackground = true)

@@ -105,18 +105,15 @@ class BluetoothFindViewModel @Inject constructor(
             Log.v(TAG, "LRSSI -> ${result?.rssi}")
             Log.v(TAG, "LTXP -> ${result?.txPower}")
 
-
-
             if (result != null) {
                 viewModelScope.launch {
                     val srssi = if (result?.rssi != null) result.rssi.toDouble() else 0.0
                     var stxp = if (result?.txPower != null) result.txPower.toDouble() else 0.0
-                    val realdist=10.0.pow((stxp - srssi) / (10 * 2.4))
+                    val realdist=10.0.pow(((-59) - (srssi)) / (10 * 2))
                     val dd = realdist.toString()
                     Log.v(TAG, "Distance -> $dd")
                     data.value = dbBluetoothData(result.rssi, dd)
                 }
-
             }
         }
 

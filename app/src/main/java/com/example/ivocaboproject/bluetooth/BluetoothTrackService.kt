@@ -29,7 +29,7 @@ data class BluetoothTrackResponseItems(
     var hasError: Boolean = false,
     var errorCode: String?,
     var rssi: Int?,
-    var txtpower: Int?
+    var txtpower: Int?,
 ) : Parcelable
 
 
@@ -39,12 +39,14 @@ class BluetoothTrackService : Service() {
     private val RESULT_INTENT_ACTION_NAME = "SCANNING_RESULT"
     private val RESULT_INTENT_NAME = "data"
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var bluetoothManager: BluetoothManager
     private lateinit var macaddress: String
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private lateinit var bluetoothLeScanner: BluetoothLeScanner
     private var scanSettings: ScanSettings =
         ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build()
     private lateinit var scanFilter: MutableList<ScanFilter>
+    private var isLooping = true
 
     companion object {
         const val SERVICE_START = "SERVICE_START"
@@ -56,8 +58,8 @@ class BluetoothTrackService : Service() {
     }
 
     override fun onCreate() {
-        val bluetoothManager = getSystemService<BluetoothManager>(BluetoothManager::class.java)
-        bluetoothAdapter = bluetoothManager.adapter
+
+
         super.onCreate()
     }
 
@@ -68,7 +70,8 @@ class BluetoothTrackService : Service() {
                 mutableListOf<ScanFilter>(ScanFilter.Builder().setDeviceAddress(macaddress).build())
         } else {
             Intent(RESULT_INTENT_ACTION_NAME).apply {
-                putExtra(RESULT_INTENT_NAME,
+                putExtra(
+                    RESULT_INTENT_NAME,
                     gson.toJson(
                         BluetoothTrackResponseItems(false, true, "-220", null, null)
                     )
@@ -77,7 +80,11 @@ class BluetoothTrackService : Service() {
             }
         }
         when (intent?.action) {
-            SERVICE_START -> eventHolder()
+            SERVICE_START -> {
+                isLooping = true
+                eventHolder()
+            }
+
             SERVICE_STOP -> stopServising()
         }
         return super.onStartCommand(intent, flags, startId)
@@ -86,11 +93,13 @@ class BluetoothTrackService : Service() {
     private fun eventHolder() {
         startScan()
         serviceScope.launch {
-            while (true) {
-                delay(8000L)
+            delay(30000L)
+            while (isLooping==true) {
+
                 stopScan()
-                delay(16000L)
+                delay(8000L)
                 startScan()
+                delay(30000L)
             }
         }
     }
@@ -98,6 +107,9 @@ class BluetoothTrackService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun startScan() {
+        bluetoothManager = getSystemService<BluetoothManager>(BluetoothManager::class.java)
+        bluetoothAdapter = bluetoothManager.adapter
+
         if (bluetoothAdapter.isEnabled) {
             if (scanFilter.size > 0) {
                 bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
@@ -111,11 +123,13 @@ class BluetoothTrackService : Service() {
     @SuppressLint("MissingPermission")
     private fun stopScan() {
         bluetoothLeScanner.stopScan(scanCallback)
+        Log.v(TAG, "Service stopping2...")
     }
 
     private fun stopServising() {
         stopScan()
         stopSelf()
+        Log.v(TAG, "Service stopping1...")
     }
 
     private val scanCallback = object : ScanCallback() {
@@ -123,10 +137,11 @@ class BluetoothTrackService : Service() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
             if (result != null) {
-                Log.v(TAG,"RSSI : ${result.rssi}")
+                Log.v(TAG, "RSSI : ${result.rssi}")
 
                 Intent(RESULT_INTENT_ACTION_NAME).apply {
-                    putExtra(RESULT_INTENT_NAME,
+                    putExtra(
+                        RESULT_INTENT_NAME,
                         gson.toJson(
                             BluetoothTrackResponseItems(
                                 true,
@@ -136,7 +151,7 @@ class BluetoothTrackService : Service() {
                                 result.txPower
                             )
                         )
-                        )
+                    )
                     LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(this)
                 }
             }
@@ -144,10 +159,11 @@ class BluetoothTrackService : Service() {
 
         override fun onScanFailed(errorCode: Int) {
             super.onScanFailed(errorCode)
-            Log.v(TAG,"errorCode : $errorCode")
+            Log.v(TAG, "errorCode : $errorCode")
 
             Intent(RESULT_INTENT_ACTION_NAME).apply {
-                putExtra(RESULT_INTENT_NAME,
+                putExtra(
+                    RESULT_INTENT_NAME,
                     gson.toJson(
                         BluetoothTrackResponseItems(
                             true,
@@ -163,8 +179,13 @@ class BluetoothTrackService : Service() {
         }
     }
 
+    @SuppressLint("MissingPermission")
     override fun onDestroy() {
-        stopScan()
+        isLooping = false
+        serviceScope.launch {
+            bluetoothLeScanner.stopScan(scanCallback)
+        }
+        Log.v(TAG, "Service destroyed...")
         super.onDestroy()
     }
 

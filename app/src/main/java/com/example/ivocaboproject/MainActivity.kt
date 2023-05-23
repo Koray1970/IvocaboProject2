@@ -97,6 +97,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.ivocaboproject.bluetooth.IvocaboFetcher
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.example.ivocaboproject.database.EventResultFlags
@@ -125,6 +128,7 @@ import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 val appHelpers = AppHelpers()
 
@@ -208,6 +212,12 @@ fun Dashboard(
         }
     }
 
+
+    val workRequest = PeriodicWorkRequestBuilder<IvocaboFetcher>(15, TimeUnit.MINUTES)
+        //.setInitialDelay(30, TimeUnit.MINUTES) // Optional initial delay before the first execution
+        .build()
+
+    WorkManager.getInstance(context).enqueue(workRequest)
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(latLng, 20f)
@@ -259,6 +269,8 @@ fun Dashboard(
             )
         )
     }
+
+
 
     val deviceformsheetState = rememberBottomSheetScaffoldState()
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
