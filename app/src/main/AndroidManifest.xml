@@ -54,8 +54,10 @@
         <receiver
             android:name=".bluetooth.BluetoohTackReceiver"
             android:enabled="true"
-            android:exported="true">
-
+            android:exported="false">
+            <intent-filter>
+                <action android:name="SCANNING_RESULT"></action>
+            </intent-filter>
         </receiver>
 
         <service

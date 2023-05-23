@@ -13,10 +13,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.os.Parcelable
+import android.util.Log
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
 @Parcelize
@@ -32,7 +36,8 @@ data class BluetoothTrackResponseItems(
 class BluetoothTrackService : Service() {
     private val TAG = BluetoothTrackService::class.java.simpleName
     private val gson: Gson = Gson()
-    private val RESULT_INTENT_NAME = "ScanningResult"
+    private val RESULT_INTENT_ACTION_NAME = "SCANNING_RESULT"
+    private val RESULT_INTENT_NAME = "data"
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private lateinit var macaddress: String
     private lateinit var bluetoothAdapter: BluetoothAdapter
@@ -40,6 +45,11 @@ class BluetoothTrackService : Service() {
     private var scanSettings: ScanSettings =
         ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED).build()
     private lateinit var scanFilter: MutableList<ScanFilter>
+
+    companion object {
+        const val SERVICE_START = "SERVICE_START"
+        const val SERVICE_STOP = "SERVICE_STOP"
+    }
 
     override fun onBind(intent: Intent): IBinder? {
         return null
@@ -57,23 +67,30 @@ class BluetoothTrackService : Service() {
             scanFilter =
                 mutableListOf<ScanFilter>(ScanFilter.Builder().setDeviceAddress(macaddress).build())
         } else {
-            val onStartIntent = Intent(RESULT_INTENT_NAME)
-            onStartIntent.putExtra(
-                "data",
-                gson.toJson(
-                    BluetoothTrackResponseItems(false, true, "-220", null, null)
+            Intent(RESULT_INTENT_ACTION_NAME).apply {
+                putExtra(RESULT_INTENT_NAME,
+                    gson.toJson(
+                        BluetoothTrackResponseItems(false, true, "-220", null, null)
+                    )
                 )
-            )
-            sendBroadcast(onStartIntent)
+                LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(this)
+            }
+        }
+        when (intent?.action) {
+            SERVICE_START -> eventHolder()
+            SERVICE_STOP -> stopServising()
         }
         return super.onStartCommand(intent, flags, startId)
     }
 
-    private val serviceReceiver = object : BluetoohTackReceiver() {
-        override fun stopTrack(data: Boolean?) {
-            if (data != null && data == true) {
+    private fun eventHolder() {
+        startScan()
+        serviceScope.launch {
+            while (true) {
+                delay(8000L)
                 stopScan()
-                stopSelf()
+                delay(16000L)
+                startScan()
             }
         }
     }
@@ -84,7 +101,9 @@ class BluetoothTrackService : Service() {
         if (bluetoothAdapter.isEnabled) {
             if (scanFilter.size > 0) {
                 bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
+
                 bluetoothLeScanner.startScan(scanFilter, scanSettings, scanCallback)
+
             }
         }
     }
@@ -94,50 +113,58 @@ class BluetoothTrackService : Service() {
         bluetoothLeScanner.stopScan(scanCallback)
     }
 
+    private fun stopServising() {
+        stopScan()
+        stopSelf()
+    }
+
     private val scanCallback = object : ScanCallback() {
         @SuppressLint("NewApi")
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
             if (result != null) {
-                val resultIntent = Intent(RESULT_INTENT_NAME)
-                resultIntent.putExtra(
-                    "data",
-                    gson.toJson(
-                        BluetoothTrackResponseItems(
-                            true,
-                            false,
-                            null,
-                            result.rssi,
-                            result.txPower
+                Log.v(TAG,"RSSI : ${result.rssi}")
+
+                Intent(RESULT_INTENT_ACTION_NAME).apply {
+                    putExtra(RESULT_INTENT_NAME,
+                        gson.toJson(
+                            BluetoothTrackResponseItems(
+                                true,
+                                false,
+                                null,
+                                result.rssi,
+                                result.txPower
+                            )
                         )
-                    )
-                )
-                sendBroadcast(resultIntent)
+                        )
+                    LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(this)
+                }
             }
         }
 
         override fun onScanFailed(errorCode: Int) {
             super.onScanFailed(errorCode)
-            val errorIntent = Intent(RESULT_INTENT_NAME)
-            errorIntent.putExtra(
-                "data",
-                gson.toJson(
-                    BluetoothTrackResponseItems(
-                        true,
-                        true,
-                        errorCode.toString(),
-                        null,
-                        null
+            Log.v(TAG,"errorCode : $errorCode")
+
+            Intent(RESULT_INTENT_ACTION_NAME).apply {
+                putExtra(RESULT_INTENT_NAME,
+                    gson.toJson(
+                        BluetoothTrackResponseItems(
+                            true,
+                            true,
+                            errorCode.toString(),
+                            null,
+                            null
+                        )
                     )
                 )
-            )
-            sendBroadcast(errorIntent)
+                LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(this)
+            }
         }
     }
 
     override fun onDestroy() {
         stopScan()
-        stopSelf()
         super.onDestroy()
     }
 

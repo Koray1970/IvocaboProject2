@@ -61,6 +61,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,8 +88,11 @@ import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.ivocaboproject.bluetooth.BluetoohTackReceiver
 import com.example.ivocaboproject.bluetooth.BluetoothClientItemState
 import com.example.ivocaboproject.bluetooth.BluetoothFindViewModel
+import com.example.ivocaboproject.bluetooth.BluetoothTrackResponseItems
+import com.example.ivocaboproject.bluetooth.BluetoothTrackService
 import com.example.ivocaboproject.bluetooth.BluetoothleConnect
 import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
 import com.example.ivocaboproject.bluetooth.dbBluetoothData
@@ -538,38 +542,11 @@ fun DeviceEvents(
             Row() {
                 TextButton(
                     onClick = {
-                        /*val myConstraints = Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build()*/
-                        val bluetoothleConnect =
-                            BluetoothleConnect(context, device.macaddress, false)
-                        bluetoothleConnect.startScan()
-                        val scanInterval = 120000L
-                        GlobalScope.launch {
-                            while (true) {
-                                delay(6000L)
-                                bluetoothleConnect.stopScan()
-                                delay(scanInterval)
-                                bluetoothleConnect.startScan()
-                            }
-                        }
 
 
-                        /*val inptData =
-                            Data.Builder().putString("macaddress", device.macaddress).build()
-                        val startScanWorkRequest =
-                            PeriodicWorkRequestBuilder<BleScanWorker>(1, TimeUnit.MINUTES)
-                                //.setConstraints(myConstraints)
-                                //.setInitialDelay(1,TimeUnit.SECONDS)
-                                .setInputData(inptData).build()
-                        WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                            "myWorkManager",
-                            ExistingPeriodicWorkPolicy.KEEP, startScanWorkRequest
-                        )*/
-
-                        /*scope.launch {
+                        scope.launch {
                             deviceBottomSheetScaffoldState.bottomSheetState.expand()
-                        }*/
+                        }
                     },
                     modifier = Modifier.wrapContentWidth(),
                     colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
@@ -670,44 +647,33 @@ fun DeviceTrackPlaceholder(
     var connectionController = 0
     val context = LocalContext.current.applicationContext
 
-
-    val broadCastDeviceSearchMessage =
-        remember { mutableStateOf(BluetoothClientItemState(false, null, null)) }
-
-    /*val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        // we will receive data updates in onReceive method.
-        override fun onReceive(context: Context?, intent: Intent) {
-            // Get extra data included in the Intent
-            if (intent.hasExtra("ivocabosearchresult")) {
-                val bluetoothClientItemState =
-                    intent.getParcelableExtra<BluetoothClientItemState>("ivocabosearchresult")
-                // on below line we are updating the data in our text view.
-                broadCastDeviceSearchMessage.value = bluetoothClientItemState!!
-            }
-        }
+    var trackReceiveData = remember { mutableStateOf(BluetoothTrackResponseItems(false, false, null, null, null)) }
+    val trackBroadcastReceiver= remember {
+        val receiver=BluetoohTackReceiver()
+        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, IntentFilter("SCANNING_RESULT"))
+        receiver
     }
-    LocalBroadcastManager.getInstance(context).registerReceiver(
-        broadcastLocationReceiver, IntentFilter("bluetoothscanresult")
-    )*/
-
+    SideEffect {
+        trackReceiveData.value=trackBroadcastReceiver.scanResult
+    }
     val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
     val backgroundcolor by animateColorAsState(
-        if (!broadCastDeviceSearchMessage.value.errorMassage.isNullOrEmpty()) {
-            when (broadCastDeviceSearchMessage.value.errorMassage) {
+        if (trackReceiveData.value.hasError) {
+            when (trackReceiveData.value.errorCode) {
                 "-100" -> Color.LightGray
                 else -> Color.Red
             }
         } else
-            if (broadCastDeviceSearchMessage.value.isloading) {
+            if (trackReceiveData.value.isScanning == true) {
                 Color.Green
             } else {
                 Color.LightGray
             }
     )
-    Log.v(TAG, "isLoading : ${broadCastDeviceSearchMessage.value.isloading} ")
-    Log.v(TAG, "RSSI: ${broadCastDeviceSearchMessage.value.rssi}")
-    Log.v(TAG, "Error: ${broadCastDeviceSearchMessage.value.errorMassage}")
+    Log.v(TAG, "isLoading : ${trackReceiveData.value.isScanning} ")
+    Log.v(TAG, "RSSI: ${trackReceiveData.value.rssi}")
+    Log.v(TAG, "Error: ${trackReceiveData.value.errorCode}")
 
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
@@ -717,24 +683,23 @@ fun DeviceTrackPlaceholder(
         containerColor = Color.Black,
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = backgroundcolor) {
-                Text(text = "RSSI : ${broadCastDeviceSearchMessage.value.rssi}")
+                Text(text = "RSSI : ${trackReceiveData.value.rssi}")
             }
         }
     ) {}
-    /*Log.v(TAG, " : ${bottomSheetState.currentValue}")
+
     if (bottomSheetState.currentValue == SheetValue.Expanded) {
-        Intent(context, BluetoothClientService::class.java).apply {
-            action = BluetoothClientService.ACTION_START
+        Intent(context, BluetoothTrackService::class.java).apply {
+            action = BluetoothTrackService.SERVICE_START
             putExtra("macaddress", device.macaddress)
             context.startService(this)
         }
     } else {
-        Intent(context, BluetoothClientService::class.java).apply {
-            action = BluetoothClientService.ACTION_START
-            putExtra("macaddress", device.macaddress)
+        Intent(context, BluetoothTrackService::class.java).apply {
+            action = BluetoothTrackService.SERVICE_STOP
             context.stopService(this)
         }
-    }*/
+    }
 }
 /*
 @Preview(showBackground = true)
