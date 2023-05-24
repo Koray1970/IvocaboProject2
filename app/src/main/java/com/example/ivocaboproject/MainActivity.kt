@@ -63,6 +63,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -97,6 +98,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.ivocaboproject.bluetooth.IvocaboFetcher
@@ -116,6 +119,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.gson.Gson
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
@@ -177,6 +181,7 @@ class MainActivity : ComponentActivity() {
 
 private lateinit var latLng: LatLng
 private lateinit var camState: CameraPositionState
+private val gson: Gson = Gson()
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -213,11 +218,7 @@ fun Dashboard(
     }
 
 
-    val workRequest = PeriodicWorkRequestBuilder<IvocaboFetcher>(15, TimeUnit.MINUTES)
-        //.setInitialDelay(30, TimeUnit.MINUTES) // Optional initial delay before the first execution
-        .build()
 
-    WorkManager.getInstance(context).enqueue(workRequest)
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(latLng, 20f)
@@ -271,7 +272,6 @@ fun Dashboard(
     }
 
 
-
     val deviceformsheetState = rememberBottomSheetScaffoldState()
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
     Scaffold(
@@ -289,7 +289,24 @@ fun Dashboard(
             }
         },
         floatingActionButtonPosition = FabPosition.End,
-    ) {
+
+        ) {
+
+        LaunchedEffect(Unit) {
+            delay(2000L)
+            while(true) {
+                val data = Data.Builder()
+                data.putString("latlong", gson.toJson(latLng))
+                val workRequest = OneTimeWorkRequestBuilder<IvocaboFetcher>()
+                    .setInputData(data.build())
+                    .build()
+
+                WorkManager.getInstance(context).enqueue(workRequest)
+                delay(240000L)
+                //delay(900000L)
+            }
+        }
+
         Column(
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -325,7 +342,7 @@ fun Dashboard(
 fun DeviceList(
     navController: NavController,
     state: State<DeviceListViewState>,
-    deviceViewModel: DeviceViewModel = hiltViewModel()
+    deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
     //val deviceformsheetState = rememberBottomSheetScaffoldState()
@@ -414,7 +431,7 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
 
 @Composable
 fun RegisterUser(
-    navController: NavController, userviewModel: UserViewModel = hiltViewModel()
+    navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -553,7 +570,7 @@ fun RegisterUser(
 @ExperimentalMaterial3Api
 @Composable
 fun DeviceForm(
-    sheetState: SheetState, deviceViewModel: DeviceViewModel = hiltViewModel()
+    sheetState: SheetState, deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
