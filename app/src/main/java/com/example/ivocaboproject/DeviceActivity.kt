@@ -53,6 +53,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -74,7 +75,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -84,16 +88,10 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.work.Data
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
 import com.example.ivocaboproject.bluetooth.BluetoohTackReceiver
-import com.example.ivocaboproject.bluetooth.BluetoothClientItemState
 import com.example.ivocaboproject.bluetooth.BluetoothFindViewModel
 import com.example.ivocaboproject.bluetooth.BluetoothTrackResponseItems
 import com.example.ivocaboproject.bluetooth.BluetoothTrackService
-import com.example.ivocaboproject.bluetooth.BluetoothleConnect
 import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
 import com.example.ivocaboproject.bluetooth.dbBluetoothData
 import com.example.ivocaboproject.database.localdb.Device
@@ -113,12 +111,8 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
-import kotlin.coroutines.EmptyCoroutineContext
 
 private val TAG = DeviceActivity::class.java.simpleName
 
@@ -458,7 +452,7 @@ fun PermissionStateInit() {
 fun DeviceEvents(
     device: Device,
     deviceBottomSheetScaffoldState: BottomSheetScaffoldState,
-    findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState
+    findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState,
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
@@ -585,11 +579,32 @@ fun DeviceEvents(
                 }
 
             }
-            Row() {
-
+            Row(modifier = Modifier.padding(0.dp,8.dp)) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Switch(checked = false, onCheckedChange = { TODO() })
+                    Text(
+                        text = stringResource(id = R.string.enablenotifications),
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Switch(checked = false, onCheckedChange = { TODO() })
+                    Text(
+                        text = stringResource(id = R.string.missing),
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
+                    )
+                }
             }
         }
-
     }
 
 }
@@ -598,7 +613,7 @@ fun DeviceEvents(
 fun DeviceFindPlaceholder(
     device: Device,
     bottomSheetState: SheetState,
-    bluetoothFindViewModel: BluetoothFindViewModel = hiltViewModel()
+    bluetoothFindViewModel: BluetoothFindViewModel = hiltViewModel(),
 ) {
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
     val devicefinddata by bluetoothFindViewModel.consumableState()
@@ -654,13 +669,16 @@ fun DeviceTrackPlaceholder(
     val context = LocalContext.current.applicationContext
 
 
-    val trackBroadcastReceiver= remember {
-        val receiver=BluetoohTackReceiver()
-        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, IntentFilter("SCANNING_RESULT"))
+    val trackBroadcastReceiver = remember {
+        val receiver = BluetoohTackReceiver()
+        LocalBroadcastManager.getInstance(context)
+            .registerReceiver(receiver, IntentFilter("SCANNING_RESULT"))
         receiver
     }
 
-    val trackReceiveData by trackBroadcastReceiver.scanResult.collectAsState(BluetoothTrackResponseItems(false, false, null, null, null))
+    val trackReceiveData by trackBroadcastReceiver.scanResult.collectAsState(
+        BluetoothTrackResponseItems(false, false, null, null, null)
+    )
     SideEffect {
 
 
@@ -693,9 +711,9 @@ fun DeviceTrackPlaceholder(
             }
         }
     ) {}
-    LaunchedEffect(bottomSheetState.currentValue ){
-        Log.v(TAG,"bottomSheetState.targetValue : ${bottomSheetState.targetValue}")
-        if (bottomSheetState.currentValue==SheetValue.PartiallyExpanded) {
+    LaunchedEffect(bottomSheetState.currentValue) {
+        Log.v(TAG, "bottomSheetState.targetValue : ${bottomSheetState.targetValue}")
+        if (bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
             Intent(context, BluetoothTrackService::class.java).apply {
                 //action = BluetoothTrackService.SERVICE_STOP
                 context.stopService(this)

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "5d54025e8ce33235bb24586930f3b7a7",
+    "identityHash": "56b1de8ab020f0a17b9a434415f2b62b",
     "entities": [
       {
         "tableName": "users",
@@ -56,7 +56,7 @@
       },
       {
         "tableName": "devices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `registerdate` INTEGER NOT NULL, `macaddress` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` TEXT NOT NULL, `longitude` TEXT NOT NULL, `parsedeviceid` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `registerdate` INTEGER NOT NULL, `macaddress` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` TEXT NOT NULL, `longitude` TEXT NOT NULL, `parsedeviceid` TEXT NOT NULL, `ismissing` INTEGER)",
         "fields": [
           {
             "fieldPath": "id",
@@ -99,6 +99,12 @@
             "columnName": "parsedeviceid",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "ismissing",
+            "columnName": "ismissing",
+            "affinity": "INTEGER",
+            "notNull": false
           }
         ],
         "primaryKey": {
@@ -282,7 +288,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5d54025e8ce33235bb24586930f3b7a7')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '56b1de8ab020f0a17b9a434415f2b62b')"
     ]
   }
 }

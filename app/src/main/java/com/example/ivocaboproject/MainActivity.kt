@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissState
@@ -50,6 +51,7 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -78,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -92,6 +95,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.res.ResourcesCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
@@ -294,7 +298,7 @@ fun Dashboard(
 
         LaunchedEffect(Unit) {
             delay(2000L)
-            while(true) {
+            while (true) {
                 val data = Data.Builder()
                 data.putString("latlong", gson.toJson(latLng))
                 val workRequest = OneTimeWorkRequestBuilder<IvocaboFetcher>()
@@ -345,14 +349,18 @@ fun DeviceList(
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
-    //val deviceformsheetState = rememberBottomSheetScaffoldState()
     val parseEvents = ParseEvents()
-    Text(
+    /*Text(
         text = "Toplam Kayıt : " + state.value.devices.size, style = TextStyle(color = Color.Green)
-    )
+    )*/
     val listState = rememberLazyListState()
     val txtitemdelete = stringResource(id = R.string.devicedelete)
     val scope = rememberCoroutineScope()
+    Text(
+        modifier = Modifier.padding(18.dp,8.dp),
+        text = stringResource(id = R.string.devicelisttitle),
+        style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+    )
     LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState, userScrollEnabled = true) {
         itemsIndexed(state.value.devices) { index, item ->
             val dismissState = rememberDismissState(confirmValueChange = {
@@ -381,12 +389,28 @@ fun DeviceList(
                             context.startActivity(intent)
                         }
                     },
+
                     shape = RoundedCornerShape(0.dp),
-                    elevation = CardDefaults.cardElevation(1.dp, 1.dp, 1.dp, 2.dp)
+                    elevation = CardDefaults.cardElevation(1.dp, 1.dp, 1.dp, 2.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.Black,
+                        contentColor = Color.White,
+                    )
                 ) {
-                    ListItem(headlineContent = {
-                        Text(item.name)
-                    }, supportingContent = { Text(item.macaddress) })
+                    ListItem(
+                        colors = ListItemDefaults.colors(
+                            containerColor = Color.Black,
+                            headlineColor = Color.White,
+                            supportingColor = Color.LightGray
+                        ),
+                        leadingContent = {
+                            Image(
+                                painter = painterResource(id = R.mipmap.bluetooth_list_32),
+                                contentDescription = null
+                            )
+                        },
+                        headlineContent = { Text(item.name, style = TextStyle(fontWeight = FontWeight.Black)) },
+                        supportingContent = { Text(item.macaddress, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Light)) })
                     Divider()
                 }
             })
@@ -481,6 +505,7 @@ fun RegisterUser(
             label = { Text(text = stringResource(id = R.string.rg_username)) },
             value = txtrgusername,
             textStyle = TextStyle(color = Color.White),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, autoCorrect = false, keyboardType = KeyboardType.Text),
             trailingIcon = {
                 if (isusernameVisible) {
                     IconButton(onClick = { txtrgusername = "" }) {
@@ -497,6 +522,7 @@ fun RegisterUser(
             label = { Text(text = stringResource(id = R.string.email)) },
             value = txtrgemail,
             textStyle = TextStyle(color = Color.White),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrect = false, keyboardType = KeyboardType.Email),
             trailingIcon = {
                 if (isemailVisible) {
                     IconButton(onClick = { txtrgemail = "" }) {
@@ -517,7 +543,7 @@ fun RegisterUser(
             textStyle = TextStyle(color = Color.White),
             visualTransformation = if (ispasswordVisible) VisualTransformation.None
             else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrect = false),
             trailingIcon = {
                 IconButton(onClick = {
                     ispasswordVisible = !ispasswordVisible
@@ -555,6 +581,9 @@ fun RegisterUser(
                     )
                     val dbresult = parseEvents.AddUser(user, userviewModel)
                     if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                        txtrgusername=""
+                        txtrgemail=""
+                        txtrgpassword=""
                         navController.navigate("dashboard")
                     }
                 },
@@ -589,8 +618,8 @@ fun DeviceForm(
         sheetContainerColor = Color.Black,
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            Column(modifier = Modifier.fillMaxSize()) {
-                Text(text = stringResource(id = R.string.deviceregistretionformtitle))
+            Column(modifier = Modifier.fillMaxSize().padding(16.dp,18.dp)) {
+                Text(modifier=Modifier.fillMaxWidth() ,text = stringResource(id = R.string.deviceregistretionformtitle),style= TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center))
                 OutlinedTextField(modifier = Modifier
                     .fillMaxWidth()
                     .focusable(true),
@@ -604,7 +633,9 @@ fun DeviceForm(
                     textStyle = TextStyle(color = Color.White),
                     isError = iserrormacaddress,
                     keyboardOptions = KeyboardOptions(
-                        autoCorrect = false, keyboardType = KeyboardType.Text
+                        autoCorrect = false,
+                        keyboardType = KeyboardType.Text,
+                        capitalization = KeyboardCapitalization.Characters
                     ),
                     keyboardActions = KeyboardActions {
                         iserrormacaddress = txtmacaddress.isEmpty()
@@ -664,18 +695,19 @@ fun DeviceForm(
                     OutlinedButton(onClick = {
                         if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
                             val parseEvents = ParseEvents()
-                            val appHelpers = AppHelpers()
                             val lDevice = Device(
                                 0,
                                 appHelpers.getNOWasSQLDate(),
-                                txtmacaddress,
+                                appHelpers.unformatedMacAddress(txtmacaddress),
                                 txtdevicename,
                                 latLng.latitude.toString(),
                                 latLng.longitude.toString(),
-                                ""
+                                "",null
                             )
                             val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)
                             if (dbresponse.eventResultFlags == EventResultFlags.SUCCESS) {
+                                txtmacaddress=""
+                                txtdevicename=""
                                 scope.launch {
                                     deviceViewModel.handleViewEvent(
                                         DeviceListViewEvent.AddItem(

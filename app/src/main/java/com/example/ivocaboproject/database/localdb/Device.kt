@@ -33,6 +33,8 @@ data class Device(
     val longitude: String,
     @ColumnInfo(name = "parsedeviceid")
     var objectId: String,
+    @ColumnInfo(name = "ismissing")
+    var ismissing:Boolean?,
 ): Parcelable
 
 @Dao

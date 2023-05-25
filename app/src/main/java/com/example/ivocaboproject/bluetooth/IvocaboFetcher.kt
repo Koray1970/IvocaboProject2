@@ -10,6 +10,7 @@ import android.content.Context
 import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.ivocaboproject.AppHelpers
 import com.example.ivocaboproject.database.ParseEvents
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
@@ -32,6 +33,7 @@ class IvocaboFetcher(context: Context, parameters: WorkerParameters) :
     private lateinit var latlong: LatLng
     val mutablelistofaddress = MutableStateFlow(arrayListOf<String>())
     private var listofmacaddress = arrayListOf<String>()
+    private val appHelpers=AppHelpers()
     override suspend fun doWork(): Result {
         Log.i(TAG, "IvocaboFetcher Start")
         if(inputData.getString("latlong")!=null) {
@@ -82,11 +84,10 @@ class IvocaboFetcher(context: Context, parameters: WorkerParameters) :
             if (results != null) {
                 if (results.size > 0) {
                     results?.forEach {
-                        listofmacaddress.add(it.device.address)
+                        listofmacaddress.add(appHelpers.unformatedMacAddress(it.device.address))
                     }
                 }
             }
-
         }
     }
 }

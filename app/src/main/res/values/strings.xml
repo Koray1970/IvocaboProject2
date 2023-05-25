@@ -27,8 +27,9 @@
     <string name="parseerror208">User already registred! Please sing-in or click to "forget my user details" button.</string>
     <string name="userisauthenticated">User is reauthenticated!!!</string>
 
-    <string name="deviceregistretionformtitle">Device Registretion Form</string>
+    <string name="deviceregistretionformtitle">Device Registration Form</string>
     <string name="deviceregistretionformwarning">Please input all form fields completely.</string>
+    <string name="devicelisttitle">Devices</string>
     <string name="adddevice">Add Device</string>
     <string name="macaddress">Mac Address</string>
     <string name="devicename">Device Name</string>
@@ -38,7 +39,7 @@
     <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
     <string name="tracking">Tracking</string>
     <string name="find">Find</string>
-    <string name="notifications">Notifications</string>
+    <string name="enablenotifications">Enable Notifications</string>
     <string name="missing">Missing</string>
     <string name="ivocaboisfarfromyou">Ivocabo is far from you</string>
     <string name="youareapproaching">You are approaching to Ivocabo</string>
