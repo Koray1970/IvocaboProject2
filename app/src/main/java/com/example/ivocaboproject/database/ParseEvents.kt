@@ -15,7 +15,7 @@ import com.parse.ParseUser
 
 
 class ParseEvents {
-    private val TAG=ParseEvents::class.java.simpleName
+    private val TAG = ParseEvents::class.java.simpleName
     fun AddUser(user: User, userViewModel: UserViewModel): EventResult<String> {
         var eventResult = EventResult<String>("")
         try {
@@ -81,6 +81,30 @@ class ParseEvents {
                     deviceViewModel.insert(device)
                 } else {
                     deviceViewModel.update(device)
+                    if (device.ismissing != null) {
+                        if (device.ismissing == true) {
+                            val missingDeviceParseObject = ParseObject("MissingBeacons")
+                            missingDeviceParseObject.put("mupdatedAt", appHelpers.getNOWasSQLDate())
+                            missingDeviceParseObject.put("parseDeviceId", device.objectId)
+                            missingDeviceParseObject.put(
+                                "User",
+                                ParseUser.getCurrentUser().objectId
+                            )
+                            missingDeviceParseObject.put("latitude", device.latitude.toString())
+                            missingDeviceParseObject.put("longitude", device.longitude.toString())
+                            missingDeviceParseObject.put("Time", appHelpers.getNOWasString())
+                            missingDeviceParseObject.put("mac", device.macaddress)
+                            missingDeviceParseObject.save()
+                        }
+                    } else {
+                        val missingquery = ParseQuery<ParseObject>("MissingBeacons")
+                        missingquery.whereEqualTo("mac", device.macaddress)
+                        missingquery.findInBackground { objects: List<ParseObject>, e: ParseException? ->
+                            if (e == null) {
+                                missingquery.first.deleteInBackground()
+                            }
+                        }
+                    }
                 }
                 eventResult.eventResultFlags = EventResultFlags.SUCCESS
                 eventResult.result = true
@@ -95,25 +119,25 @@ class ParseEvents {
     fun DeleteDevice(device: Device, deviceViewModel: DeviceViewModel): EventResult<Boolean> {
         val eventResult = EventResult<Boolean>(false)
         try {
-            val parseuserid = ParseUser.getCurrentUser().objectId
-            val parseObject = ParseObject("Beacons")
-            parseObject.objectId = device.objectId
-            parseObject.put("User", parseuserid)
-            parseObject.put("latitude", device.latitude)
-            parseObject.put("longitude", device.longitude)
-            parseObject.put("mac", device.macaddress)
-            parseObject.put("devicename", device.name)
-            parseObject.put("parseUserId", parseuserid)
-            parseObject.delete()
-            if (!parseObject.isDataAvailable) {
-                deviceViewModel.delete(device)
-                eventResult.eventResultFlags = EventResultFlags.SUCCESS
-                eventResult.result = true
-            } else {
-                if (deviceViewModel.getDeviceDetail(device.macaddress) != null) {
-                    deviceViewModel.delete(device)
-                    eventResult.eventResultFlags = EventResultFlags.SUCCESS
-                    eventResult.result = true
+            val deleteQuery = ParseQuery<ParseObject>("Beacons")
+            deleteQuery.whereEqualTo("mac", device.macaddress)
+            deleteQuery.findInBackground { objects: List<ParseObject>, e: ParseException? ->
+                if (e == null) {
+                    val parseDeleteObject=deleteQuery.first
+                    parseDeleteObject.deleteInBackground { del ->
+                        if (del == null) {
+                            deviceViewModel.delete(device)
+                            eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                            eventResult.result = true
+                        }
+                    }
+                }
+                else{
+                    if (deviceViewModel.getDeviceDetail(device.macaddress) != null) {
+                        deviceViewModel.delete(device)
+                        eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                        eventResult.result = true
+                    }
                 }
             }
         } catch (exception: Exception) {
@@ -134,15 +158,18 @@ class ParseEvents {
     ): EventResult<Boolean> {
         val eventResult = EventResult<Boolean>(false)
         try {
-            val appHelpers= AppHelpers()
+            val appHelpers = AppHelpers()
             val query = ParseQuery<ParseObject>("MissingBeacons")
             query.whereContainedIn("mac", macaddresses)
             query.findInBackground { objects: List<ParseObject>, e: ParseException? ->
                 if (e == null) {
-                    if(objects.size>0) {
+                    if (objects.size > 0) {
                         objects.forEach {
-                            if(!(it.get("latitude").toString().take(6)==latlang.latitude.toString().take(6)
-                                        && it.get("longitude").toString().take(6)==latlang.longitude.toString().take(6))) {
+                            if (!(it.get("latitude").toString()
+                                    .take(6) == latlang.latitude.toString().take(6)
+                                        && it.get("longitude").toString()
+                                    .take(6) == latlang.longitude.toString().take(6))
+                            ) {
                                 it.put("latitude", latlang.latitude.toString())
                                 it.put("longitude", latlang.longitude.toString())
                                 it.save()
@@ -160,15 +187,15 @@ class ParseEvents {
                             }
                         }
                     }
-                    Log.i(TAG,"CheckAndUpdateMissingDevice SUCCESS")
+                    Log.i(TAG, "CheckAndUpdateMissingDevice SUCCESS")
                     eventResult.eventResultFlags = EventResultFlags.SUCCESS
                 } else {
-                    Log.i(TAG,"CheckAndUpdateMissingDevice exception : ${e.message.toString()}")
+                    Log.i(TAG, "CheckAndUpdateMissingDevice exception : ${e.message.toString()}")
                     eventResult.errormessage = e.message.toString()
                 }
             }
         } catch (exception: Exception) {
-            Log.i(TAG,"CheckAndUpdateMissingDevice Gexception : ${exception.message.toString()}")
+            Log.i(TAG, "CheckAndUpdateMissingDevice Gexception : ${exception.message.toString()}")
             eventResult.exception = exception
         }
         return eventResult

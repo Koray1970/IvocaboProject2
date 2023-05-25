@@ -19,6 +19,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -34,10 +35,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -54,6 +57,7 @@ import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -68,6 +72,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -94,6 +99,8 @@ import com.example.ivocaboproject.bluetooth.BluetoothTrackResponseItems
 import com.example.ivocaboproject.bluetooth.BluetoothTrackService
 import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
 import com.example.ivocaboproject.bluetooth.dbBluetoothData
+import com.example.ivocaboproject.database.EventResultFlags
+import com.example.ivocaboproject.database.ParseEvents
 import com.example.ivocaboproject.database.localdb.Device
 import com.example.ivocaboproject.database.localdb.DeviceViewModel
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
@@ -453,6 +460,7 @@ fun DeviceEvents(
     device: Device,
     deviceBottomSheetScaffoldState: BottomSheetScaffoldState,
     findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState,
+    deviceViewModel: DeviceViewModel = hiltViewModel()
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
@@ -506,7 +514,23 @@ fun DeviceEvents(
             )
         )
     }
+    var ismissing = false
+    if (device.ismissing != null)
+        ismissing = device.ismissing!!
+    var missingSwitchChecked by remember { mutableStateOf(ismissing) }
+    val missingSwitchIcon: (@Composable () -> Unit)? = if (missingSwitchChecked) {
+        {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                modifier = Modifier.size(SwitchDefaults.IconSize),
+            )
+        }
+    } else {
+        null
+    }
 
+    var notificationSwitchChecked by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -579,9 +603,9 @@ fun DeviceEvents(
                 }
 
             }
-            Row(modifier = Modifier.padding(0.dp,8.dp)) {
+            Row(modifier = Modifier.padding(0.dp, 8.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Switch(checked = false, onCheckedChange = { TODO() })
+                    Switch(checked = notificationSwitchChecked, onCheckedChange = { TODO() })
                     Text(
                         text = stringResource(id = R.string.enablenotifications),
                         style = TextStyle(
@@ -592,8 +616,41 @@ fun DeviceEvents(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
+
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Switch(checked = false, onCheckedChange = { TODO() })
+                    Switch(checked = missingSwitchChecked, onCheckedChange = {
+                        missingSwitchChecked = it
+                        device.ismissing = null
+                        if (missingSwitchChecked) {
+                            device.ismissing = true
+                            device.latitude = latLng.latitude.toString()
+                            device.longitude = latLng.longitude.toString()
+                        }
+
+                        val parseEvents = ParseEvents()
+                        var dbresult = parseEvents.AddEditDevice(device, deviceViewModel)
+                        if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                            if (device.ismissing == true) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.missingdevicealert),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.missingdevicefindalert),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        } else {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.missingdevicealerterror),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }, thumbContent = missingSwitchIcon)
                     Text(
                         text = stringResource(id = R.string.missing),
                         style = TextStyle(

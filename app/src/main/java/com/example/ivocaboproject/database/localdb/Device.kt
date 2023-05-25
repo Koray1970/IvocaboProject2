@@ -28,9 +28,9 @@ data class Device(
     @ColumnInfo(name = "name")
     val name: String,
     @ColumnInfo(name = "latitude")
-    val latitude: String,
+    var latitude: String,
     @ColumnInfo(name = "longitude")
-    val longitude: String,
+    var longitude: String,
     @ColumnInfo(name = "parsedeviceid")
     var objectId: String,
     @ColumnInfo(name = "ismissing")
