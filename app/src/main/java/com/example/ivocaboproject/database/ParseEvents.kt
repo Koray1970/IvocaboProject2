@@ -136,21 +136,29 @@ class ParseEvents {
         try {
             val appHelpers= AppHelpers()
             val query = ParseQuery<ParseObject>("MissingBeacons")
-            query.whereContainsAll("mac", macaddresses)
+            query.whereContainedIn("mac", macaddresses)
             query.findInBackground { objects: List<ParseObject>, e: ParseException? ->
                 if (e == null) {
-                    objects.forEach {
-                        it.put("latitude", latlang.latitude.toString())
-                        it.put("longitude", latlang.longitude.toString())
-                        it.saveInBackground()
-                        val parseArchiveItem=ParseObject("MissingArchive")
-                        parseArchiveItem.put("parseDeviceId",it?.get("parseDeviceId").toString())
-                        parseArchiveItem.put("User",ParseUser.getCurrentUser().objectId)
-                        parseArchiveItem.put("latitude",it?.get("latitude").toString())
-                        parseArchiveItem.put("time",appHelpers.getNOWasSQLDate())
-                        parseArchiveItem.put("mac",it?.get("mac").toString())
-                        parseArchiveItem.put("longitude",it?.get("longitude").toString())
-                        parseArchiveItem.saveInBackground()
+                    if(objects.size>0) {
+                        objects.forEach {
+                            if(!(it.get("latitude").toString().take(6)==latlang.latitude.toString().take(6)
+                                        && it.get("longitude").toString().take(6)==latlang.longitude.toString().take(6))) {
+                                it.put("latitude", latlang.latitude.toString())
+                                it.put("longitude", latlang.longitude.toString())
+                                it.save()
+                                val parseArchiveItem = ParseObject("MissingArchive")
+                                parseArchiveItem.put(
+                                    "parseDeviceId",
+                                    it?.get("parseDeviceId").toString()
+                                )
+                                parseArchiveItem.put("User", ParseUser.getCurrentUser().objectId)
+                                parseArchiveItem.put("latitude", it?.get("latitude").toString())
+                                parseArchiveItem.put("time", appHelpers.getNOWasString())
+                                parseArchiveItem.put("mac", it?.get("mac").toString())
+                                parseArchiveItem.put("longitude", it?.get("longitude").toString())
+                                parseArchiveItem.save()
+                            }
+                        }
                     }
                     Log.i(TAG,"CheckAndUpdateMissingDevice SUCCESS")
                     eventResult.eventResultFlags = EventResultFlags.SUCCESS

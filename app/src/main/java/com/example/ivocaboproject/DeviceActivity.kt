@@ -635,7 +635,6 @@ fun DeviceFindPlaceholder(
             }
         }
     }
-
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
@@ -652,8 +651,6 @@ fun DeviceFindPlaceholder(
             }
         }
     ) {}
-
-
 }
 
 @SuppressLint("StateFlowValueCalledInComposition")

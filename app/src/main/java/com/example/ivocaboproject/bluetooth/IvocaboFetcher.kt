@@ -41,7 +41,7 @@ class IvocaboFetcher(context: Context, parameters: WorkerParameters) :
             if (latlong != null) {
                 startScan()
                 serviceScope.launch {
-                    delay(4000L)
+                    delay(6000L)
                     stopScan()
                     delay(12000L)
                     if(listofmacaddress.size>0) {
@@ -67,8 +67,8 @@ class IvocaboFetcher(context: Context, parameters: WorkerParameters) :
 
         bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
         //val filter = mutableListOf(ScanFilter.Builder().setDeviceName("MBeacon") .build())
-        val scanSettings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
-            .setReportDelay(1000L).build()
+        val scanSettings = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+            .setReportDelay(2000L).build()
         bluetoothLeScanner.startScan(null, scanSettings, scanCallback)
     }
 

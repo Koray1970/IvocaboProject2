@@ -306,8 +306,8 @@ fun Dashboard(
                     .build()
 
                 WorkManager.getInstance(context).enqueue(workRequest)
-                delay(240000L)
-                //delay(900000L)
+                //delay(240000L) //4 minute
+                delay(900000L) //15 minute
             }
         }
 
