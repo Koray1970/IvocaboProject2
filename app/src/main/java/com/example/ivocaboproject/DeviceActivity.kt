@@ -118,8 +118,13 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.FlowCollector
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import okhttp3.internal.wait
 
 private val TAG = DeviceActivity::class.java.simpleName
 
@@ -454,6 +459,15 @@ fun PermissionStateInit() {
     }
 }
 
+@Composable
+fun GetLocation(ctx: Context) {
+    val currentLoc = CurrentLoc(ctx)
+    currentLoc.startScanLoc()
+    currentLoc.loc.observe(LocalLifecycleOwner.current) {
+        latLng = it
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun DeviceEvents(
@@ -473,10 +487,10 @@ fun DeviceEvents(
         position = CameraPosition.fromLatLngZoom(latLng, 20f)
     }
     //get current location
-    val currentLoc=CurrentLoc(context)
+    val currentLoc = CurrentLoc(context)
     currentLoc.startScanLoc()
-    currentLoc.loc.observe(LocalLifecycleOwner.current){
-        latLng=it
+    currentLoc.loc.observe(LocalLifecycleOwner.current) {
+        latLng = it
         cameraPositionState.move(
             CameraUpdateFactory.newLatLng(latLng)
         )
@@ -547,10 +561,9 @@ fun DeviceEvents(
             Row() {
                 TextButton(
                     onClick = {
-
                         Intent(context, BluetoothTrackService::class.java).apply {
                             action = BluetoothTrackService.SERVICE_START
-                            putExtra("macaddress", device.macaddress)
+                            putExtra("macaddress", appHelpers.formatedMacAddress(device.macaddress))
                             context.startService(this)
                         }
                         scope.launch {
@@ -611,9 +624,9 @@ fun DeviceEvents(
                             device.latitude = latLng.latitude.toString()
                             device.longitude = latLng.longitude.toString()
                         }
-
                         val parseEvents = ParseEvents()
-                        var dbresult = parseEvents.addRemoveMissingBeacon(device, deviceViewModel)
+                        val dbresult = parseEvents.addRemoveMissingBeacon(device, deviceViewModel)
+
                         if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                             if (device.ismissing == true) {
                                 Toast.makeText(
@@ -629,12 +642,15 @@ fun DeviceEvents(
                                 ).show()
                             }
                         } else {
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.missingdevicealerterror),
-                                Toast.LENGTH_LONG
-                            ).show()
+                            if (dbresult.eventResultFlags == EventResultFlags.FAILED) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.missingdevicealerterror),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
+
                     }, thumbContent = missingSwitchIcon)
                     Text(
                         text = stringResource(id = R.string.missing),
@@ -663,7 +679,7 @@ fun DeviceFindPlaceholder(
     when (bottomSheetState.currentValue) {
         SheetValue.Expanded -> {
             LaunchedEffect(Unit) {
-                bluetoothFindViewModel.startScan(device.macaddress)
+                bluetoothFindViewModel.startScan(appHelpers.formatedMacAddress(device.macaddress))
                 //Log.v(TAG, "RSSI: $rssi")
             }
         }

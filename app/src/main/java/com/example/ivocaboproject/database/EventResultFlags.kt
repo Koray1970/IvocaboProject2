@@ -1,5 +1,5 @@
 package com.example.ivocaboproject.database
 
 enum class EventResultFlags {
-    SUCCESS,FAILED
+    SUCCESS,FAILED,ISRUNNING
 }

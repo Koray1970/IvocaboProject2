@@ -451,6 +451,8 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
 fun RegisterUser(
     navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
 ) {
+    val context= LocalContext.current.applicationContext
+    GetLocation(context)
     Column(modifier = Modifier
         .fillMaxSize()
         .padding(16.dp)
@@ -608,7 +610,7 @@ fun DeviceForm(
     val isdevicenameVisible by remember { derivedStateOf { txtdevicename.isNotBlank() } }
     var iserrordevicename by rememberSaveable { mutableStateOf(false) }
 
-
+    GetLocation(context)
 
 
     BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,

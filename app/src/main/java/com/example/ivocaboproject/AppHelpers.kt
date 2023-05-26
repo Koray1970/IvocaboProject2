@@ -32,14 +32,7 @@ class AppHelpers {
         return macaddress.replace(" ","").uppercase(Locale.ENGLISH)
     }
     fun formatedMacAddress(maValue:String):String{
-        val cleanText = maValue.replace(Regex("[^A-Fa-f0-9]"), "") // Remove non-hexadecimal characters
-        val macBuilder = StringBuilder(cleanText)
-
-        // Insert colons at every 2-character interval
-        for (i in 2 until macBuilder.length step 3) {
-            macBuilder.insert(i, ':')
-        }
-
-        return macBuilder.toString().uppercase(Locale.ENGLISH)
+        val pp= maValue.chunked(2)
+        return  pp.joinToString(":").uppercase()//macBuilder.toString().uppercase(Locale.ENGLISH)
     }
 }
