@@ -81,30 +81,6 @@ class ParseEvents {
                     deviceViewModel.insert(device)
                 } else {
                     deviceViewModel.update(device)
-                    if (device.ismissing != null) {
-                        if (device.ismissing == true) {
-                            val missingDeviceParseObject = ParseObject("MissingBeacons")
-                            missingDeviceParseObject.put("mupdatedAt", appHelpers.getNOWasSQLDate())
-                            missingDeviceParseObject.put("parseDeviceId", device.objectId)
-                            missingDeviceParseObject.put(
-                                "User",
-                                ParseUser.getCurrentUser().objectId
-                            )
-                            missingDeviceParseObject.put("latitude", device.latitude.toString())
-                            missingDeviceParseObject.put("longitude", device.longitude.toString())
-                            missingDeviceParseObject.put("Time", appHelpers.getNOWasString())
-                            missingDeviceParseObject.put("mac", device.macaddress)
-                            missingDeviceParseObject.save()
-                        }
-                    } else {
-                        val missingquery = ParseQuery<ParseObject>("MissingBeacons")
-                        missingquery.whereEqualTo("mac", device.macaddress)
-                        missingquery.findInBackground { objects: List<ParseObject>, e: ParseException? ->
-                            if (e == null) {
-                                missingquery.first.deleteInBackground()
-                            }
-                        }
-                    }
                 }
                 eventResult.eventResultFlags = EventResultFlags.SUCCESS
                 eventResult.result = true
@@ -123,7 +99,7 @@ class ParseEvents {
             deleteQuery.whereEqualTo("mac", device.macaddress)
             deleteQuery.findInBackground { objects: List<ParseObject>, e: ParseException? ->
                 if (e == null) {
-                    val parseDeleteObject=deleteQuery.first
+                    val parseDeleteObject = deleteQuery.first
                     parseDeleteObject.deleteInBackground { del ->
                         if (del == null) {
                             deviceViewModel.delete(device)
@@ -131,8 +107,7 @@ class ParseEvents {
                             eventResult.result = true
                         }
                     }
-                }
-                else{
+                } else {
                     if (deviceViewModel.getDeviceDetail(device.macaddress) != null) {
                         deviceViewModel.delete(device)
                         eventResult.eventResultFlags = EventResultFlags.SUCCESS
@@ -150,6 +125,50 @@ class ParseEvents {
             }
         }
         return eventResult
+    }
+
+    fun addRemoveMissingBeacon(device: Device, deviceViewModel: DeviceViewModel): EventResult<Boolean> {
+        val result = EventResult<Boolean>(false)
+        try {
+            val query = ParseQuery<ParseObject>("MissingBeacons")
+            query.whereContains("mac", device.macaddress)
+            query.findInBackground { objects: List<ParseObject>, e: ParseException? ->
+                if (e == null) {
+                    if (objects.isNotEmpty()) {
+                        if(device.ismissing!=true) {
+                            val missingDeviceParseObject = ParseObject("MissingBeacons")
+                            missingDeviceParseObject.put("mupdatedAt", appHelpers.getNOWasSQLDate())
+                            missingDeviceParseObject.put("parseDeviceId", device.objectId)
+                            missingDeviceParseObject.put(
+                                "User",
+                                ParseUser.getCurrentUser().objectId
+                            )
+                            missingDeviceParseObject.put("latitude", device.latitude.toString())
+                            missingDeviceParseObject.put("longitude", device.longitude.toString())
+                            missingDeviceParseObject.put("Time", appHelpers.getNOWasString())
+                            missingDeviceParseObject.put("mac", device.macaddress)
+                            missingDeviceParseObject.save()
+                            deviceViewModel.update(device)
+                            result.eventResultFlags=EventResultFlags.SUCCESS
+                            result.result=true
+                        }
+                    }
+                    else{
+                        //remove missing
+                        objects.first().deleteInBackground()
+                        deviceViewModel.update(device)
+                        result.eventResultFlags=EventResultFlags.SUCCESS
+                        result.result=true
+                    }
+
+                } else {
+                    result.errormessage = "Error Code : " + e.code + " Message : " + e.message
+                }
+            }
+        } catch (exception: Exception) {
+            result.exception=exception
+        }
+        return result
     }
 
     fun CheckAndUpdateMissingDevice(

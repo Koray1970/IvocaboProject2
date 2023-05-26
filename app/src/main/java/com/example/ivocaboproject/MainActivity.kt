@@ -3,6 +3,7 @@ package com.example.ivocaboproject
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.annotation.SuppressLint
+import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -64,12 +65,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -83,6 +86,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
@@ -97,6 +101,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.res.ResourcesCompat
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -107,6 +116,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.ivocaboproject.bluetooth.IvocaboFetcher
+import com.example.ivocaboproject.connectivity.CurrentLocService
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.example.ivocaboproject.database.EventResultFlags
@@ -134,6 +144,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
@@ -177,13 +188,13 @@ class MainActivity : ComponentActivity() {
     fun AppNavigator() {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "dashboard") {
-            composable("dashboard") { Dashboard(navController) }
+            composable("dashboard") { Dashboard( navController) }
             composable("registeruser") { RegisterUser(navController) }
         }
     }
 }
 
-private lateinit var latLng: LatLng
+//private lateinit var latLng: LatLng
 private lateinit var camState: CameraPositionState
 private val gson: Gson = Gson()
 
@@ -194,9 +205,12 @@ fun Dashboard(
     navController: NavController,
     userviewModel: UserViewModel = hiltViewModel(),
     deviceViewModel: DeviceViewModel = hiltViewModel(),
+
 ) {
     val context = LocalContext.current.applicationContext
+    val application=context.applicationContext as Application
     val scope = rememberCoroutineScope()
+
     if (userviewModel.count <= 0) navController.navigate("registeruser")
     else {
         if (!ParseUser.getCurrentUser().isAuthenticated) {
@@ -221,42 +235,22 @@ fun Dashboard(
         }
     }
 
-
-
-    latLng = LatLng(0.0, 0.0)
+    var latLng by remember { mutableStateOf(LatLng(0.0, 0.0)) }
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(latLng, 20f)
+        position = CameraPosition.fromLatLngZoom(latLng, 16f)
     }
 
-    val broadCastLocationMessage = remember { mutableStateOf(latLng) }
-
-    Intent(context, LocationService::class.java).apply {
-        action = LocationService.ACTION_START
-        context.startService(this)
+    //get current location from CurrentLoc Class
+    val currentLoc=CurrentLoc(context)
+    currentLoc.startScanLoc()
+    currentLoc.loc.observe(LocalLifecycleOwner.current){
+        latLng=it
+        cameraPositionState.move(
+            CameraUpdateFactory.newLatLng(latLng)
+        )
     }
-    val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        // we will receive data updates in onReceive method.
-        override fun onReceive(context: Context?, intent: Intent) {
-            // Get extra data included in the Intent
-            if (intent.hasExtra("latitude") && intent.hasExtra("longitude")) {
-                latLng = LatLng(
-                    intent.getDoubleExtra("latitude", 0.0),
-                    intent.getDoubleExtra("longitude", 0.0)
-                )
-                // on below line we are updating the data in our text view.
-                broadCastLocationMessage.value = latLng
 
-                cameraPositionState.move(
-                    CameraUpdateFactory.newLatLng(
-                        broadCastLocationMessage.value
-                    )
-                )
-            }
-        }
-    }
-    LocalBroadcastManager.getInstance(context).registerReceiver(
-        broadcastLocationReceiver, IntentFilter("currentlocation")
-    )
+
     val mapProperties by remember {
         mutableStateOf(
             MapProperties(
@@ -323,7 +317,7 @@ fun Dashboard(
                     properties = mapProperties,
                     uiSettings = mapUiSettings
                 ) {
-                    Marker(state = MarkerState(position = broadCastLocationMessage.value))
+                    Marker(state = MarkerState(position = latLng))
                 }
                 ScaleBar(
                     modifier = Modifier
@@ -614,11 +608,16 @@ fun DeviceForm(
     val isdevicenameVisible by remember { derivedStateOf { txtdevicename.isNotBlank() } }
     var iserrordevicename by rememberSaveable { mutableStateOf(false) }
 
+
+
+
     BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            Column(modifier = Modifier.fillMaxSize().padding(16.dp,18.dp)) {
+            Column(modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp, 18.dp)) {
                 Text(modifier=Modifier.fillMaxWidth() ,text = stringResource(id = R.string.deviceregistretionformtitle),style= TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center))
                 OutlinedTextField(modifier = Modifier
                     .fillMaxWidth()

@@ -6,8 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.LatLng
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,16 +19,20 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import javax.inject.Inject
 
 class LocationService : Service() {
     private val serviceScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
     private lateinit var locationClient:ILocationClient
+    private lateinit var viewModel: LocationViewModel
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
+        viewModel = ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+            .create(LocationViewModel::class.java)
         locationClient = DefaultLocationClient(
             applicationContext,
             LocationServices.getFusedLocationProviderClient(applicationContext)
@@ -57,10 +65,11 @@ class LocationService : Service() {
                /* val updatedNotification = notification.setContentText(
                     "Location: ($lat, $long)"
                 )*/
-                val intlatlng=Intent("currentlocation")
+                viewModel.updateLocationState(LatLng(location.latitude,location.longitude))
+                /*val intlatlng=Intent("currentlocation")
                 intlatlng.putExtra("latitude",location.latitude)
                 intlatlng.putExtra("longitude",location.longitude)
-                LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intlatlng)
+                LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intlatlng)*/
                 //notificationManager.notify(1, updatedNotification.build())
             }
             .launchIn(serviceScope)

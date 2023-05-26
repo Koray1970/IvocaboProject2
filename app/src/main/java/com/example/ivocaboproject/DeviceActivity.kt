@@ -318,7 +318,7 @@ class DeviceActivity : ComponentActivity() {
 }
 
 
-private lateinit var latLng: LatLng
+lateinit var latLng: LatLng
 private lateinit var camState: CameraPositionState
 private fun permmissions(): List<String> {
     if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
@@ -472,31 +472,16 @@ fun DeviceEvents(
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(latLng, 20f)
     }
-
-    val broadCastLocationMessage = remember { mutableStateOf(latLng) }
-    val broadcastLocationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        // we will receive data updates in onReceive method.
-        override fun onReceive(context: Context?, intent: Intent) {
-            // Get extra data included in the Intent
-            if (intent.hasExtra("latitude") && intent.hasExtra("longitude")) {
-                latLng = LatLng(
-                    intent.getDoubleExtra("latitude", 0.0),
-                    intent.getDoubleExtra("longitude", 0.0)
-                )
-                // on below line we are updating the data in our text view.
-                broadCastLocationMessage.value = latLng
-
-                cameraPositionState.move(
-                    CameraUpdateFactory.newLatLng(
-                        broadCastLocationMessage.value
-                    )
-                )
-            }
-        }
+    //get current location
+    val currentLoc=CurrentLoc(context)
+    currentLoc.startScanLoc()
+    currentLoc.loc.observe(LocalLifecycleOwner.current){
+        latLng=it
+        cameraPositionState.move(
+            CameraUpdateFactory.newLatLng(latLng)
+        )
     }
-    LocalBroadcastManager.getInstance(context).registerReceiver(
-        broadcastLocationReceiver, IntentFilter("currentlocation")
-    )
+
     val mapProperties by remember {
         mutableStateOf(
             MapProperties(
@@ -628,7 +613,7 @@ fun DeviceEvents(
                         }
 
                         val parseEvents = ParseEvents()
-                        var dbresult = parseEvents.AddEditDevice(device, deviceViewModel)
+                        var dbresult = parseEvents.addRemoveMissingBeacon(device, deviceViewModel)
                         if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                             if (device.ismissing == true) {
                                 Toast.makeText(

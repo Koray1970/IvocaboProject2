@@ -51,12 +51,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.IvocaboProject"
         tools:targetApi="31">
+        <service
+            android:name=".connectivity.CurrentLocService"
+            android:enabled="true"
+            android:exported="false"></service>
+
         <receiver
             android:name=".bluetooth.BluetoohTackReceiver"
             android:enabled="true"
             android:exported="false">
             <intent-filter>
-                <action android:name="SCANNING_RESULT"></action>
+                <action android:name="SCANNING_RESULT" />
             </intent-filter>
         </receiver>
 
