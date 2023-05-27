@@ -35,6 +35,8 @@ data class Device(
     var objectId: String,
     @ColumnInfo(name = "ismissing")
     var ismissing:Boolean?,
+    @ColumnInfo(name = "devicetype")
+    var devicetype:Int?,
 ): Parcelable
 
 @Dao

@@ -58,8 +58,6 @@ class BluetoothTrackService : Service() {
     }
 
     override fun onCreate() {
-
-
         super.onCreate()
     }
 

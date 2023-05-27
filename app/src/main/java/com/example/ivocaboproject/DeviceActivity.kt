@@ -103,6 +103,9 @@ import com.example.ivocaboproject.database.EventResultFlags
 import com.example.ivocaboproject.database.ParseEvents
 import com.example.ivocaboproject.database.localdb.Device
 import com.example.ivocaboproject.database.localdb.DeviceViewModel
+import com.example.ivocaboproject.deviceevents.FindMyDevice
+import com.example.ivocaboproject.deviceevents.FindMyDeviceViewModel
+import com.example.ivocaboproject.deviceevents.dbDeviceEventResult
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -474,7 +477,7 @@ fun DeviceEvents(
     device: Device,
     deviceBottomSheetScaffoldState: BottomSheetScaffoldState,
     findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState,
-    deviceViewModel: DeviceViewModel = hiltViewModel()
+    deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
@@ -559,13 +562,11 @@ fun DeviceEvents(
         Column(modifier = Modifier.padding(40.dp, 0.dp)) {
             /*Text(text = DeviceActivity().getDateTimeTick(), color = Color.White, modifier = Modifier)*/
             Row() {
+                /*
+                * track device event
+                * */
                 TextButton(
                     onClick = {
-                        Intent(context, BluetoothTrackService::class.java).apply {
-                            action = BluetoothTrackService.SERVICE_START
-                            putExtra("macaddress", appHelpers.formatedMacAddress(device.macaddress))
-                            context.startService(this)
-                        }
                         scope.launch {
                             deviceBottomSheetScaffoldState.bottomSheetState.expand()
                         }
@@ -582,6 +583,9 @@ fun DeviceEvents(
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))
+                /*
+                * find device button
+                * */
                 TextButton(
                     onClick = {
                         scope.launch {
@@ -671,28 +675,43 @@ fun DeviceEvents(
 fun DeviceFindPlaceholder(
     device: Device,
     bottomSheetState: SheetState,
-    bluetoothFindViewModel: BluetoothFindViewModel = hiltViewModel(),
+    findMyDeviceViewModel: FindMyDeviceViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current.applicationContext
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    val devicefinddata by bluetoothFindViewModel.consumableState()
-        .collectAsState(dbBluetoothData(null, ""))
+    val findMyDevice = FindMyDevice(
+        context,
+        appHelpers.formatedMacAddress(device.macaddress),
+        findMyDeviceViewModel
+    )
+    var dbDeviceEventResult by remember {
+        mutableStateOf(dbDeviceEventResult(null, null))
+    }
     when (bottomSheetState.currentValue) {
         SheetValue.Expanded -> {
             LaunchedEffect(Unit) {
-                bluetoothFindViewModel.startScan(appHelpers.formatedMacAddress(device.macaddress))
-                //Log.v(TAG, "RSSI: $rssi")
+                findMyDevice.startScan()
+                /*while (true) {
+                    delay(90000L)
+                    findMyDevice.stopScan()
+                    delay(8000L)
+                    findMyDevice.startScan()
+                }*/
+                findMyDeviceViewModel.getEventResult().observeForever {
+                    dbDeviceEventResult=it
+                    //Log.v(TAG, "RSSI : ${it.rssi!!}")
+                }
             }
-        }
 
+        }
         else -> {
             LaunchedEffect(Unit) {
-                if (bluetoothFindViewModel.isScanning.value) {
-                    bluetoothFindViewModel.consumableState().value
-                    bluetoothFindViewModel.stopScanning()
-                }
+                findMyDevice.stopScan()
             }
         }
     }
+
+
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
@@ -702,10 +721,8 @@ fun DeviceFindPlaceholder(
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = Color.Magenta) {
                 Column {
-                    Text(text = "RSSI : ${devicefinddata.rssi}")
-                    Text(text = "Distance : ${devicefinddata.distance}")
+                    Text(text = "RSSI : ${dbDeviceEventResult.rssi}")
                 }
-
             }
         }
     ) {}
@@ -734,10 +751,7 @@ fun DeviceTrackPlaceholder(
     val trackReceiveData by trackBroadcastReceiver.scanResult.collectAsState(
         BluetoothTrackResponseItems(false, false, null, null, null)
     )
-    SideEffect {
 
-
-    }
     val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
     val backgroundcolor by animateColorAsState(

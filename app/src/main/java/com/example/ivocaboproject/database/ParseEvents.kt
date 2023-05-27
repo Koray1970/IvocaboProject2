@@ -78,6 +78,7 @@ class ParseEvents {
             parseObject.put("mac", device.macaddress)
             parseObject.put("devicename", device.name)
             parseObject.put("parseUserId", parseuserid)
+            parseObject.put("devicetype",device.devicetype!!)
             parseObject.save()
             if (parseObject.isDataAvailable) {
                 if (isnew) {

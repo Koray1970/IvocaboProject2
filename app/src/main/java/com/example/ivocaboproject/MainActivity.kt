@@ -4,10 +4,8 @@ import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.annotation.SuppressLint
 import android.app.Application
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -30,6 +28,8 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -37,9 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissState
@@ -56,6 +54,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
@@ -65,14 +64,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -83,12 +79,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -99,24 +95,15 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.res.ResourcesCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.ivocaboproject.bluetooth.IvocaboFetcher
-import com.example.ivocaboproject.connectivity.CurrentLocService
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.example.ivocaboproject.database.EventResultFlags
@@ -144,10 +131,8 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.util.concurrent.TimeUnit
 
 val appHelpers = AppHelpers()
 
@@ -188,7 +173,7 @@ class MainActivity : ComponentActivity() {
     fun AppNavigator() {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "dashboard") {
-            composable("dashboard") { Dashboard( navController) }
+            composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
         }
     }
@@ -206,9 +191,9 @@ fun Dashboard(
     userviewModel: UserViewModel = hiltViewModel(),
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 
-) {
+    ) {
     val context = LocalContext.current.applicationContext
-    val application=context.applicationContext as Application
+    val application = context.applicationContext as Application
     val scope = rememberCoroutineScope()
 
     if (userviewModel.count <= 0) navController.navigate("registeruser")
@@ -241,10 +226,10 @@ fun Dashboard(
     }
 
     //get current location from CurrentLoc Class
-    val currentLoc=CurrentLoc(context)
+    val currentLoc = CurrentLoc(context)
     currentLoc.startScanLoc()
-    currentLoc.loc.observe(LocalLifecycleOwner.current){
-        latLng=it
+    currentLoc.loc.observe(LocalLifecycleOwner.current) {
+        latLng = it
         cameraPositionState.move(
             CameraUpdateFactory.newLatLng(latLng)
         )
@@ -351,7 +336,7 @@ fun DeviceList(
     val txtitemdelete = stringResource(id = R.string.devicedelete)
     val scope = rememberCoroutineScope()
     Text(
-        modifier = Modifier.padding(18.dp,8.dp),
+        modifier = Modifier.padding(18.dp, 8.dp),
         text = stringResource(id = R.string.devicelisttitle),
         style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
     )
@@ -369,7 +354,11 @@ fun DeviceList(
                 }
                 true
             })
-
+            var deviceicon = -1
+            when (item.devicetype) {
+                1 -> deviceicon = R.drawable.t3_icon_32
+                2 -> deviceicon = R.drawable.e9_icon_32
+            }
             SwipeToDismiss(state = dismissState, background = {
                 dismissState.dismissDirection ?: return@SwipeToDismiss
                 DeviceSwipeBackground(dismissState = dismissState)
@@ -393,18 +382,28 @@ fun DeviceList(
                 ) {
                     ListItem(
                         colors = ListItemDefaults.colors(
-                            containerColor = Color.Black,
-                            headlineColor = Color.White,
+                            containerColor = Color.White,
+                            headlineColor = Color.Black,
                             supportingColor = Color.LightGray
                         ),
                         leadingContent = {
                             Image(
-                                painter = painterResource(id = R.mipmap.bluetooth_list_32),
+                                painter = painterResource(id = deviceicon),
                                 contentDescription = null
                             )
                         },
-                        headlineContent = { Text(item.name, style = TextStyle(fontWeight = FontWeight.Black)) },
-                        supportingContent = { Text(item.macaddress, style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Light)) })
+                        headlineContent = {
+                            Text(
+                                item.name,
+                                style = TextStyle(fontWeight = FontWeight.Black)
+                            )
+                        },
+                        supportingContent = {
+                            Text(
+                                item.macaddress,
+                                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Light)
+                            )
+                        })
                     Divider()
                 }
             })
@@ -451,7 +450,7 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
 fun RegisterUser(
     navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
 ) {
-    val context= LocalContext.current.applicationContext
+    val context = LocalContext.current.applicationContext
     GetLocation(context)
     Column(modifier = Modifier
         .fillMaxSize()
@@ -501,7 +500,11 @@ fun RegisterUser(
             label = { Text(text = stringResource(id = R.string.rg_username)) },
             value = txtrgusername,
             textStyle = TextStyle(color = Color.White),
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, autoCorrect = false, keyboardType = KeyboardType.Text),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.Words,
+                autoCorrect = false,
+                keyboardType = KeyboardType.Text
+            ),
             trailingIcon = {
                 if (isusernameVisible) {
                     IconButton(onClick = { txtrgusername = "" }) {
@@ -518,7 +521,11 @@ fun RegisterUser(
             label = { Text(text = stringResource(id = R.string.email)) },
             value = txtrgemail,
             textStyle = TextStyle(color = Color.White),
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrect = false, keyboardType = KeyboardType.Email),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                autoCorrect = false,
+                keyboardType = KeyboardType.Email
+            ),
             trailingIcon = {
                 if (isemailVisible) {
                     IconButton(onClick = { txtrgemail = "" }) {
@@ -539,7 +546,10 @@ fun RegisterUser(
             textStyle = TextStyle(color = Color.White),
             visualTransformation = if (ispasswordVisible) VisualTransformation.None
             else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrect = false),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                autoCorrect = false
+            ),
             trailingIcon = {
                 IconButton(onClick = {
                     ispasswordVisible = !ispasswordVisible
@@ -577,9 +587,9 @@ fun RegisterUser(
                     )
                     val dbresult = parseEvents.AddUser(user, userviewModel)
                     if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                        txtrgusername=""
-                        txtrgemail=""
-                        txtrgpassword=""
+                        txtrgusername = ""
+                        txtrgemail = ""
+                        txtrgpassword = ""
                         navController.navigate("dashboard")
                     }
                 },
@@ -611,16 +621,27 @@ fun DeviceForm(
     var iserrordevicename by rememberSaveable { mutableStateOf(false) }
 
     GetLocation(context)
-
+    val (selectedOption, onOptionSelected) = remember { mutableStateOf(DeviceTypes.values()[0]) }
 
     BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
         sheetPeekHeight = 0.dp,
         sheetContent = {
-            Column(modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp, 18.dp)) {
-                Text(modifier=Modifier.fillMaxWidth() ,text = stringResource(id = R.string.deviceregistretionformtitle),style= TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center))
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp, 18.dp)
+            ) {
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = stringResource(id = R.string.deviceregistretionformtitle),
+                    style = TextStyle(
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color.White,
+                        textAlign = TextAlign.Center
+                    )
+                )
                 OutlinedTextField(modifier = Modifier
                     .fillMaxWidth()
                     .focusable(true),
@@ -677,6 +698,49 @@ fun DeviceForm(
                             }
                         }
                     })
+
+
+                LazyColumn(
+                    modifier = Modifier.selectableGroup()
+
+                ) {
+                    itemsIndexed(DeviceTypes.values()) { index, item ->
+                        var name = ""
+                        var iconid = -1
+                        when (item.value) {
+                            1 -> {
+                                name = item.key
+                                iconid = R.drawable.t3_icon_48
+                            }
+
+                            2 -> {
+                                name = item.key
+                                iconid = R.drawable.e9_icon_32
+                            }
+                        }
+                        ListItem(
+                            modifier = Modifier.selectable(
+                                selected = (item == selectedOption),
+                                onClick = { onOptionSelected(item) },
+                                role = Role.RadioButton
+                            )
+                            ,
+                            colors = ListItemDefaults.colors(containerColor = Color.Black, headlineColor = Color.White, leadingIconColor = Color.LightGray),
+                            headlineContent = { Text(text = name) },
+                            leadingContent = {
+                                Box(modifier = Modifier.width(32.dp).height(32.dp)){
+                                    Icon(painterResource(id = iconid), name,)
+                                }
+                            },
+                            trailingContent = {
+                                RadioButton(
+                                    selected = (item == selectedOption),
+                                    onClick = null // null recommended for accessibility with screenreaders
+                                )
+                            }
+                        )
+                    }
+                }
                 Text(text = stringResource(id = R.string.deviceregistretionformwarning))
                 Row(
                     modifier = Modifier
@@ -703,12 +767,13 @@ fun DeviceForm(
                                 txtdevicename,
                                 latLng.latitude.toString(),
                                 latLng.longitude.toString(),
-                                "",null
+                                "", null, selectedOption.value
+
                             )
                             val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)
                             if (dbresponse.eventResultFlags == EventResultFlags.SUCCESS) {
-                                txtmacaddress=""
-                                txtdevicename=""
+                                txtmacaddress = ""
+                                txtdevicename = ""
                                 scope.launch {
                                     deviceViewModel.handleViewEvent(
                                         DeviceListViewEvent.AddItem(
