@@ -52,9 +52,14 @@
         android:theme="@style/Theme.IvocaboProject"
         tools:targetApi="31">
         <service
+            android:name=".bluetooth.IvocaboleService"
+            android:enabled="true"
+            android:exported="false">
+        </service>
+        <service
             android:name=".connectivity.CurrentLocService"
             android:enabled="true"
-            android:exported="false"></service>
+            android:exported="false" />
 
         <receiver
             android:name=".bluetooth.BluetoohTackReceiver"

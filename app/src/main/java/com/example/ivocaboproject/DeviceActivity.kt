@@ -11,11 +11,11 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -27,6 +27,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -66,15 +67,16 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -88,24 +90,22 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.ivocaboproject.bluetooth.BluetoohTackReceiver
-import com.example.ivocaboproject.bluetooth.BluetoothFindViewModel
 import com.example.ivocaboproject.bluetooth.BluetoothTrackResponseItems
 import com.example.ivocaboproject.bluetooth.BluetoothTrackService
 import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
-import com.example.ivocaboproject.bluetooth.dbBluetoothData
+import com.example.ivocaboproject.bluetooth.IvocaboleService
 import com.example.ivocaboproject.database.EventResultFlags
 import com.example.ivocaboproject.database.ParseEvents
 import com.example.ivocaboproject.database.localdb.Device
 import com.example.ivocaboproject.database.localdb.DeviceViewModel
-import com.example.ivocaboproject.deviceevents.FindMyDevice
 import com.example.ivocaboproject.deviceevents.FindMyDeviceViewModel
-import com.example.ivocaboproject.deviceevents.dbDeviceEventResult
 import com.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -114,6 +114,7 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.gson.Gson
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
@@ -121,15 +122,11 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.FlowCollector
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import okhttp3.internal.wait
 
 private val TAG = DeviceActivity::class.java.simpleName
+private val gson = Gson()
 
 @AndroidEntryPoint
 class DeviceActivity : ComponentActivity() {
@@ -493,6 +490,7 @@ fun DeviceEvents(
     val currentLoc = CurrentLoc(context)
     currentLoc.startScanLoc()
     currentLoc.loc.observe(LocalLifecycleOwner.current) {
+        Log.v(TAG, "loca : ${gson.toJson(it)}")
         latLng = it
         cameraPositionState.move(
             CameraUpdateFactory.newLatLng(latLng)
@@ -679,38 +677,49 @@ fun DeviceFindPlaceholder(
 ) {
     val context = LocalContext.current.applicationContext
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    val findMyDevice = FindMyDevice(
+    /*val findMyDevice = FindMyDevice(
         context,
         appHelpers.formatedMacAddress(device.macaddress),
         findMyDeviceViewModel
-    )
-    var dbDeviceEventResult by remember {
-        mutableStateOf(dbDeviceEventResult(null, null))
-    }
+    )*/
+
+    var currentrssi = remember { MutableLiveData<Int>() }
+    val lIntent = Intent(context, IvocaboleService::class.java)
+    lIntent.putExtra("macaddress", appHelpers.formatedMacAddress(device.macaddress))
     when (bottomSheetState.currentValue) {
         SheetValue.Expanded -> {
             LaunchedEffect(Unit) {
-                findMyDevice.startScan()
+                context.startService(lIntent)
+                IvocaboleService.START_SCAN = true
+               /* while (true) {
+                    delay(4000L)
+                    if (IvocaboleService.ErrorCode == null) {
+                        currentrssi.value=IvocaboleService.CURRENT_RSSI
+                        Log.v(TAG, "SRV RSSI: ${IvocaboleService.CURRENT_RSSI}")
+                    } else
+                        Log.v(TAG, "SRV Error Code: ${IvocaboleService.ErrorCode}")
+                }*/
                 /*while (true) {
                     delay(90000L)
                     findMyDevice.stopScan()
                     delay(8000L)
                     findMyDevice.startScan()
                 }*/
-                findMyDeviceViewModel.getEventResult().observeForever {
+                /*findMyDeviceViewModel.getEventResult().observeForever {
                     dbDeviceEventResult=it
                     //Log.v(TAG, "RSSI : ${it.rssi!!}")
-                }
+                }*/
             }
-
         }
+
         else -> {
             LaunchedEffect(Unit) {
-                findMyDevice.stopScan()
+                IvocaboleService.START_SCAN = false
+                context.stopService(lIntent)
             }
         }
     }
-
+    val cirleData= listOf<Pair<Int,Color>>(Pair(400, Color(context.getColor(R.color.orange_100))),Pair(250,Color(context.getColor(R.color.orange_90))),Pair(150,Color(context.getColor(R.color.orange_80))),Pair(50,Color(context.getColor(R.color.orange_70))))
 
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
@@ -720,8 +729,16 @@ fun DeviceFindPlaceholder(
         containerColor = Color.Black,
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = Color.Magenta) {
-                Column {
-                    Text(text = "RSSI : ${dbDeviceEventResult.rssi}")
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Canvas(modifier = Modifier.fillMaxSize() ){
+                        cirleData.forEach {
+
+                            drawCircle(color =it.second, radius = it.first.dp.toPx(), center= Offset(size.width/2,size.height/2))
+                        }
+                    }
+                    Text(
+                        text = "${IvocaboleService.CURRENT_RSSI.observeAsState().value}"
+                    )
                 }
             }
         }
