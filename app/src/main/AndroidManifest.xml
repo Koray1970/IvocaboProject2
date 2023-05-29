@@ -56,40 +56,11 @@
             android:enabled="true"
             android:exported="false">
         </service>
-        <service
-            android:name=".connectivity.CurrentLocService"
-            android:enabled="true"
-            android:exported="false" />
-
-        <receiver
-            android:name=".bluetooth.BluetoohTackReceiver"
-            android:enabled="true"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="SCANNING_RESULT" />
-            </intent-filter>
-        </receiver>
-
-        <service
-            android:name=".bluetooth.BluetoothTrackService"
-            android:enabled="true"
-            android:exported="true" />
-
         <activity
             android:name=".DeviceActivity"
             android:exported="false"
             android:label="@string/title_activity_device"
             android:theme="@style/Theme.IvocaboProject" />
-
-        <service
-            android:name=".LocationService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".bluetooth.BluetoothClientService"
-            android:enabled="true"
-            android:exported="true" />
-
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
@@ -110,7 +81,6 @@
         <meta-data
             android:name="com.parse.CLIENT_KEY"
             android:value="@string/back4app_client_key" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -123,5 +93,4 @@
             </intent-filter>
         </activity>
     </application>
-
 </manifest>

@@ -19,7 +19,6 @@ class ivocaboprojectApplication: Application() {
                 .server(getString(R.string.back4app_server_url))
                 .build());
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
             //location track notification
             val channel = NotificationChannel(
                 "location",

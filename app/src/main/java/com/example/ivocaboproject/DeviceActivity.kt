@@ -13,9 +13,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.pm.PackageManager
-import android.content.res.ColorStateList
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -27,6 +25,9 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,9 +36,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -67,7 +70,6 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -78,6 +80,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
@@ -92,14 +95,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.ivocaboproject.bluetooth.BluetoohTackReceiver
-import com.example.ivocaboproject.bluetooth.BluetoothTrackResponseItems
-import com.example.ivocaboproject.bluetooth.BluetoothTrackService
-import com.example.ivocaboproject.bluetooth.IBluetoothClientViewModel
 import com.example.ivocaboproject.bluetooth.IvocaboleService
 import com.example.ivocaboproject.database.EventResultFlags
 import com.example.ivocaboproject.database.ParseEvents
@@ -143,14 +141,8 @@ class DeviceActivity : ComponentActivity() {
         var macaddress = intent.getStringExtra("macaddress").toString()
         val dbdetails = deviceViewModel.getDeviceDetail(macaddress)
 
-        Intent(applicationContext, LocationService::class.java).apply {
-            action = LocationService.ACTION_START
-            applicationContext.startService(this)
-        }
         setContent {
             IvocaboProjectTheme {
-
-
                 var trackBottomSheetState = rememberBottomSheetScaffoldState()
                 var findDeviceBottomSheetState = rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
@@ -677,11 +669,7 @@ fun DeviceFindPlaceholder(
 ) {
     val context = LocalContext.current.applicationContext
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    /*val findMyDevice = FindMyDevice(
-        context,
-        appHelpers.formatedMacAddress(device.macaddress),
-        findMyDeviceViewModel
-    )*/
+
 
     var currentrssi = remember { MutableLiveData<Int>() }
     val lIntent = Intent(context, IvocaboleService::class.java)
@@ -691,24 +679,7 @@ fun DeviceFindPlaceholder(
             LaunchedEffect(Unit) {
                 context.startService(lIntent)
                 IvocaboleService.START_SCAN = true
-               /* while (true) {
-                    delay(4000L)
-                    if (IvocaboleService.ErrorCode == null) {
-                        currentrssi.value=IvocaboleService.CURRENT_RSSI
-                        Log.v(TAG, "SRV RSSI: ${IvocaboleService.CURRENT_RSSI}")
-                    } else
-                        Log.v(TAG, "SRV Error Code: ${IvocaboleService.ErrorCode}")
-                }*/
-                /*while (true) {
-                    delay(90000L)
-                    findMyDevice.stopScan()
-                    delay(8000L)
-                    findMyDevice.startScan()
-                }*/
-                /*findMyDeviceViewModel.getEventResult().observeForever {
-                    dbDeviceEventResult=it
-                    //Log.v(TAG, "RSSI : ${it.rssi!!}")
-                }*/
+
             }
         }
 
@@ -719,8 +690,78 @@ fun DeviceFindPlaceholder(
             }
         }
     }
-    val cirleData= listOf<Pair<Int,Color>>(Pair(400, Color(context.getColor(R.color.orange_100))),Pair(250,Color(context.getColor(R.color.orange_90))),Pair(150,Color(context.getColor(R.color.orange_80))),Pair(50,Color(context.getColor(R.color.orange_70))))
+    val screenCurrentWidth = LocalConfiguration.current.screenWidthDp.toFloat()
+    val screenCurrentHeight = LocalConfiguration.current.screenHeightDp.toFloat()
+    val screenWidth = screenCurrentWidth / 4
+    val cirleData = listOf<Color>(
+        Color(context.getColor(R.color.orange_100)),
+        Color(context.getColor(R.color.orange_90)),
+        Color(context.getColor(R.color.orange_80)),
+        Color(context.getColor(R.color.orange_70))
+    )
 
+    var offsetremember = remember { MutableLiveData<Offset>() }
+    currentrssi.observeForever {
+        if (it != null) {
+            Log.v(TAG,"1")
+            when (it) {
+                in 30 ..60  -> {
+                    Log.v(TAG,"1")
+                    offsetremember.postValue(
+                        Offset(
+                            0f,
+                            0f
+                        )
+                    )
+
+                }
+
+                in 61 ..80 -> {
+                    Log.v(TAG,"2")
+                    offsetremember.postValue(
+                        Offset(
+                            0f,
+                            (screenCurrentHeight / 3.2).toFloat()
+                        )
+                    )
+                }
+
+                in 81 ..100 -> {
+                    Log.v(TAG,"3")
+                    offsetremember.postValue(
+                        Offset(
+                            0f,
+                            (screenCurrentHeight / 2.5).toFloat()
+                        )
+                    )
+                }
+
+                else -> {
+                    Log.v(TAG,"4")
+                    offsetremember.postValue(
+                        Offset(
+                            0f,
+                            (screenCurrentHeight / 1.1).toFloat()
+                        )
+                    )
+                }
+            }
+        } else {
+            offsetremember.postValue(
+                Offset(
+                    screenCurrentWidth,
+                    screenCurrentHeight
+                )
+            )
+        }
+
+    }
+    offsetremember.observeForever {
+        Log.v(
+            TAG,
+            "width: $screenCurrentWidth height: $screenCurrentHeight RSSI : ${IvocaboleService.CURRENT_RSSI.value} Offset x : ${it?.x} y : ${it?.y}"
+        )
+    }
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
@@ -730,15 +771,36 @@ fun DeviceFindPlaceholder(
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = Color.Magenta) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    Canvas(modifier = Modifier.fillMaxSize() ){
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        var i = 4
                         cirleData.forEach {
-
-                            drawCircle(color =it.second, radius = it.first.dp.toPx(), center= Offset(size.width/2,size.height/2))
+                            drawCircle(
+                                color = it,
+                                radius = (screenWidth * i).dp.toPx(),
+                                center = Offset(size.width / 2, size.height / 2)
+                            )
+                            i -= 1
                         }
                     }
+                    currentrssi.postValue(IvocaboleService.CURRENT_RSSI.observeAsState().value)
                     Text(
                         text = "${IvocaboleService.CURRENT_RSSI.observeAsState().value}"
                     )
+                    offsetremember.observeAsState().value?.let {
+                        Modifier
+                            .wrapContentSize()
+                            .align(Alignment.Center)
+                            .offset(it.x.dp, it.y.dp)
+                    }?.let {
+                        Box(
+                            it
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.t3_icon_32),
+                                contentDescription = "Ivocabo Device"
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -750,40 +812,26 @@ fun DeviceFindPlaceholder(
 @Composable
 fun DeviceTrackPlaceholder(
     device: Device,
-    bottomSheetState: SheetState,
-    iBluetoothClientViewModel: IBluetoothClientViewModel = hiltViewModel(),
+    bottomSheetState: SheetState
 ) {
     val scope = rememberCoroutineScope()
     var connectionController = 0
     val context = LocalContext.current.applicationContext
 
-
-    val trackBroadcastReceiver = remember {
-        val receiver = BluetoohTackReceiver()
-        LocalBroadcastManager.getInstance(context)
-            .registerReceiver(receiver, IntentFilter("SCANNING_RESULT"))
-        receiver
-    }
-
-    val trackReceiveData by trackBroadcastReceiver.scanResult.collectAsState(
-        BluetoothTrackResponseItems(false, false, null, null, null)
-    )
-
-    val viewState = iBluetoothClientViewModel.consumableState().collectAsState()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    val backgroundcolor by animateColorAsState(
-        if (trackReceiveData.hasError) {
-            when (trackReceiveData.errorCode) {
-                "-100" -> Color.LightGray
-                else -> Color.Red
-            }
-        } else
-            if (trackReceiveData.isScanning == true) {
-                Color.Green
-            } else {
-                Color.LightGray
-            }
-    )
+    val backgroundcolor by animateColorAsState(Color.LightGray)
+    /*if (trackReceiveData.hasError) {
+        when (trackReceiveData.errorCode) {
+            "-100" -> Color.LightGray
+            else -> Color.Red
+        }
+    } else
+        if (trackReceiveData.isScanning == true) {
+            Color.Green
+        } else {
+            Color.LightGray
+        }
+)*/
 
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
@@ -793,17 +841,17 @@ fun DeviceTrackPlaceholder(
         containerColor = Color.Black,
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = backgroundcolor) {
-                Text(text = "RSSI : ${trackReceiveData.rssi}")
+                Text(text = "RSSI : ")
             }
         }
     ) {}
     LaunchedEffect(bottomSheetState.currentValue) {
         Log.v(TAG, "bottomSheetState.targetValue : ${bottomSheetState.targetValue}")
         if (bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
-            Intent(context, BluetoothTrackService::class.java).apply {
-                //action = BluetoothTrackService.SERVICE_STOP
-                context.stopService(this)
-            }
+//            Intent(context, BluetoothTrackService::class.java).apply {
+//                //action = BluetoothTrackService.SERVICE_STOP
+//                context.stopService(this)
+//            }
         }
     }
 

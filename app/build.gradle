@@ -179,4 +179,5 @@ dependencies {
     // Optionally, you can include the widgets library for ScaleBar, etc.
     implementation 'com.google.maps.android:maps-compose-widgets:2.11.2'
     implementation "com.google.accompanist:accompanist-permissions:0.31.1-alpha"
+    implementation "androidx.transition:transition-ktx:1.4.1"
 }

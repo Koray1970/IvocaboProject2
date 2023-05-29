@@ -29,9 +29,9 @@ class CurrentLoc(val ctx:Context):ICurrentLoc {
         val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         val isNetworkEnabled =
             locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
-        if (!isGpsEnabled && !isNetworkEnabled) {
+        /*if (!isGpsEnabled && !isNetworkEnabled) {
             throw ILocationClient.LocationException("GPS is disabled")
-        }
+        }*/
 
         val request = LocationRequest.Builder(2000)
             //.setDurationMillis(10000)

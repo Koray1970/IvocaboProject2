@@ -66,7 +66,7 @@ class IvocaboleService : Service() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
             Log.v(TAG, "SS RSSI:${result?.rssi}")
-            CURRENT_RSSI.postValue(result?.rssi)
+            CURRENT_RSSI.postValue(Math.abs(result!!.rssi).toInt())
         }
 
         override fun onScanFailed(errorCode: Int) {
