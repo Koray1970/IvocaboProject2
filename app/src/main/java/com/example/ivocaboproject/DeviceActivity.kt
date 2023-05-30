@@ -14,6 +14,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.drawable.AnimatedVectorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -24,15 +25,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateOffsetAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -80,6 +86,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -87,6 +94,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -692,76 +700,28 @@ fun DeviceFindPlaceholder(
     }
     val screenCurrentWidth = LocalConfiguration.current.screenWidthDp.toFloat()
     val screenCurrentHeight = LocalConfiguration.current.screenHeightDp.toFloat()
-    val screenWidth = screenCurrentWidth / 4
+    val screenWidth = screenCurrentWidth / 2
     val cirleData = listOf<Color>(
         Color(context.getColor(R.color.orange_100)),
         Color(context.getColor(R.color.orange_90)),
         Color(context.getColor(R.color.orange_80)),
         Color(context.getColor(R.color.orange_70))
     )
-
-    var offsetremember = remember { MutableLiveData<Offset>() }
+    val offsetAnim = remember { mutableStateOf(screenCurrentHeight.dp) }
     currentrssi.observeForever {
         if (it != null) {
-            Log.v(TAG,"1")
             when (it) {
-                in 30 ..60  -> {
-                    Log.v(TAG,"1")
-                    offsetremember.postValue(
-                        Offset(
-                            0f,
-                            0f
-                        )
-                    )
-
-                }
-
-                in 61 ..80 -> {
-                    Log.v(TAG,"2")
-                    offsetremember.postValue(
-                        Offset(
-                            0f,
-                            (screenCurrentHeight / 3.2).toFloat()
-                        )
-                    )
-                }
-
-                in 81 ..100 -> {
-                    Log.v(TAG,"3")
-                    offsetremember.postValue(
-                        Offset(
-                            0f,
-                            (screenCurrentHeight / 2.5).toFloat()
-                        )
-                    )
-                }
-
-                else -> {
-                    Log.v(TAG,"4")
-                    offsetremember.postValue(
-                        Offset(
-                            0f,
-                            (screenCurrentHeight / 1.1).toFloat()
-                        )
-                    )
-                }
+                in 30..60 -> offsetAnim.value = (screenCurrentHeight - 100).dp
+                in 61..80 -> offsetAnim.value = (screenCurrentHeight / 3).dp
+                in 81..100 -> offsetAnim.value = (screenCurrentHeight / 5).dp
+                else -> offsetAnim.value = 70.dp
             }
-        } else {
-            offsetremember.postValue(
-                Offset(
-                    screenCurrentWidth,
-                    screenCurrentHeight
-                )
-            )
         }
-
     }
-    offsetremember.observeForever {
-        Log.v(
-            TAG,
-            "width: $screenCurrentWidth height: $screenCurrentHeight RSSI : ${IvocaboleService.CURRENT_RSSI.value} Offset x : ${it?.x} y : ${it?.y}"
-        )
-    }
+    val offsetAnimation: Dp by animateDpAsState(
+        offsetAnim.value,
+        tween(2000)
+    )
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
@@ -777,7 +737,7 @@ fun DeviceFindPlaceholder(
                             drawCircle(
                                 color = it,
                                 radius = (screenWidth * i).dp.toPx(),
-                                center = Offset(size.width / 2, size.height / 2)
+                                center = Offset(size.width / 2, size.height)
                             )
                             i -= 1
                         }
@@ -786,21 +746,12 @@ fun DeviceFindPlaceholder(
                     Text(
                         text = "${IvocaboleService.CURRENT_RSSI.observeAsState().value}"
                     )
-                    offsetremember.observeAsState().value?.let {
-                        Modifier
-                            .wrapContentSize()
-                            .align(Alignment.Center)
-                            .offset(it.x.dp, it.y.dp)
-                    }?.let {
-                        Box(
-                            it
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.t3_icon_32),
-                                contentDescription = "Ivocabo Device"
-                            )
-                        }
-                    }
+
+                    Icon(
+                        modifier = Modifier.offset(((screenCurrentWidth / 2)-16).dp, offsetAnimation),
+                        painter = painterResource(id = R.drawable.t3_icon_32),
+                        contentDescription = "Ivocabo Device"
+                    )
                 }
             }
         }
