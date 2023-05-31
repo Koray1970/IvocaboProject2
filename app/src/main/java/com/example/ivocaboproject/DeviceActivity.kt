@@ -707,15 +707,38 @@ fun DeviceFindPlaceholder(
         Color(context.getColor(R.color.orange_80)),
         Color(context.getColor(R.color.orange_70))
     )
+    var defaultRssi = 50
+    val topofbottomsheet = 72 + 48
+    var innerHeightBottomSheet = (screenCurrentHeight - topofbottomsheet)
+    var range = innerHeightBottomSheet / (120-defaultRssi)
+    Log.v(
+        TAG,
+        "screenCurrentHeight : $screenCurrentHeight topofbottomsheet : $topofbottomsheet innerHeightBottomSheet : $innerHeightBottomSheet range : $range"
+    )
     val offsetAnim = remember { mutableStateOf(screenCurrentHeight.dp) }
+    var curPosition = screenCurrentHeight
+
+    var iRssi = 50
     currentrssi.observeForever {
         if (it != null) {
-            when (it) {
-                in 30..60 -> offsetAnim.value = (screenCurrentHeight - 100).dp
-                in 61..80 -> offsetAnim.value = (screenCurrentHeight / 3).dp
-                in 81..100 -> offsetAnim.value = (screenCurrentHeight / 5).dp
-                else -> offsetAnim.value = 70.dp
-            }
+            iRssi = it
+            if (it < 50) iRssi = 50
+            var rangeDistance = range * (iRssi - defaultRssi)
+            if (rangeDistance <= 0)
+                rangeDistance = ((screenWidth / 2) / 2).toFloat()
+            curPosition = screenCurrentHeight - rangeDistance
+
+
+            offsetAnim.value = curPosition.dp
+
+            /* when (it) {
+                 in 30..60 -> offsetAnim.value = (screenCurrentHeight - 100).dp
+                 in 61..80 -> offsetAnim.value = (screenCurrentHeight / 2.2).dp
+                 in 81..100 -> offsetAnim.value = (screenCurrentHeight / 4.4).dp
+                 in 101..Int.MAX_VALUE -> {
+                     offsetAnim.value = 70.dp
+                 }
+             }*/
         }
     }
     val offsetAnimation: Dp by animateDpAsState(
@@ -748,7 +771,10 @@ fun DeviceFindPlaceholder(
                     )
 
                     Icon(
-                        modifier = Modifier.offset(((screenCurrentWidth / 2)-16).dp, offsetAnimation),
+                        modifier = Modifier.offset(
+                            ((screenCurrentWidth / 2) - 16).dp,
+                            offsetAnimation
+                        ),
                         painter = painterResource(id = R.drawable.t3_icon_32),
                         contentDescription = "Ivocabo Device"
                     )
