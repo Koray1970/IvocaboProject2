@@ -14,7 +14,6 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.drawable.AnimatedVectorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -25,20 +24,18 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateOffsetAsState
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -84,9 +81,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -101,12 +98,12 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.ivocaboproject.bluetooth.IvocaboleService
+import com.example.ivocaboproject.bluetooth.IvocaboleTrackService
 import com.example.ivocaboproject.database.EventResultFlags
 import com.example.ivocaboproject.database.ParseEvents
 import com.example.ivocaboproject.database.localdb.Device
@@ -780,7 +777,10 @@ fun DeviceTrackPlaceholder(
     val context = LocalContext.current.applicationContext
 
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    val backgroundcolor by animateColorAsState(Color.LightGray)
+    val backgroundcolor by animateColorAsState(Color.Black)
+
+
+
     /*if (trackReceiveData.hasError) {
         when (trackReceiveData.errorCode) {
             "-100" -> Color.LightGray
@@ -793,6 +793,14 @@ fun DeviceTrackPlaceholder(
             Color.LightGray
         }
 )*/
+    val infiniteTransition = rememberInfiniteTransition()
+    val angle by infiniteTransition.animateFloat(
+        initialValue = 0F,
+        targetValue = 360F,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing)
+        )
+    )
 
     BottomSheetScaffold(
         scaffoldState = bottomSheetScaffoldState,
@@ -802,22 +810,32 @@ fun DeviceTrackPlaceholder(
         containerColor = Color.Black,
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = backgroundcolor) {
-                Text(text = "RSSI : ")
+                var rrr=IvocaboleTrackService.CURRENT_RSSI.observeAsState().value
+                Box(modifier = Modifier.wrapContentSize().rotate(angle)) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_track_changesback_120),
+                        contentDescription = null
+                    )
+                }
+                Text(text = "RSSI : $$rrr")
             }
         }
     ) {}
     LaunchedEffect(bottomSheetState.currentValue) {
         Log.v(TAG, "bottomSheetState.targetValue : ${bottomSheetState.targetValue}")
         if (bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
-//            Intent(context, BluetoothTrackService::class.java).apply {
-//                //action = BluetoothTrackService.SERVICE_STOP
-//                context.stopService(this)
-//            }
+            IvocaboleTrackService.SCANNING_STATUS=false
+        }
+        else{
+            IvocaboleTrackService.macaddress=appHelpers.formatedMacAddress(device.macaddress)
+            val lIntent = Intent(context, IvocaboleTrackService::class.java)
+            context.startService(lIntent)
+            IvocaboleTrackService.SCANNING_STATUS=true
         }
     }
-
-
 }
+
+
 /*
 @Preview(showBackground = true)
 @Composable
