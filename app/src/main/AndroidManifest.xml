@@ -52,15 +52,20 @@
         android:theme="@style/Theme.IvocaboProject"
         tools:targetApi="31">
         <service
+            android:name=".bluetooth.IvocaboleTrackService"
+            android:enabled="true"
+            android:exported="false"></service>
+        <service
             android:name=".bluetooth.IvocaboleService"
             android:enabled="true"
-            android:exported="false">
-        </service>
+            android:exported="false"></service>
+
         <activity
             android:name=".DeviceActivity"
             android:exported="false"
             android:label="@string/title_activity_device"
             android:theme="@style/Theme.IvocaboProject" />
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
@@ -81,6 +86,7 @@
         <meta-data
             android:name="com.parse.CLIENT_KEY"
             android:value="@string/back4app_client_key" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -93,4 +99,5 @@
             </intent-filter>
         </activity>
     </application>
+
 </manifest>

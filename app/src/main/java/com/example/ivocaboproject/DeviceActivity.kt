@@ -678,8 +678,6 @@ fun DeviceFindPlaceholder(
     val context = LocalContext.current.applicationContext
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
 
-
-    var currentrssi = remember { MutableLiveData<Int>() }
     val lIntent = Intent(context, IvocaboleService::class.java)
     lIntent.putExtra("macaddress", appHelpers.formatedMacAddress(device.macaddress))
     when (bottomSheetState.currentValue) {
@@ -698,8 +696,13 @@ fun DeviceFindPlaceholder(
             }
         }
     }
+    val minRssi=35
+    val maxRssi=120
+    val startPointRssi=25
     val screenCurrentWidth = LocalConfiguration.current.screenWidthDp.toFloat()
     val screenCurrentHeight = LocalConfiguration.current.screenHeightDp.toFloat()
+    val rssiRange=120-45
+    val screenRange=screenCurrentHeight/rssiRange
     val screenWidth = screenCurrentWidth / 2
     val cirleData = listOf<Color>(
         Color(context.getColor(R.color.orange_100)),
@@ -707,39 +710,22 @@ fun DeviceFindPlaceholder(
         Color(context.getColor(R.color.orange_80)),
         Color(context.getColor(R.color.orange_70))
     )
-    var defaultRssi = 50
-    val topofbottomsheet = 72 + 48
-    var innerHeightBottomSheet = (screenCurrentHeight - topofbottomsheet)
-    var range = innerHeightBottomSheet / (120-defaultRssi)
-    Log.v(
-        TAG,
-        "screenCurrentHeight : $screenCurrentHeight topofbottomsheet : $topofbottomsheet innerHeightBottomSheet : $innerHeightBottomSheet range : $range"
-    )
-    val offsetAnim = remember { mutableStateOf(screenCurrentHeight.dp) }
-    var curPosition = screenCurrentHeight
+   
+   
+    val offsetAnim = remember { mutableStateOf(startPointRssi.dp) }
 
-    var iRssi = 50
-    currentrssi.observeForever {
+    IvocaboleService.CURRENT_RSSI.observeForever {
         if (it != null) {
-            iRssi = it
-            if (it < 50) iRssi = 50
-            var rangeDistance = range * (iRssi - defaultRssi)
-            if (rangeDistance <= 0)
-                rangeDistance = ((screenWidth / 2) / 2).toFloat()
-            curPosition = screenCurrentHeight - rangeDistance
-
-
-            offsetAnim.value = curPosition.dp
-
-            /* when (it) {
-                 in 30..60 -> offsetAnim.value = (screenCurrentHeight - 100).dp
-                 in 61..80 -> offsetAnim.value = (screenCurrentHeight / 2.2).dp
-                 in 81..100 -> offsetAnim.value = (screenCurrentHeight / 4.4).dp
-                 in 101..Int.MAX_VALUE -> {
-                     offsetAnim.value = 70.dp
-                 }
-             }*/
+            var kont=1
+            var carpan=0
+            (minRssi..maxRssi).forEach {c->
+                if(c==it) carpan=kont
+                kont++
+            }
+            offsetAnim.value =(screenCurrentHeight-(carpan*screenRange)).dp
         }
+        else
+            offsetAnim.value=startPointRssi.dp
     }
     val offsetAnimation: Dp by animateDpAsState(
         offsetAnim.value,
@@ -765,7 +751,6 @@ fun DeviceFindPlaceholder(
                             i -= 1
                         }
                     }
-                    currentrssi.postValue(IvocaboleService.CURRENT_RSSI.observeAsState().value)
                     Text(
                         text = "${IvocaboleService.CURRENT_RSSI.observeAsState().value}"
                     )
@@ -792,7 +777,6 @@ fun DeviceTrackPlaceholder(
     bottomSheetState: SheetState
 ) {
     val scope = rememberCoroutineScope()
-    var connectionController = 0
     val context = LocalContext.current.applicationContext
 
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
