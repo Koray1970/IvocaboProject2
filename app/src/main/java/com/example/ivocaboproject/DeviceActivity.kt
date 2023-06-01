@@ -811,12 +811,13 @@ fun DeviceTrackPlaceholder(
         sheetContent = {
             Surface(modifier = Modifier.fillMaxSize(), color = backgroundcolor) {
                 var rrr=IvocaboleTrackService.CURRENT_RSSI.observeAsState().value
-                Box(modifier = Modifier.wrapContentSize().rotate(angle)) {
                     Icon(
+                        modifier=Modifier.rotate(angle),
                         painter = painterResource(id = R.drawable.baseline_track_changesback_120),
-                        contentDescription = null
+                        contentDescription = null,
+                        tint=Color.LightGray
                     )
-                }
+
                 Text(text = "RSSI : $$rrr")
             }
         }
