@@ -48,4 +48,6 @@
     <string name="missingdevicealert">Your lost device has been successfully registered in our system.</string>
     <string name="missingdevicefindalert">Your device has been successfully removed from the lost list because you found your lost device.</string>
     <string name="missingdevicealerterror">An error occurred during the lost device registration process. Error code 120</string>
+    <string name="notificationtitle">Ivocabo Device Track Alert</string>
+    <string name="devicefarfrom">The Ivocabo device has moved away from you quite a bit.</string>
 </resources>

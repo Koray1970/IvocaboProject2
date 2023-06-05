@@ -14,8 +14,11 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaPlayer
+import android.media.browse.MediaBrowser.MediaItem
 import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore.Audio.Media
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -36,6 +39,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -73,6 +77,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -98,6 +103,7 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -138,6 +144,7 @@ class DeviceActivity : ComponentActivity() {
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private val REQUEST_ENABLE_BT = 100
 
+
     @OptIn(ExperimentalMaterial3Api::class)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -151,15 +158,15 @@ class DeviceActivity : ComponentActivity() {
                 var trackBottomSheetState = rememberBottomSheetScaffoldState()
                 var findDeviceBottomSheetState = rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
+                val showNotificationStateOf = remember { MutableLiveData<Boolean?>(false) }
                 if (dbdetails == null) {
                     openDeviceEventFormDialog.value = true
                 }
                 if (openDeviceEventFormDialog.value) {
-                    AlertDialog(
-                        onDismissRequest = {
-                            openDeviceEventFormDialog.value = false
-                            GoBackEvent()
-                        },
+                    AlertDialog(onDismissRequest = {
+                        openDeviceEventFormDialog.value = false
+                        GoBackEvent()
+                    },
                         icon = { Icon(Icons.Filled.Warning, "") },
                         title = { Text(text = getString(R.string.deviceeventalerttitle)) },
                         text = { Text(text = getString(R.string.deviceeventalerttext)) },
@@ -169,48 +176,37 @@ class DeviceActivity : ComponentActivity() {
                             }) {
                                 Text(text = getString(R.string.goback))
                             }
-                        }
-                    )
+                        })
                 }
 
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    containerColor = Color.Black,
-                    topBar = {
-                        TopAppBar(
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = Color.Black,
-                                titleContentColor = Color.White
-                            ),
-                            title = {
-                                Column {
-                                    Text(text = dbdetails.name)
-                                    Text(
-                                        text = dbdetails.macaddress,
-                                        style = MaterialTheme.typography.labelSmall
-                                    )
-                                }
+                Scaffold(modifier = Modifier.fillMaxSize(), containerColor = Color.Black, topBar = {
+                    TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Black, titleContentColor = Color.White
+                    ), title = {
+                        Column {
+                            Text(text = dbdetails.name)
+                            Text(
+                                text = dbdetails.macaddress,
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }, navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                GoBackEvent()
                             },
-                            navigationIcon = {
-                                IconButton(
-                                    onClick = {
-                                        GoBackEvent()
-                                    },
-                                    colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
-                                ) {
-                                    Icon(Icons.Filled.ArrowBack, "")
-                                }
-                            }
-                        )
-                    }
-                ) {
+                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                        ) {
+                            Icon(Icons.Filled.ArrowBack, "")
+                        }
+                    })
+                }) {
                     SetUpBluetooth()
-                    DeviceEvents(dbdetails, trackBottomSheetState, findDeviceBottomSheetState)
+                    DeviceEvents(dbdetails, trackBottomSheetState, findDeviceBottomSheetState,showNotificationStateOf)
                 }
 
                 DeviceTrackPlaceholder(
-                    dbdetails,
-                    trackBottomSheetState.bottomSheetState
+                    dbdetails, showNotificationStateOf, trackBottomSheetState.bottomSheetState
                 )
                 DeviceFindPlaceholder(
                     device = dbdetails,
@@ -235,8 +231,7 @@ class DeviceActivity : ComponentActivity() {
     }
 
     private fun GoBackEvent() {
-        val intent =
-            Intent(this@DeviceActivity, MainActivity::class.java)
+        val intent = Intent(this@DeviceActivity, MainActivity::class.java)
         startActivity(intent)
     }
 
@@ -250,11 +245,11 @@ class DeviceActivity : ComponentActivity() {
         } else {
             if (bluetoothAdapter?.isEnabled == false) {
                 val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                val launcheractivity = rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.StartActivityForResult(),
-                    onResult = { r ->
-                        r.resultCode
-                    })
+                val launcheractivity =
+                    rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult(),
+                        onResult = { r ->
+                            r.resultCode
+                        })
                 launcheractivity.launch(enableBtIntent)
 
                 //startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
@@ -274,18 +269,13 @@ class DeviceActivity : ComponentActivity() {
     @OptIn(ExperimentalPermissionsApi::class)
     @Composable
     fun BluetoothPermissionRequest(launcher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>) {
-        val permissions =
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
-                arrayOf(BLUETOOTH, ACCESS_FINE_LOCATION)
-            } else {
-                arrayOf(
-                    BLUETOOTH_SCAN,
-                    BLUETOOTH_ADVERTISE,
-                    BLUETOOTH_CONNECT,
-                    ACCESS_FINE_LOCATION
-                )
-            }
-        /*val multiplePermissionState = rememberMultiplePermissionsState(
+        val permissions = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
+            arrayOf(BLUETOOTH, ACCESS_FINE_LOCATION)
+        } else {
+            arrayOf(
+                BLUETOOTH_SCAN, BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, ACCESS_FINE_LOCATION
+            )
+        }/*val multiplePermissionState = rememberMultiplePermissionsState(
             permissions =
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
                 listOf(BLUETOOTH, ACCESS_FINE_LOCATION)
@@ -300,14 +290,11 @@ class DeviceActivity : ComponentActivity() {
         )*/
 
 
-        if (
-            permissions.all {
+        if (permissions.all {
                 ContextCompat.checkSelfPermission(
-                    LocalContext.current.applicationContext,
-                    it
+                    LocalContext.current.applicationContext, it
                 ) == PackageManager.PERMISSION_GRANTED
-            }
-        ) {
+            }) {
         } else {
             LaunchedEffect(Unit) {
                 delay(4000)
@@ -350,10 +337,9 @@ fun PermissionStateInit() {
         }
     })
     if (openPermissionDialog.value) {
-        AlertDialog(
-            onDismissRequest = {
-                openPermissionDialog.value = false
-            },
+        AlertDialog(onDismissRequest = {
+            openPermissionDialog.value = false
+        },
             icon = { Icon(Icons.Filled.Info, "") },
             title = { Text(text = context.getString(R.string.devicepermissionalerttitle)) },
             text = {
@@ -449,8 +435,7 @@ fun PermissionStateInit() {
                 }) {
                     Text(text = context.getString(R.string.ok))
                 }
-            }
-        )
+            })
 
 
     }
@@ -471,13 +456,14 @@ fun DeviceEvents(
     device: Device,
     deviceBottomSheetScaffoldState: BottomSheetScaffoldState,
     findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState,
+    showNotificationStateOf:MutableLiveData<Boolean?>,
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
     val activity = LocalContext.current as Activity
-    if (!context.hasBluetoothPermission())
-        PermissionStateInit()
+
+    if (!context.hasBluetoothPermission()) PermissionStateInit()
 
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
@@ -512,8 +498,7 @@ fun DeviceEvents(
         )
     }
     var ismissing = false
-    if (device.ismissing != null)
-        ismissing = device.ismissing!!
+    if (device.ismissing != null) ismissing = device.ismissing!!
     var missingSwitchChecked by remember { mutableStateOf(ismissing) }
     val missingSwitchIcon: (@Composable () -> Unit)? = if (missingSwitchChecked) {
         {
@@ -527,7 +512,7 @@ fun DeviceEvents(
         null
     }
 
-    var notificationSwitchChecked by remember { mutableStateOf(false) }
+    //var notificationSwitchChecked by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -551,7 +536,8 @@ fun DeviceEvents(
             ScaleBar(
                 modifier = Modifier
                     .padding(top = 5.dp, end = 15.dp)
-                    .align(Alignment.BottomStart), cameraPositionState = cameraPositionState
+                    .align(Alignment.BottomStart),
+                cameraPositionState = cameraPositionState
             )
         }
         Column(modifier = Modifier.padding(40.dp, 0.dp)) {
@@ -577,8 +563,7 @@ fun DeviceEvents(
                         Text(text = stringResource(id = R.string.tracking))
                     }
                 }
-                Spacer(modifier = Modifier.weight(1f))
-                /*
+                Spacer(modifier = Modifier.weight(1f))/*
                 * find device button
                 * */
                 TextButton(
@@ -602,13 +587,12 @@ fun DeviceEvents(
             }
             Row(modifier = Modifier.padding(0.dp, 8.dp)) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Switch(checked = notificationSwitchChecked, onCheckedChange = { TODO() })
+                    Switch(
+                        checked = showNotificationStateOf.observeAsState().value!!,
+                        onCheckedChange = { showNotificationStateOf.postValue( it) })
                     Text(
-                        text = stringResource(id = R.string.enablenotifications),
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
+                        text = stringResource(id = R.string.enablenotifications), style = TextStyle(
+                            fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White
                         )
                     )
                 }
@@ -652,11 +636,8 @@ fun DeviceEvents(
 
                     }, thumbContent = missingSwitchIcon)
                     Text(
-                        text = stringResource(id = R.string.missing),
-                        style = TextStyle(
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color.White
+                        text = stringResource(id = R.string.missing), style = TextStyle(
+                            fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White
                         )
                     )
                 }
@@ -665,6 +646,7 @@ fun DeviceEvents(
     }
 
 }
+
 
 @Composable
 fun DeviceFindPlaceholder(
@@ -693,13 +675,13 @@ fun DeviceFindPlaceholder(
             }
         }
     }
-    val minRssi=35
-    val maxRssi=120
-    val startPointRssi=25
+    val minRssi = 35
+    val maxRssi = 120
+    val startPointRssi = 25
     val screenCurrentWidth = LocalConfiguration.current.screenWidthDp.toFloat()
     val screenCurrentHeight = LocalConfiguration.current.screenHeightDp.toFloat()
-    val rssiRange=120-45
-    val screenRange=screenCurrentHeight/rssiRange
+    val rssiRange = 120 - 45
+    val screenRange = screenCurrentHeight / rssiRange
     val screenWidth = screenCurrentWidth / 2
     val cirleData = listOf<Color>(
         Color(context.getColor(R.color.orange_100)),
@@ -707,29 +689,25 @@ fun DeviceFindPlaceholder(
         Color(context.getColor(R.color.orange_80)),
         Color(context.getColor(R.color.orange_70))
     )
-   
-   
+
+
     val offsetAnim = remember { mutableStateOf(startPointRssi.dp) }
 
     IvocaboleService.CURRENT_RSSI.observeForever {
         if (it != null) {
-            var kont=1
-            var carpan=0
-            (minRssi..maxRssi).forEach {c->
-                if(c==it) carpan=kont
+            var kont = 1
+            var carpan = 0
+            (minRssi..maxRssi).forEach { c ->
+                if (c == it) carpan = kont
                 kont++
             }
-            offsetAnim.value =(screenCurrentHeight-(carpan*screenRange)).dp
-        }
-        else
-            offsetAnim.value=startPointRssi.dp
+            offsetAnim.value = (screenCurrentHeight - (carpan * screenRange)).dp
+        } else offsetAnim.value = startPointRssi.dp
     }
     val offsetAnimation: Dp by animateDpAsState(
-        offsetAnim.value,
-        tween(2000)
+        offsetAnim.value, tween(2000)
     )
-    BottomSheetScaffold(
-        scaffoldState = bottomSheetScaffoldState,
+    BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
         sheetPeekHeight = 0.dp,
         sheetSwipeEnabled = true,
@@ -754,16 +732,14 @@ fun DeviceFindPlaceholder(
 
                     Icon(
                         modifier = Modifier.offset(
-                            ((screenCurrentWidth / 2) - 16).dp,
-                            offsetAnimation
+                            ((screenCurrentWidth / 2) - 16).dp, offsetAnimation
                         ),
                         painter = painterResource(id = R.drawable.t3_icon_32),
                         contentDescription = "Ivocabo Device"
                     )
                 }
             }
-        }
-    ) {}
+        }) {}
 }
 
 @SuppressLint("StateFlowValueCalledInComposition")
@@ -771,67 +747,74 @@ fun DeviceFindPlaceholder(
 @Composable
 fun DeviceTrackPlaceholder(
     device: Device,
+    notificationStatusState: MutableLiveData<Boolean?>,
     bottomSheetState: SheetState
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
-
+    val appCalcs = AppCalcs()
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
     val backgroundcolor by animateColorAsState(Color.Black)
+    var absRSSI = remember { MutableLiveData<Int?>() }
 
 
-
-    /*if (trackReceiveData.hasError) {
-        when (trackReceiveData.errorCode) {
-            "-100" -> Color.LightGray
-            else -> Color.Red
-        }
-    } else
-        if (trackReceiveData.isScanning == true) {
-            Color.Green
-        } else {
-            Color.LightGray
-        }
-)*/
     val infiniteTransition = rememberInfiniteTransition()
     val angle by infiniteTransition.animateFloat(
-        initialValue = 0F,
-        targetValue = 360F,
-        animationSpec = infiniteRepeatable(
+        initialValue = 0F, targetValue = 360F, animationSpec = infiniteRepeatable(
             animation = tween(2000, easing = LinearEasing)
         )
     )
+    val rrr = IvocaboleTrackService.CURRENT_RSSI.observeAsState().value
+    var distance = "-"
+    absRSSI.postValue(rrr?.let { Math.abs(it) })
 
-    BottomSheetScaffold(
-        scaffoldState = bottomSheetScaffoldState,
+
+    //mediaPlayer.isLooping = true
+    if (absRSSI.observeAsState().value != null) {
+        if (rrr != null)
+            distance = appCalcs.getRssiDistance(rrr!!)
+    }
+   IvocaboleTrackService.SHOW_NOTIFICATION.postValue(notificationStatusState.observeAsState().value!!)
+    BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
         sheetPeekHeight = 0.dp,
         sheetSwipeEnabled = true,
         containerColor = Color.Black,
         sheetContent = {
-            Surface(modifier = Modifier.fillMaxSize(), color = backgroundcolor) {
-                var rrr=IvocaboleTrackService.CURRENT_RSSI.observeAsState().value
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(), color = backgroundcolor
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight()
+                ) {
                     Icon(
-                        modifier=Modifier.rotate(angle),
+                        modifier = Modifier.rotate(angle),
                         painter = painterResource(id = R.drawable.baseline_track_changesback_120),
                         contentDescription = null,
-                        tint=Color.LightGray
+                        tint = (if (IvocaboleTrackService.DISCONNECTED.observeAsState().value != null) {
+                            Color.Red
+                        } else {
+                            if (rrr != null) Color.Green else Color.DarkGray
+                        }) as Color
                     )
+                    Text(text = "RSSI : $distance", color = Color.White)
+                }
 
-                Text(text = "RSSI : $$rrr")
             }
-        }
-    ) {}
+        }) {}
     LaunchedEffect(bottomSheetState.currentValue) {
         Log.v(TAG, "bottomSheetState.targetValue : ${bottomSheetState.targetValue}")
         if (bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
-            IvocaboleTrackService.SCANNING_STATUS=false
-        }
-        else{
-            IvocaboleTrackService.macaddress=appHelpers.formatedMacAddress(device.macaddress)
+            IvocaboleTrackService.SCANNING_STATUS = false
+        } else {
+            IvocaboleTrackService.macaddress = appHelpers.formatedMacAddress(device.macaddress)
             val lIntent = Intent(context, IvocaboleTrackService::class.java)
             context.startService(lIntent)
-            IvocaboleTrackService.SCANNING_STATUS=true
+            IvocaboleTrackService.SCANNING_STATUS = true
         }
     }
 }

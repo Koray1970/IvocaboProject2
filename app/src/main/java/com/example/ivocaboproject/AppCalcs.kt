@@ -3,6 +3,7 @@ package com.example.ivocaboproject
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
+import kotlin.math.pow
 
 class AppCalcs {
     private val TAG=AppCalcs::class.java.simpleName
@@ -24,5 +25,9 @@ class AppCalcs {
         Log.v(TAG,"iCurrentRssi $iCurrentRssi")
         Log.v(TAG,"Curr :  ${innerHeightSurface-(iCurrentRssi * innerRange)}")
         return innerHeightSurface-(iCurrentRssi * innerRange)
+    }
+    fun getRssiDistance(rssi:Int):String{
+        val result = 10.0.pow((-50 - (rssi)) / (10 * 2).toDouble())
+        return String.format("%.0f", result)
     }
 }
