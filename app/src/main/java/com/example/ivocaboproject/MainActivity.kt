@@ -104,6 +104,7 @@ import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.ivocaboproject.bluetooth.IvocaboFetcher
+import com.example.ivocaboproject.bluetooth.IvocaboleTrackService
 import com.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import com.example.ivocaboproject.connectivity.InternetConnectionStatus
 import com.example.ivocaboproject.database.EventResultFlags
@@ -143,7 +144,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         context = applicationContext
-        //context.deleteDatabase("ivocabo.db")
+        context.deleteDatabase("ivocabo.db")
 
 
         val cld = FetchNetworkConnectivity(application)
@@ -335,6 +336,13 @@ fun DeviceList(
     val listState = rememberLazyListState()
     val txtitemdelete = stringResource(id = R.string.devicedelete)
     val scope = rememberCoroutineScope()
+    val lIntent = Intent(context, IvocaboleTrackService::class.java)
+    deviceViewModel.getTrackDevicelist.observe(LocalLifecycleOwner.current) {
+        if (!it.isEmpty()) {
+            IvocaboleTrackService.devicelist.postValue(it)
+        }
+    }
+    context.startService(lIntent)
     Text(
         modifier = Modifier.padding(18.dp, 8.dp),
         text = stringResource(id = R.string.devicelisttitle),
@@ -723,13 +731,18 @@ fun DeviceForm(
                                 selected = (item == selectedOption),
                                 onClick = { onOptionSelected(item) },
                                 role = Role.RadioButton
-                            )
-                            ,
-                            colors = ListItemDefaults.colors(containerColor = Color.Black, headlineColor = Color.White, leadingIconColor = Color.LightGray),
+                            ),
+                            colors = ListItemDefaults.colors(
+                                containerColor = Color.Black,
+                                headlineColor = Color.White,
+                                leadingIconColor = Color.LightGray
+                            ),
                             headlineContent = { Text(text = name) },
                             leadingContent = {
-                                Box(modifier = Modifier.width(32.dp).height(32.dp)){
-                                    Icon(painterResource(id = iconid), name,)
+                                Box(modifier = Modifier
+                                    .width(32.dp)
+                                    .height(32.dp)) {
+                                    Icon(painterResource(id = iconid), name)
                                 }
                             },
                             trailingContent = {
@@ -767,7 +780,7 @@ fun DeviceForm(
                                 txtdevicename,
                                 latLng.latitude.toString(),
                                 latLng.longitude.toString(),
-                                "", null, selectedOption.value
+                                "", null, true, selectedOption.value
 
                             )
                             val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)

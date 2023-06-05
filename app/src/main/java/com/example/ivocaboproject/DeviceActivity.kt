@@ -158,7 +158,7 @@ class DeviceActivity : ComponentActivity() {
                 var trackBottomSheetState = rememberBottomSheetScaffoldState()
                 var findDeviceBottomSheetState = rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
-                val showNotificationStateOf = remember { MutableLiveData<Boolean?>(false) }
+
                 if (dbdetails == null) {
                     openDeviceEventFormDialog.value = true
                 }
@@ -202,12 +202,12 @@ class DeviceActivity : ComponentActivity() {
                     })
                 }) {
                     SetUpBluetooth()
-                    DeviceEvents(dbdetails, trackBottomSheetState, findDeviceBottomSheetState,showNotificationStateOf)
+                    DeviceEvents(dbdetails, trackBottomSheetState, findDeviceBottomSheetState)
                 }
 
-                DeviceTrackPlaceholder(
+                /*DeviceTrackPlaceholder(
                     dbdetails, showNotificationStateOf, trackBottomSheetState.bottomSheetState
-                )
+                )*/
                 DeviceFindPlaceholder(
                     device = dbdetails,
                     bottomSheetState = findDeviceBottomSheetState.bottomSheetState
@@ -456,7 +456,6 @@ fun DeviceEvents(
     device: Device,
     deviceBottomSheetScaffoldState: BottomSheetScaffoldState,
     findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState,
-    showNotificationStateOf:MutableLiveData<Boolean?>,
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
@@ -464,6 +463,8 @@ fun DeviceEvents(
     val activity = LocalContext.current as Activity
 
     if (!context.hasBluetoothPermission()) PermissionStateInit()
+
+
 
     latLng = LatLng(0.0, 0.0)
     val cameraPositionState = rememberCameraPositionState {
@@ -497,6 +498,27 @@ fun DeviceEvents(
             )
         )
     }
+    val lIntent = Intent(context, IvocaboleTrackService::class.java)
+    var trackMyDeviceSwitchStatus by remember { mutableStateOf(false) }
+    val trackMyDeviceSwitchIcon: (@Composable () -> Unit)? = if (trackMyDeviceSwitchStatus) {
+        {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = null,
+                modifier = Modifier.size(SwitchDefaults.IconSize),
+            )
+            //IvocaboleTrackService.macaddress = appHelpers.formatedMacAddress(device.macaddress)
+
+            //IvocaboleTrackService.SCANNING_STATUS = true
+
+        }
+    } else {
+        /*IvocaboleTrackService.SCANNING_STATUS = false
+        context.stopService(lIntent)*/
+        null
+    }
+
+
     var ismissing = false
     if (device.ismissing != null) ismissing = device.ismissing!!
     var missingSwitchChecked by remember { mutableStateOf(ismissing) }
@@ -509,6 +531,7 @@ fun DeviceEvents(
             )
         }
     } else {
+
         null
     }
 
@@ -541,12 +564,20 @@ fun DeviceEvents(
             )
         }
         Column(modifier = Modifier.padding(40.dp, 0.dp)) {
-            /*Text(text = DeviceActivity().getDateTimeTick(), color = Color.White, modifier = Modifier)*/
             Row() {
-                /*
-                * track device event
-                * */
-                TextButton(
+                /*start::Track This Device Switch*/
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Switch(
+                        checked = trackMyDeviceSwitchStatus,
+                        onCheckedChange = { trackMyDeviceSwitchStatus=it },thumbContent = trackMyDeviceSwitchIcon)
+                    Text(
+                        text = stringResource(id = R.string.tracking), style = TextStyle(
+                            fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White
+                        )
+                    )
+                }
+                /*end::Track This Device Switch*/
+                /*TextButton(
                     onClick = {
                         scope.launch {
                             deviceBottomSheetScaffoldState.bottomSheetState.expand()
@@ -562,10 +593,9 @@ fun DeviceEvents(
                         )
                         Text(text = stringResource(id = R.string.tracking))
                     }
-                }
-                Spacer(modifier = Modifier.weight(1f))/*
-                * find device button
-                * */
+                }*/
+                Spacer(modifier = Modifier.weight(1f))
+                /*start::Find Device Button*/
                 TextButton(
                     onClick = {
                         scope.launch {
@@ -583,21 +613,12 @@ fun DeviceEvents(
                         Text(text = stringResource(id = R.string.find))
                     }
                 }
-
+                /*end::Find Device Button*/
             }
             Row(modifier = Modifier.padding(0.dp, 8.dp)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Switch(
-                        checked = showNotificationStateOf.observeAsState().value!!,
-                        onCheckedChange = { showNotificationStateOf.postValue( it) })
-                    Text(
-                        text = stringResource(id = R.string.enablenotifications), style = TextStyle(
-                            fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White
-                        )
-                    )
-                }
-                Spacer(modifier = Modifier.weight(1f))
 
+                Spacer(modifier = Modifier.weight(1f))
+                /*start::Missing Device Switch*/
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Switch(checked = missingSwitchChecked, onCheckedChange = {
                         missingSwitchChecked = it
@@ -641,6 +662,7 @@ fun DeviceEvents(
                         )
                     )
                 }
+                /*end::Missing Device Switch*/
             }
         }
     }
@@ -742,7 +764,7 @@ fun DeviceFindPlaceholder(
         }) {}
 }
 
-@SuppressLint("StateFlowValueCalledInComposition")
+/*@SuppressLint("StateFlowValueCalledInComposition")
 @ExperimentalMaterial3Api
 @Composable
 fun DeviceTrackPlaceholder(
@@ -817,7 +839,7 @@ fun DeviceTrackPlaceholder(
             IvocaboleTrackService.SCANNING_STATUS = true
         }
     }
-}
+}*/
 
 
 /*

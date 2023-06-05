@@ -35,6 +35,8 @@ data class Device(
     var objectId: String,
     @ColumnInfo(name = "ismissing")
     var ismissing:Boolean?,
+    @ColumnInfo(name = "istracking")
+    var istracking:Boolean?,
     @ColumnInfo(name = "devicetype")
     var devicetype:Int?,
 ): Parcelable
@@ -46,6 +48,9 @@ interface deviceDao {
 
     @Query("SELECT * FROM devices")
     fun list():List<Device>
+
+    @Query("SELECT * FROM devices WHERE istracking=1")
+    fun trackDeviceList():List<Device>
 
     @Query("SELECT * FROM devices WHERE macaddress=:macaddress LIMIT 1")
     fun findbyMacAddress(macaddress: String): Device

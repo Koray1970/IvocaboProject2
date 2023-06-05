@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "2c87aa3cb9c394a6232ddc88791f44b1",
+    "identityHash": "8882be9f852ed0c0a3a2565bb992934e",
     "entities": [
       {
         "tableName": "users",
@@ -56,7 +56,7 @@
       },
       {
         "tableName": "devices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `registerdate` INTEGER NOT NULL, `macaddress` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` TEXT NOT NULL, `longitude` TEXT NOT NULL, `parsedeviceid` TEXT NOT NULL, `ismissing` INTEGER, `devicetype` INTEGER)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `registerdate` INTEGER NOT NULL, `macaddress` TEXT NOT NULL, `name` TEXT NOT NULL, `latitude` TEXT NOT NULL, `longitude` TEXT NOT NULL, `parsedeviceid` TEXT NOT NULL, `ismissing` INTEGER, `istracking` INTEGER, `devicetype` INTEGER)",
         "fields": [
           {
             "fieldPath": "id",
@@ -103,6 +103,12 @@
           {
             "fieldPath": "ismissing",
             "columnName": "ismissing",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "istracking",
+            "columnName": "istracking",
             "affinity": "INTEGER",
             "notNull": false
           },
@@ -294,7 +300,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2c87aa3cb9c394a6232ddc88791f44b1')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '8882be9f852ed0c0a3a2565bb992934e')"
     ]
   }
 }

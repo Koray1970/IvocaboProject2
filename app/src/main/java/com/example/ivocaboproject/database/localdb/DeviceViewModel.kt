@@ -29,11 +29,14 @@ class DeviceViewModel @Inject constructor(
     val appHandle = AppHelpers()
 
     private val uiState = MutableStateFlow(DeviceListViewState(false, emptyList()))
-
+    lateinit var getTrackDevicelist: MutableLiveData<List<Device>>
     fun consumableState() = uiState.asStateFlow()
 
     init {
         fetchDeviceListData()
+        viewModelScope.launch {
+            getTrackDevicelist.postValue(repo.trackDeviceList())
+        }
     }
 
 
