@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.ivocaboproject'
+    namespace 'ivo.example.ivocaboproject'
     compileSdkPreview "UpsideDownCake"
 
     defaultConfig {
-        applicationId "com.example.ivocaboproject"
+        applicationId 'ivo.example.ivocaboproject'
         minSdk 24
         targetSdk 33
         versionCode 1
