@@ -3,7 +3,6 @@ package ivo.example.ivocaboproject
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.annotation.SuppressLint
-import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -25,6 +24,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -58,9 +58,13 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismiss
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
@@ -132,10 +136,8 @@ import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import okhttp3.internal.wait
 
 val appHelpers = AppHelpers()
 
@@ -178,6 +180,7 @@ class MainActivity : ComponentActivity() {
             composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
             composable("signin") { SignIn(navController) }
+            composable("resetpassword") { ResetPassword(navController) }
         }
     }
 }
@@ -196,7 +199,7 @@ fun Dashboard(
 
     ) {
     val context = LocalContext.current.applicationContext
-    val application = context.applicationContext as Application
+    //val application = context.applicationContext as Application
     val scope = rememberCoroutineScope()
 
     if (userviewModel.count <= 0) {
@@ -205,7 +208,7 @@ fun Dashboard(
         if (!ParseUser.getCurrentUser().isAuthenticated) {
             var user = userviewModel.getUserDetail
             val parseEvents = ParseEvents()
-            val dbresult = parseEvents.SingInUser(user)
+            val dbresult = parseEvents.SingInUser(user.email, user.password)
             if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                 Toast.makeText(
                     context, context.getString(R.string.userisauthenticated), Toast.LENGTH_SHORT
@@ -626,10 +629,16 @@ fun RegisterUser(
 @Composable
 fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
-    var txtrgpassword by remember { mutableStateOf("") }
-    var ispasswordVisible by remember { mutableStateOf(false) }
-    val icon = if (ispasswordVisible) painterResource(id = R.drawable.baseline_visibility_2480)
+
+    var txtsiemail by rememberSaveable { mutableStateOf("") }
+    val issiemailVisible by remember { derivedStateOf { txtsiemail.isNotBlank() } }
+
+    var txtsipassword by remember { mutableStateOf("") }
+    var ispasswordsiVisible by remember { mutableStateOf(false) }
+    val icon = if (ispasswordsiVisible) painterResource(id = R.drawable.baseline_visibility_2480)
     else painterResource(id = R.drawable.baseline_visibility_off_24)
+
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -657,12 +666,11 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
                 fontWeight = FontWeight.Bold
             )
         )
-        var txtrgemail by rememberSaveable { mutableStateOf("") }
-        val isemailVisible by remember { derivedStateOf { txtrgemail.isNotBlank() } }
+
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtrgemail = it },
+            onValueChange = { txtsiemail = it },
             label = { Text(text = stringResource(id = R.string.email)) },
-            value = txtrgemail,
+            value = txtsiemail,
             textStyle = TextStyle(color = Color.White),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
@@ -670,8 +678,8 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
                 keyboardType = KeyboardType.Email
             ),
             trailingIcon = {
-                if (isemailVisible) {
-                    IconButton(onClick = { txtrgemail = "" }) {
+                if (issiemailVisible) {
+                    IconButton(onClick = { txtsiemail = "" }) {
                         Icon(
                             imageVector = Icons.Default.Clear, contentDescription = "Clear"
                         )
@@ -679,11 +687,11 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
                 }
             })
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtrgpassword = it },
+            onValueChange = { txtsipassword = it },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
-            value = txtrgpassword,
+            value = txtsipassword,
             textStyle = TextStyle(color = Color.White),
-            visualTransformation = if (ispasswordVisible) VisualTransformation.None
+            visualTransformation = if (ispasswordsiVisible) VisualTransformation.None
             else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Password,
@@ -691,13 +699,24 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
             ),
             trailingIcon = {
                 IconButton(onClick = {
-                    ispasswordVisible = !ispasswordVisible
+                    ispasswordsiVisible = !ispasswordsiVisible
                 }) {
                     Icon(
                         painter = icon, contentDescription = "Visibility Icon"
                     )
                 }
             })
+        Column(
+            modifier = Modifier
+                .padding(10.dp,15.dp)
+                .fillMaxWidth()
+                .wrapContentSize(Alignment.Center)
+        ) {
+            Text(text = stringResource(id = R.string.resetpasswordwarning), style= TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Light))
+            TextButton(onClick = { navController.navigate("resetpassword") }, modifier = Modifier.fillMaxWidth()) {
+                Text(text = stringResource(id = R.string.buttonresetpassword), modifier =Modifier.wrapContentSize(Alignment.Center) )
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -712,17 +731,10 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
             FilledTonalButton(
                 onClick = {
                     scope.launch {
-                        var dbjob = userviewModel.getUserByEmailPass(txtrgemail, txtrgpassword)
-                        dbjob.invokeOnCompletion {
-                            val user = userviewModel.user
-                            if (user != null) {
-                                val parseEvents = ParseEvents()
-                                var dbresult = parseEvents.SingInUser(user)
-                                if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
-                                    navController.navigate("dashboard")
-                            }
-                        }
-
+                        val parseEvents = ParseEvents()
+                        var dbresult = parseEvents.SingInUser(txtsiemail, txtsipassword)
+                        if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
+                            navController.navigate("dashboard")
                     }
                 },
             ) {
@@ -730,6 +742,105 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
             }
         }
     }
+}
+
+@Composable
+fun ResetPassword(navController: NavController) {
+    val scope = rememberCoroutineScope()
+    val alertbarHostState = remember { SnackbarHostState() }
+    var txtrpemail by rememberSaveable { mutableStateOf("") }
+    val isrpemailVisible by remember { derivedStateOf { txtrpemail.isNotBlank() } }
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = alertbarHostState) },
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .background(color = Color.Black),
+        content = { innerPadding ->
+            Column(modifier = Modifier.fillMaxSize().padding(innerPadding).background(color = Color.Black),) {
+                Image(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .align(alignment = Alignment.CenterHorizontally)
+                        .padding(0.dp, 10.dp),
+                    painter = painterResource(id = R.drawable.ic_launcher_round),
+                    contentDescription = ""
+                )
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(0.dp, 8.dp),
+                    text = stringResource(id = R.string.resetpasswordformtitle),
+                    style = TextStyle(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        textAlign = TextAlign.Center,
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+
+                OutlinedTextField(modifier = Modifier.fillMaxWidth(),
+                    onValueChange = { txtrpemail = it },
+                    label = { Text(text = stringResource(id = R.string.email)) },
+                    value = txtrpemail,
+                    textStyle = TextStyle(color = Color.White),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.None,
+                        autoCorrect = false,
+                        keyboardType = KeyboardType.Email
+                    ),
+                    trailingIcon = {
+                        if (isrpemailVisible) {
+                            IconButton(onClick = { txtrpemail = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear, contentDescription = "Clear"
+                                )
+                            }
+                        }
+                    })
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                ) {
+                    FilledTonalButton(
+                        onClick = { navController.navigate("signin") },
+                    ) {
+                        Text(text = stringResource(id = R.string.goback))
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    val alrtNotEmpty =
+                        LocalContext.current.applicationContext.getString(R.string.emailnotnull)
+                    FilledTonalButton(
+                        onClick = {
+                            if (txtrpemail.isNotEmpty()) {
+                                val parseEvents = ParseEvents()
+                                var dbresult = parseEvents.ResetUserPassword(txtrpemail)
+                                if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
+                                    navController.navigate("signin")
+                                else {
+                                    when (dbresult.errorcode) {
+                                        "RUP-103" -> {}
+                                        "RUP-102" -> {}
+                                        else -> {}
+                                    }
+                                }
+                            } else {
+                                scope.launch {
+                                    alertbarHostState.showSnackbar(
+                                        message = alrtNotEmpty,
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            }
+                        },
+                    ) {
+                        Text(text = stringResource(id = R.string.reset))
+                    }
+                }
+            }
+        }
+    )
 }
 
 

@@ -35,4 +35,8 @@ class AppHelpers {
         val pp= maValue.chunked(2)
         return  pp.joinToString(":").uppercase()//macBuilder.toString().uppercase(Locale.ENGLISH)
     }
+    val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\$"
+    fun isValidEmail(email:String):Boolean{
+        return email.matches(emailRegex.toRegex())
+    }
 }

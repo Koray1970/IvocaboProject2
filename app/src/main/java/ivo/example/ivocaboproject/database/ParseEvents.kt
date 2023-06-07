@@ -16,6 +16,7 @@ import ivo.example.ivocaboproject.database.localdb.UserViewModel
 
 class ParseEvents {
     private val TAG = ParseEvents::class.java.simpleName
+    private lateinit var appHelpers: AppHelpers
     fun AddUser(user: User, userViewModel: UserViewModel): EventResult<String> {
         var eventResult = EventResult<String>("")
         try {
@@ -38,19 +39,47 @@ class ParseEvents {
         return eventResult
     }
 
-    fun SingInUser(user:User): EventResult<Boolean> {
+    fun SingInUser(email: String, password: String): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
-            if (user != null) {
-                ParseUser.logIn(user.username, user.password)
-                if (ParseUser.getCurrentUser().isAuthenticated) {
-                    eventResult.result = true
-                    eventResult.eventResultFlags = EventResultFlags.SUCCESS
+            if (email.isNotEmpty() && password.isNotEmpty()) {
+                val parseQuery = ParseQuery<ParseUser>("User")
+                parseQuery.whereEqualTo("email", email).whereEqualTo("password", password)
+                if (parseQuery.count() > 0) {
+                    val user = parseQuery.first
+                    ParseUser.logIn(user.username, password)
+                    if (ParseUser.getCurrentUser().isAuthenticated) {
+                        eventResult.result = true
+                        eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                    }
                 }
             }
         } catch (exception: Exception) {
             eventResult.errorcode = "SU100"
             eventResult.exception = exception
+        }
+        return eventResult
+    }
+
+    fun ResetUserPassword(email: String):EventResult<Boolean> {
+        var eventResult=EventResult<Boolean>(false)
+        try {
+            appHelpers = AppHelpers()
+            if (email.isNotEmpty()) {
+                if (appHelpers.isValidEmail(email)) {
+                    ParseUser.requestPasswordReset(email)
+                    eventResult.result=true
+                    eventResult.eventResultFlags=EventResultFlags.SUCCESS
+                }
+                else{
+                    eventResult.errorcode="RUP-103"
+                }
+            }
+            else{
+                eventResult.errorcode="RUP-102"
+            }
+        } catch (exception: Exception) {
+            eventResult.errorcode="RUP-100"
         }
         return eventResult
     }
@@ -73,7 +102,7 @@ class ParseEvents {
             parseObject.put("mac", device.macaddress)
             parseObject.put("devicename", device.name)
             parseObject.put("parseUserId", parseuserid)
-            parseObject.put("devicetype",device.devicetype!!)
+            parseObject.put("devicetype", device.devicetype!!)
             parseObject.save()
             if (parseObject.isDataAvailable) {
                 if (isnew) {
@@ -135,8 +164,8 @@ class ParseEvents {
         try {
             val query = ParseQuery<ParseObject>("MissingBeacons")
             query.whereContains("mac", device.macaddress)
-            val queryresult=query.find()
-            if(queryresult.size<=0){
+            val queryresult = query.find()
+            if (queryresult.size <= 0) {
                 if (device.ismissing == true) {
                     val missingDeviceParseObject = ParseObject("MissingBeacons")
                     missingDeviceParseObject.put(
@@ -165,8 +194,7 @@ class ParseEvents {
                     result.eventResultFlags = EventResultFlags.SUCCESS
                     result.result = true
                 }
-            }
-            else{
+            } else {
                 //remove missing
                 queryresult.first().delete()
                 device.ismissing = null

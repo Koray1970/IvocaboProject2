@@ -5,6 +5,7 @@
     <string name="ok">OK</string>
     ,<string name="goback">Go back</string>
     <string name="signin">Sing-in</string>
+    <string name="reset">Reset</string>
     <string name="email">E-mail</string>
 
     <string name="internetdisconnected">Device internet is disconnected! Please check internet connection</string>
@@ -50,4 +51,9 @@
     <string name="missingdevicealerterror">An error occurred during the lost device registration process. Error code 120</string>
     <string name="notificationtitle">Ivocabo Device Track Alert</string>
     <string name="devicefarfrom">The Ivocabo device has moved away from you quite a bit.</string>
+    <string name="emailnotnull">Email must be input!</string>
+    <string name="emailnotvalid">Email must be formatted correctly!</string>
+    <string name="resetpasswordwarning">If you do not remember password please click Reset Password button.</string>
+    <string name="buttonresetpassword">Reset Password</string>
+    <string name="resetpasswordformtitle">Reset Password Form</string>
 </resources>
