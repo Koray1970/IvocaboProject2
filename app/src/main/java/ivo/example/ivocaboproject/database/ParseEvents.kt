@@ -38,10 +38,9 @@ class ParseEvents {
         return eventResult
     }
 
-    fun SingInUser(userViewModel: UserViewModel): EventResult<Boolean> {
+    fun SingInUser(user:User): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
-            var user = userViewModel.getUserDetail
             if (user != null) {
                 ParseUser.logIn(user.username, user.password)
                 if (ParseUser.getCurrentUser().isAuthenticated) {
