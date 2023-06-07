@@ -132,8 +132,10 @@ import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import okhttp3.internal.wait
 
 val appHelpers = AppHelpers()
 
@@ -169,13 +171,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun AppNavigator() {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
+            composable("signin") { SignIn(navController) }
         }
     }
 }
@@ -197,11 +199,13 @@ fun Dashboard(
     val application = context.applicationContext as Application
     val scope = rememberCoroutineScope()
 
-    if (userviewModel.count <= 0) navController.navigate("registeruser")
-    else {
+    if (userviewModel.count <= 0) {
+        navController.navigate("registeruser")
+    } else {
         if (!ParseUser.getCurrentUser().isAuthenticated) {
+            var user = userviewModel.getUserDetail
             val parseEvents = ParseEvents()
-            val dbresult = parseEvents.SingInUser(userviewModel)
+            val dbresult = parseEvents.SingInUser(user)
             if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                 Toast.makeText(
                     context, context.getString(R.string.userisauthenticated), Toast.LENGTH_SHORT
@@ -253,8 +257,6 @@ fun Dashboard(
             )
         )
     }
-
-
     val deviceformsheetState = rememberBottomSheetScaffoldState()
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
     Scaffold(
@@ -310,16 +312,15 @@ fun Dashboard(
                         .align(Alignment.BottomStart), cameraPositionState = cameraPositionState
                 )
             }
-
             //device list
             DeviceList(navController, deviceViewState)
-
         }
     }
-
     DeviceForm(deviceformsheetState.bottomSheetState)
 }
-private lateinit var lIntent:Intent
+
+private lateinit var lIntent: Intent
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceList(
@@ -336,7 +337,7 @@ fun DeviceList(
     val txtitemdelete = stringResource(id = R.string.devicedelete)
     val scope = rememberCoroutineScope()
     lIntent = Intent(context, IvocaboleTrackService::class.java)
-    val localLifecycleOwner=LocalLifecycleOwner.current
+    val localLifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(Unit) {
         deviceViewModel.getTrackDevicelist.observe(localLifecycleOwner) {
             if (!it.isEmpty()) {
@@ -344,7 +345,7 @@ fun DeviceList(
             }
         }
         delay(2000L)
-        IvocaboleTrackService.SCANNING_STATUS=true
+        IvocaboleTrackService.SCANNING_STATUS = true
         context.startService(lIntent)
     }
     Text(
@@ -378,7 +379,7 @@ fun DeviceList(
                 Card(
                     onClick = {
                         scope.launch {
-                            IvocaboleTrackService.SCANNING_STATUS=false
+                            IvocaboleTrackService.SCANNING_STATUS = false
                             context.stopService(lIntent)
                             delay(1500L)
                             val intent = Intent(context, DeviceActivity::class.java)
@@ -590,6 +591,12 @@ fun RegisterUser(
                 .wrapContentHeight()
         ) {
             FilledTonalButton(
+                onClick = { navController.navigate("signin") },
+            ) {
+                Text(text = stringResource(id = R.string.signin))
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            FilledTonalButton(
                 onClick = {
                     val parseEvents = ParseEvents()
                     val user = User(
@@ -615,6 +622,116 @@ fun RegisterUser(
 
     }
 }
+
+@Composable
+fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltViewModel()) {
+    val scope = rememberCoroutineScope()
+    var txtrgpassword by remember { mutableStateOf("") }
+    var ispasswordVisible by remember { mutableStateOf(false) }
+    val icon = if (ispasswordVisible) painterResource(id = R.drawable.baseline_visibility_2480)
+    else painterResource(id = R.drawable.baseline_visibility_off_24)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .background(color = Color.Black)
+    ) {
+        Image(
+            modifier = Modifier
+                .width(80.dp)
+                .align(alignment = Alignment.CenterHorizontally)
+                .padding(0.dp, 10.dp),
+            painter = painterResource(id = R.drawable.ic_launcher_round),
+            contentDescription = ""
+        )
+
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(0.dp, 8.dp),
+            text = stringResource(id = R.string.signin),
+            style = TextStyle(
+                color = MaterialTheme.colorScheme.onPrimary,
+                textAlign = TextAlign.Center,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+        )
+        var txtrgemail by rememberSaveable { mutableStateOf("") }
+        val isemailVisible by remember { derivedStateOf { txtrgemail.isNotBlank() } }
+        OutlinedTextField(modifier = Modifier.fillMaxWidth(),
+            onValueChange = { txtrgemail = it },
+            label = { Text(text = stringResource(id = R.string.email)) },
+            value = txtrgemail,
+            textStyle = TextStyle(color = Color.White),
+            keyboardOptions = KeyboardOptions(
+                capitalization = KeyboardCapitalization.None,
+                autoCorrect = false,
+                keyboardType = KeyboardType.Email
+            ),
+            trailingIcon = {
+                if (isemailVisible) {
+                    IconButton(onClick = { txtrgemail = "" }) {
+                        Icon(
+                            imageVector = Icons.Default.Clear, contentDescription = "Clear"
+                        )
+                    }
+                }
+            })
+        OutlinedTextField(modifier = Modifier.fillMaxWidth(),
+            onValueChange = { txtrgpassword = it },
+            label = { Text(text = stringResource(id = R.string.rg_password)) },
+            value = txtrgpassword,
+            textStyle = TextStyle(color = Color.White),
+            visualTransformation = if (ispasswordVisible) VisualTransformation.None
+            else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                autoCorrect = false
+            ),
+            trailingIcon = {
+                IconButton(onClick = {
+                    ispasswordVisible = !ispasswordVisible
+                }) {
+                    Icon(
+                        painter = icon, contentDescription = "Visibility Icon"
+                    )
+                }
+            })
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+        ) {
+            FilledTonalButton(
+                onClick = { navController.navigate("registeruser") },
+            ) {
+                Text(text = stringResource(id = R.string.goback))
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            FilledTonalButton(
+                onClick = {
+                    scope.launch {
+                        var dbjob = userviewModel.getUserByEmailPass(txtrgemail, txtrgpassword)
+                        dbjob.invokeOnCompletion {
+                            val user = userviewModel.user
+                            if (user != null) {
+                                val parseEvents = ParseEvents()
+                                var dbresult = parseEvents.SingInUser(user)
+                                if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
+                                    navController.navigate("dashboard")
+                            }
+                        }
+
+                    }
+                },
+            ) {
+                Text(text = stringResource(id = R.string.signin))
+            }
+        }
+    }
+}
+
 
 //@OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalMaterial3Api

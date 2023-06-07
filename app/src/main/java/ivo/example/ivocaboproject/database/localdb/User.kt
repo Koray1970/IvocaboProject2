@@ -36,6 +36,9 @@ interface userDao{
     @Query("SELECT * FROM users WHERE email=:email LIMIT 1")
     fun findbyEmail(email: String): User
 
+    @Query("SELECT * FROM users WHERE email=:email AND password=:password LIMIT 1")
+    fun findbyEmailPass(email: String,password: String): User
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg users: User)
 

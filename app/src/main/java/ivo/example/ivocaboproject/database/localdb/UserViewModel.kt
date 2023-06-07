@@ -23,6 +23,10 @@ class UserViewModel @Inject constructor (
 
     var getUserDetail=repo.findUser()
 
+    suspend fun getUserByEmailPass(email:String,password:String)=viewModelScope.launch {
+        user=repo.findbyEmailPass(email,password)
+    }
+
     fun getUser(email:String)=viewModelScope.launch {
         user= repo.findbyEmail(email)
     }
