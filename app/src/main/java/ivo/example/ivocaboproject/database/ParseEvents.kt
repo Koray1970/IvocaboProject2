@@ -1,6 +1,9 @@
 package ivo.example.ivocaboproject.database
 
 import android.util.Log
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.maps.model.LatLng
 import com.parse.ParseException
 import com.parse.ParseObject
@@ -39,20 +42,32 @@ class ParseEvents {
         return eventResult
     }
 
-    fun SingInUser(email: String, password: String): EventResult<Boolean> {
+    fun SingInUser(
+        username: String,
+        password: String,
+        userViewModel: UserViewModel
+    ): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
-            if (email.isNotEmpty() && password.isNotEmpty()) {
-                val parseQuery = ParseQuery<ParseUser>("User")
-                parseQuery.whereEqualTo("email", email).whereEqualTo("password", password)
-                if (parseQuery.count() > 0) {
-                    val user = parseQuery.first
-                    ParseUser.logIn(user.username, password)
-                    if (ParseUser.getCurrentUser().isAuthenticated) {
+            if (username.isNotEmpty() && password.isNotEmpty()) {
+                var parseUser = ParseUser.logIn(username, password)
+                if (parseUser.isDataAvailable)
+                    if (parseUser.isAuthenticated) {
+                        appHelpers=AppHelpers()
+                        userViewModel.addUser(
+                            User(
+                                0,
+                                appHelpers.getNOWasSQLDate(),
+                                parseUser.username,
+                                parseUser.email,
+                                password,
+                                parseUser.objectId
+                            )
+                        )
                         eventResult.result = true
                         eventResult.eventResultFlags = EventResultFlags.SUCCESS
                     }
-                }
+
             }
         } catch (exception: Exception) {
             eventResult.errorcode = "SU100"
@@ -61,25 +76,23 @@ class ParseEvents {
         return eventResult
     }
 
-    fun ResetUserPassword(email: String):EventResult<Boolean> {
-        var eventResult=EventResult<Boolean>(false)
+    fun ResetUserPassword(email: String): EventResult<Boolean> {
+        var eventResult = EventResult<Boolean>(false)
         try {
             appHelpers = AppHelpers()
             if (email.isNotEmpty()) {
                 if (appHelpers.isValidEmail(email)) {
                     ParseUser.requestPasswordReset(email)
-                    eventResult.result=true
-                    eventResult.eventResultFlags=EventResultFlags.SUCCESS
+                    eventResult.result = true
+                    eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                } else {
+                    eventResult.errorcode = "RUP-103"
                 }
-                else{
-                    eventResult.errorcode="RUP-103"
-                }
-            }
-            else{
-                eventResult.errorcode="RUP-102"
+            } else {
+                eventResult.errorcode = "RUP-102"
             }
         } catch (exception: Exception) {
-            eventResult.errorcode="RUP-100"
+            eventResult.errorcode = "RUP-100"
         }
         return eventResult
     }

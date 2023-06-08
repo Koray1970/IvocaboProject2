@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -36,6 +37,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -79,13 +82,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -208,7 +214,7 @@ fun Dashboard(
         if (!ParseUser.getCurrentUser().isAuthenticated) {
             var user = userviewModel.getUserDetail
             val parseEvents = ParseEvents()
-            val dbresult = parseEvents.SingInUser(user.email, user.password)
+            val dbresult = parseEvents.SingInUser(user.email, user.password,userviewModel)
             if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                 Toast.makeText(
                     context, context.getString(R.string.userisauthenticated), Toast.LENGTH_SHORT
@@ -630,8 +636,8 @@ fun RegisterUser(
 fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltViewModel()) {
     val scope = rememberCoroutineScope()
 
-    var txtsiemail by rememberSaveable { mutableStateOf("") }
-    val issiemailVisible by remember { derivedStateOf { txtsiemail.isNotBlank() } }
+    var txtsiusername by rememberSaveable { mutableStateOf("") }
+    val issiusernameBlank by remember { derivedStateOf { txtsiusername.isNotBlank() } }
 
     var txtsipassword by remember { mutableStateOf("") }
     var ispasswordsiVisible by remember { mutableStateOf(false) }
@@ -668,18 +674,18 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
         )
 
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtsiemail = it },
-            label = { Text(text = stringResource(id = R.string.email)) },
-            value = txtsiemail,
+            onValueChange = { txtsiusername = it },
+            label = { Text(text = stringResource(id = R.string.rg_username)) },
+            value = txtsiusername,
             textStyle = TextStyle(color = Color.White),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
                 autoCorrect = false,
-                keyboardType = KeyboardType.Email
+                keyboardType = KeyboardType.Text
             ),
             trailingIcon = {
-                if (issiemailVisible) {
-                    IconButton(onClick = { txtsiemail = "" }) {
+                if (issiusernameBlank) {
+                    IconButton(onClick = { txtsiusername = "" }) {
                         Icon(
                             imageVector = Icons.Default.Clear, contentDescription = "Clear"
                         )
@@ -708,13 +714,26 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
             })
         Column(
             modifier = Modifier
-                .padding(10.dp,15.dp)
+                .padding(10.dp, 15.dp)
                 .fillMaxWidth()
                 .wrapContentSize(Alignment.Center)
         ) {
-            Text(text = stringResource(id = R.string.resetpasswordwarning), style= TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Light))
-            TextButton(onClick = { navController.navigate("resetpassword") }, modifier = Modifier.fillMaxWidth()) {
-                Text(text = stringResource(id = R.string.buttonresetpassword), modifier =Modifier.wrapContentSize(Alignment.Center) )
+            Text(
+                text = stringResource(id = R.string.resetpasswordwarning),
+                style = TextStyle(
+                    color = Color.White,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Light
+                )
+            )
+            TextButton(
+                onClick = { navController.navigate("resetpassword") },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = stringResource(id = R.string.buttonresetpassword),
+                    modifier = Modifier.wrapContentSize(Alignment.Center)
+                )
             }
         }
         Row(
@@ -731,10 +750,13 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
             FilledTonalButton(
                 onClick = {
                     scope.launch {
-                        val parseEvents = ParseEvents()
-                        var dbresult = parseEvents.SingInUser(txtsiemail, txtsipassword)
-                        if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
-                            navController.navigate("dashboard")
+                        if(txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
+                            val parseEvents = ParseEvents()
+                            var dbresult =
+                                parseEvents.SingInUser(txtsiusername, txtsipassword, userviewModel)
+                            if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
+                                navController.navigate("dashboard")
+                        }
                     }
                 },
             ) {
@@ -744,12 +766,17 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPassword(navController: NavController) {
+    val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     val alertbarHostState = remember { SnackbarHostState() }
     var txtrpemail by rememberSaveable { mutableStateOf("") }
     val isrpemailVisible by remember { derivedStateOf { txtrpemail.isNotBlank() } }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val confirmOpenDialog = remember { mutableStateOf(false) }
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = alertbarHostState) },
         modifier = Modifier
@@ -757,7 +784,41 @@ fun ResetPassword(navController: NavController) {
             .padding(16.dp)
             .background(color = Color.Black),
         content = { innerPadding ->
-            Column(modifier = Modifier.fillMaxSize().padding(innerPadding).background(color = Color.Black),) {
+            if (confirmOpenDialog.value) {
+                AlertDialog(onDismissRequest = { confirmOpenDialog.value = false },
+                    content = {
+                        Surface(
+                            modifier = Modifier
+                                .wrapContentWidth()
+                                .wrapContentHeight(),
+                            shape = MaterialTheme.shapes.large,
+                            tonalElevation = AlertDialogDefaults.TonalElevation
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = stringResource(id = R.string.resetpasswordsuccessful)
+                                )
+                                Spacer(modifier = Modifier.height(24.dp))
+                                TextButton(
+                                    onClick = {
+                                        confirmOpenDialog.value = false
+                                        navController.navigate("signin")
+                                    },
+                                    modifier = Modifier.align(Alignment.End)
+                                ) {
+                                    Text(stringResource(id = R.string.gotosignin))
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(color = Color.Black),
+            ) {
                 Image(
                     modifier = Modifier
                         .width(80.dp)
@@ -784,6 +845,7 @@ fun ResetPassword(navController: NavController) {
                     label = { Text(text = stringResource(id = R.string.email)) },
                     value = txtrpemail,
                     textStyle = TextStyle(color = Color.White),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.None,
                         autoCorrect = false,
@@ -809,26 +871,42 @@ fun ResetPassword(navController: NavController) {
                         Text(text = stringResource(id = R.string.goback))
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    val alrtNotEmpty =
-                        LocalContext.current.applicationContext.getString(R.string.emailnotnull)
+
                     FilledTonalButton(
                         onClick = {
+                            keyboardController?.hide()
                             if (txtrpemail.isNotEmpty()) {
                                 val parseEvents = ParseEvents()
                                 var dbresult = parseEvents.ResetUserPassword(txtrpemail)
-                                if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
-                                    navController.navigate("signin")
-                                else {
-                                    when (dbresult.errorcode) {
-                                        "RUP-103" -> {}
-                                        "RUP-102" -> {}
-                                        else -> {}
+                                if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                                    confirmOpenDialog.value=true
+                                } else {
+                                    scope.launch {
+                                        var msg = ""
+                                        when (dbresult.errorcode) {
+                                            "RUP-103" -> {
+                                                msg = context.getString(R.string.emailnotvalid)
+                                            }
+
+                                            "RUP-102" -> {
+                                                msg = context.getString(R.string.emailnotnull)
+                                            }
+
+                                            else -> {
+                                                msg =
+                                                    context.getString(R.string.generalexceptionmessage)
+                                            }
+                                        }
+                                        alertbarHostState.showSnackbar(
+                                            message = msg,
+                                            duration = SnackbarDuration.Short
+                                        )
                                     }
                                 }
                             } else {
                                 scope.launch {
                                     alertbarHostState.showSnackbar(
-                                        message = alrtNotEmpty,
+                                        message = context.getString(R.string.emailnotnull),
                                         duration = SnackbarDuration.Short
                                     )
                                 }
