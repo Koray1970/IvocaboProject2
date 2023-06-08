@@ -476,6 +476,7 @@ fun RegisterUser(
     navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
+    val logodescription=stringResource(id = R.string.logodescription)
     GetLocation(context)
     Column(modifier = Modifier
         .fillMaxSize()
@@ -491,7 +492,7 @@ fun RegisterUser(
                 .align(alignment = Alignment.CenterHorizontally)
                 .padding(0.dp, 10.dp),
             painter = painterResource(id = R.drawable.ic_launcher_round),
-            contentDescription = ""
+            contentDescription =logodescription
         )
 
         Text(
@@ -523,6 +524,7 @@ fun RegisterUser(
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
             onValueChange = { txtrgusername = it },
             label = { Text(text = stringResource(id = R.string.rg_username)) },
+            supportingText={Text(text = stringResource(id = R.string.rg_usernamesupporting))},
             value = txtrgusername,
             textStyle = TextStyle(color = Color.White),
             keyboardOptions = KeyboardOptions(
@@ -534,7 +536,7 @@ fun RegisterUser(
                 if (isusernameVisible) {
                     IconButton(onClick = { txtrgusername = "" }) {
                         Icon(
-                            imageVector = Icons.Default.Clear, contentDescription = "Clear"
+                            imageVector = Icons.Default.Clear, contentDescription = context.getString(R.string.rg_usernameremoving)
                         )
                     }
                 }
@@ -544,6 +546,7 @@ fun RegisterUser(
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
             onValueChange = { txtrgemail = it },
             label = { Text(text = stringResource(id = R.string.email)) },
+            supportingText={Text(text = stringResource(id = R.string.emailsupporting))},
             value = txtrgemail,
             textStyle = TextStyle(color = Color.White),
             keyboardOptions = KeyboardOptions(
@@ -555,18 +558,25 @@ fun RegisterUser(
                 if (isemailVisible) {
                     IconButton(onClick = { txtrgemail = "" }) {
                         Icon(
-                            imageVector = Icons.Default.Clear, contentDescription = "Clear"
+                            imageVector = Icons.Default.Clear, contentDescription = context.getString(R.string.emailremoving)
                         )
                     }
                 }
             })
         var txtrgpassword by rememberSaveable { mutableStateOf("") }
         var ispasswordVisible by remember { mutableStateOf(false) }
-        val icon = if (ispasswordVisible) painterResource(id = R.drawable.baseline_visibility_2480)
-        else painterResource(id = R.drawable.baseline_visibility_off_24)
+        var displayiconDesc= ""
+        val icon = if (ispasswordVisible){
+            displayiconDesc= stringResource(id = R.string.rg_passwordhide)
+            painterResource(id = R.drawable.baseline_visibility_2480)
+        }
+        else {
+            displayiconDesc= stringResource(id = R.string.rg_passworddisplay)
+            painterResource(id = R.drawable.baseline_visibility_off_24)}
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
             onValueChange = { txtrgpassword = it },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
+            supportingText={Text(text = stringResource(id = R.string.rg_passwordsupporting))},
             value = txtrgpassword,
             textStyle = TextStyle(color = Color.White),
             visualTransformation = if (ispasswordVisible) VisualTransformation.None
@@ -580,7 +590,7 @@ fun RegisterUser(
                     ispasswordVisible = !ispasswordVisible
                 }) {
                     Icon(
-                        painter = icon, contentDescription = "Visibility Icon"
+                        painter = icon, contentDescription = displayiconDesc
                     )
                 }
             })

@@ -33,6 +33,12 @@ class UserViewModel @Inject constructor (
     fun addUser(user:User)=viewModelScope.launch {
         repo.insert(user)
     }
+    fun updateUser(user:User)=viewModelScope.launch {
+        repo.update(user)
+    }
+    fun deleteUser(user:User)=viewModelScope.launch {
+        repo.delete(user)
+    }
    /* companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

@@ -54,16 +54,47 @@ class ParseEvents {
                 if (parseUser.isDataAvailable)
                     if (parseUser.isAuthenticated) {
                         appHelpers=AppHelpers()
-                        userViewModel.addUser(
-                            User(
-                                0,
-                                appHelpers.getNOWasSQLDate(),
-                                parseUser.username,
-                                parseUser.email,
-                                password,
-                                parseUser.objectId
+                        if(userViewModel.count<=0) {
+                            userViewModel.addUser(
+                                User(
+                                    0,
+                                    appHelpers.getNOWasSQLDate(),
+                                    parseUser.username,
+                                    parseUser.email,
+                                    password,
+                                    parseUser.objectId
+                                )
                             )
-                        )
+                        }
+                        else{
+                            //update curren user created before
+                            val getUser=userViewModel.getUserDetail
+                            if(getUser!=null){
+                                userViewModel.updateUser(
+                                    User(
+                                        getUser.id,
+                                        appHelpers.getNOWasSQLDate(),
+                                        parseUser.username,
+                                        parseUser.email,
+                                        password,
+                                        parseUser.objectId
+                                    )
+                                )
+                            }
+                            else{
+                                userViewModel.deleteUser(getUser)
+                                userViewModel.addUser(
+                                    User(
+                                        0,
+                                        appHelpers.getNOWasSQLDate(),
+                                        parseUser.username,
+                                        parseUser.email,
+                                        password,
+                                        parseUser.objectId
+                                    )
+                                )
+                            }
+                        }
                         eventResult.result = true
                         eventResult.eventResultFlags = EventResultFlags.SUCCESS
                     }

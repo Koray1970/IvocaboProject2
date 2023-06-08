@@ -8,6 +8,9 @@
     <string name="gotosignin">Go To Sing-in</string>
     <string name="reset">Reset</string>
     <string name="email">E-mail</string>
+    <string name="emailremoving">Removing e-mail address!</string>
+    <string name="logodescription">Ivocabo Logotype</string>
+    <string name="emailsupporting">Please enter a valid email address!</string>
     <string name="generalexceptionmessage">We encountered an unexpected problem, please try again later or contact with us.</string>
 
     <string name="internetdisconnected">Device internet is disconnected! Please check internet connection</string>
@@ -25,7 +28,12 @@
     <string name="rg_subtitle">Please fill below form, cause we only communicate with your given data.</string>
     <string name="rg_warning">We undertake that the data you register with this form will not be shared with third parties and will be protected.</string>
     <string name="rg_username">Username</string>
+    <string name="rg_usernameremoving">Removing given username!</string>
+    <string name="rg_usernamesupporting">Please enter a username you can remember!</string>
     <string name="rg_password">Password</string>
+    <string name="rg_passworddisplay">Display password!</string>
+    <string name="rg_passwordhide">Hide password!</string>
+    <string name="rg_passwordsupporting">Please enter a password you can remember!</string>
     <string name="formelementisempty">Please don not leave empty!</string>
     <string name="parseerror208">Account already exists for this username.</string>
     <string name="userisauthenticated">User is reauthenticated!!!</string>
