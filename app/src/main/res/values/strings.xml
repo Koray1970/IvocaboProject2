@@ -13,6 +13,8 @@
     <string name="emailsupporting">Please enter a valid email address!</string>
     <string name="generalexceptionmessage">We encountered an unexpected problem, please try again later or contact with us.</string>
 
+    <string name="addnewdevice">Add New Device</string>
+
     <string name="internetdisconnected">Device internet is disconnected! Please check internet connection</string>
     <string name="internetconnected">Device internet is connected!</string>
     <string name="internetwifeconnected">Device is connecting over wifi!</string>

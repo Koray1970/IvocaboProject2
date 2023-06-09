@@ -270,16 +270,16 @@ fun Dashboard(
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = Color.Black,
+        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
                     scope.launch {
                         deviceformsheetState.bottomSheetState.expand()
                     }
-                }, containerColor = Color(context.getColor(R.color.ic_applogo_background))
+                }, containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.addnewdevice), tint =MaterialTheme.colorScheme.onTertiaryContainer)
             }
         },
         floatingActionButtonPosition = FabPosition.End,
@@ -357,11 +357,17 @@ fun DeviceList(
         IvocaboleTrackService.SCANNING_STATUS = true
         context.startService(lIntent)
     }
-    Text(
-        modifier = Modifier.padding(18.dp, 8.dp),
-        text = stringResource(id = R.string.devicelisttitle),
-        style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
-    )
+    Box(modifier = Modifier.fillMaxWidth().wrapContentHeight().background(MaterialTheme.colorScheme.onSecondaryContainer)){
+        Text(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight().padding(20.dp,10.dp)
+            ,
+            text = stringResource(id = R.string.devicelisttitle),
+            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        )
+    }
+
     LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState, userScrollEnabled = true) {
         itemsIndexed(state.value.devices) { index, item ->
             val dismissState = rememberDismissState(confirmValueChange = {
@@ -407,9 +413,7 @@ fun DeviceList(
                 ) {
                     ListItem(
                         colors = ListItemDefaults.colors(
-                            containerColor = Color.White,
-                            headlineColor = Color.Black,
-                            supportingColor = Color.LightGray
+                            containerColor = MaterialTheme.colorScheme.secondary
                         ),
                         leadingContent = {
                             Image(
@@ -420,13 +424,13 @@ fun DeviceList(
                         headlineContent = {
                             Text(
                                 item.name,
-                                style = TextStyle(fontWeight = FontWeight.Black)
+                                style = TextStyle(fontWeight = FontWeight.Black, fontSize = 24.sp)
                             )
                         },
                         supportingContent = {
                             Text(
                                 item.macaddress,
-                                style = TextStyle(fontSize = 12.sp, fontWeight = FontWeight.Light)
+                                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Light)
                             )
                         })
                     Divider()
@@ -443,9 +447,9 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
 
     val color by animateColorAsState(
         when (dismissState.targetValue) {
-            DismissValue.Default -> Color.LightGray
-            DismissValue.DismissedToEnd -> Color.Red//Color.Green
-            DismissValue.DismissedToStart -> Color.Red
+            DismissValue.Default -> MaterialTheme.colorScheme.secondary
+            DismissValue.DismissedToEnd -> MaterialTheme.colorScheme.error
+            DismissValue.DismissedToStart -> MaterialTheme.colorScheme.error
         }
     )
 
@@ -955,7 +959,7 @@ fun DeviceForm(
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(DeviceTypes.values()[0]) }
 
     BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
-        sheetContainerColor = Color.Black,
+        sheetContainerColor =MaterialTheme.colorScheme.background,
         sheetPeekHeight = 0.dp,
         sheetContent = {
             Column(
@@ -969,7 +973,6 @@ fun DeviceForm(
                     style = TextStyle(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Black,
-                        color = Color.White,
                         textAlign = TextAlign.Center
                     )
                 )
@@ -983,7 +986,6 @@ fun DeviceForm(
                     },
                     label = { Text(text = stringResource(id = R.string.macaddress)) },
                     value = txtmacaddress,
-                    textStyle = TextStyle(color = Color.White),
                     isError = iserrormacaddress,
                     keyboardOptions = KeyboardOptions(
                         autoCorrect = false,
@@ -1010,7 +1012,6 @@ fun DeviceForm(
                     },
                     label = { Text(text = stringResource(id = R.string.devicename)) },
                     value = txtdevicename,
-                    textStyle = TextStyle(color = Color.White),
                     isError = iserrordevicename,
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.Words,
@@ -1055,11 +1056,11 @@ fun DeviceForm(
                                 onClick = { onOptionSelected(item) },
                                 role = Role.RadioButton
                             ),
-                            colors = ListItemDefaults.colors(
+                            /*colors = ListItemDefaults.colors(
                                 containerColor = Color.Black,
                                 headlineColor = Color.White,
                                 leadingIconColor = Color.LightGray
-                            ),
+                            ),*/
                             headlineContent = { Text(text = name) },
                             leadingContent = {
                                 Box(
@@ -1126,7 +1127,7 @@ fun DeviceForm(
                             if (txtdevicename.isEmpty()) iserrordevicename = true
                         }
                     }) {
-                        Text(text = context.getString(R.string.save))
+                        Text(text = context.getString(R.string.save),style= TextStyle(color = MaterialTheme.colorScheme.primary))
                     }
                 }
 

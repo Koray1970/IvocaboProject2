@@ -13,6 +13,7 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
+import android.net.MacAddress
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -61,11 +62,17 @@ class IvocaboleTrackService : Service() {
                 if (scanFilter == null)
                     scanFilter = mutableListOf<ScanFilter>()
                 it.forEach {
+
                     var nMacaddress = appHelpers.formatedMacAddress(it.macaddress)
-                    deviceList.add(nMacaddress)
-                    val checkHasDevice = scanFilter.filter { f -> f.deviceAddress == nMacaddress }
-                    if (checkHasDevice.isEmpty())
-                        scanFilter.add(ScanFilter.Builder().setDeviceAddress(nMacaddress).build())
+                    if(BluetoothAdapter.checkBluetoothAddress(nMacaddress)) {
+                        deviceList.add(nMacaddress)
+                        val checkHasDevice =
+                            scanFilter.filter { f -> f.deviceAddress == nMacaddress }
+                        if (checkHasDevice.isEmpty())
+                            scanFilter.add(
+                                ScanFilter.Builder().setDeviceAddress(nMacaddress).build()
+                            )
+                    }
                 }
             }
         }
@@ -83,24 +90,24 @@ class IvocaboleTrackService : Service() {
         GlobalScope.launch {
             delay(2000L)
             bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
-            //delay(3000L)
-
-            scanSettings =
-                ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED)
-                    .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
-                    .setReportDelay(10000L).build()
-            bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
-            SCANNING_STATUS = true
-            Log.v(TAG, "scanStart 1")
-
-
-            while (true) {
-                delay(120000L) //2 minute
-                stopScan()
-                delay(15000L) //15 second
+            if(scanFilter.isNotEmpty()) {
+                scanSettings =
+                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                        .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
+                        .setReportDelay(10000L).build()
                 bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
                 SCANNING_STATUS = true
-                Log.v(TAG, "scanStart 2")
+                Log.v(TAG, "scanStart 1")
+
+
+                while (true) {
+                    delay(120000L) //2 minute
+                    stopScan()
+                    delay(15000L) //15 second
+                    bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
+                    SCANNING_STATUS = true
+                    Log.v(TAG, "scanStart 2")
+                }
             }
         }
     }

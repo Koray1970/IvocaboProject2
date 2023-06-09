@@ -142,7 +142,7 @@ class DeviceActivity : ComponentActivity() {
         val dbdetails = deviceViewModel.getDeviceDetail(macaddress)
 
         GlobalScope.launch {
-            IvocaboleTrackService.SCANNING_STATUS=false
+            IvocaboleTrackService.SCANNING_STATUS = false
             val lIntent = Intent(applicationContext, IvocaboleTrackService::class.java)
             applicationContext.stopService(lIntent)
         }
@@ -173,10 +173,8 @@ class DeviceActivity : ComponentActivity() {
                         })
                 }
 
-                Scaffold(modifier = Modifier.fillMaxSize(), containerColor = Color.Black, topBar = {
-                    TopAppBar(colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Black, titleContentColor = Color.White
-                    ), title = {
+                Scaffold(modifier = Modifier.fillMaxSize(), topBar = {
+                    TopAppBar(title = {
                         Column {
                             Text(text = dbdetails.name)
                             Text(
@@ -188,8 +186,7 @@ class DeviceActivity : ComponentActivity() {
                         IconButton(
                             onClick = {
                                 GoBackEvent()
-                            },
-                            colors = IconButtonDefaults.iconButtonColors(contentColor = Color.White)
+                            }
                         ) {
                             Icon(Icons.Filled.ArrowBack, "")
                         }
@@ -494,21 +491,24 @@ fun DeviceEvents(
     }
     val lIntent = Intent(context, IvocaboleTrackService::class.java)
     var trackMyDeviceSwitchStatus by remember { mutableStateOf(false) }
+    if (device.istracking!!) trackMyDeviceSwitchStatus = true
     val trackMyDeviceSwitchIcon: (@Composable () -> Unit)? = if (trackMyDeviceSwitchStatus) {
         {
+            LaunchedEffect(Unit) {
+                device.istracking = true
+                deviceViewModel.update(device)
+            }
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
                 modifier = Modifier.size(SwitchDefaults.IconSize),
             )
-            //IvocaboleTrackService.macaddress = appHelpers.formatedMacAddress(device.macaddress)
-
-            //IvocaboleTrackService.SCANNING_STATUS = true
-
         }
     } else {
-        /*IvocaboleTrackService.SCANNING_STATUS = false
-        context.stopService(lIntent)*/
+        LaunchedEffect(Unit) {
+            device.istracking = false
+            deviceViewModel.update(device)
+        }
         null
     }
 
@@ -563,10 +563,12 @@ fun DeviceEvents(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Switch(
                         checked = trackMyDeviceSwitchStatus,
-                        onCheckedChange = { trackMyDeviceSwitchStatus=it },thumbContent = trackMyDeviceSwitchIcon)
+                        onCheckedChange = { trackMyDeviceSwitchStatus = it },
+                        thumbContent = trackMyDeviceSwitchIcon
+                    )
                     Text(
                         text = stringResource(id = R.string.tracking), style = TextStyle(
-                            fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White
+                            fontSize = 14.sp, fontWeight = FontWeight.Medium
                         )
                     )
                 }
@@ -596,8 +598,7 @@ fun DeviceEvents(
                             findDeviceBottomSheetScaffoldState.bottomSheetState.expand()
                         }
                     },
-                    modifier = Modifier.wrapContentWidth(),
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+                    modifier = Modifier.wrapContentWidth()
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -652,7 +653,7 @@ fun DeviceEvents(
                     }, thumbContent = missingSwitchIcon)
                     Text(
                         text = stringResource(id = R.string.missing), style = TextStyle(
-                            fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White
+                            fontSize = 14.sp, fontWeight = FontWeight.Medium
                         )
                     )
                 }
@@ -673,7 +674,7 @@ fun DeviceFindPlaceholder(
 ) {
     val context = LocalContext.current.applicationContext
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    val appCalcs= ivo.example.ivocaboproject.AppCalcs()
+    val appCalcs = ivo.example.ivocaboproject.AppCalcs()
     val lIntent = Intent(context, IvocaboleService::class.java)
     lIntent.putExtra("macaddress", appHelpers.formatedMacAddress(device.macaddress))
     when (bottomSheetState.currentValue) {
@@ -724,9 +725,9 @@ fun DeviceFindPlaceholder(
     val offsetAnimation: Dp by animateDpAsState(
         offsetAnim.value, tween(2000)
     )
-    var distance=""
+    var distance = ""
     IvocaboleService.CURRENT_RSSI.observeForever {
-        distance= appCalcs.getRssiDistance(it!!)
+        distance = appCalcs.getRssiDistance(it!!)
     }
     BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
         sheetContainerColor = Color.Black,
@@ -747,9 +748,32 @@ fun DeviceFindPlaceholder(
                             i -= 1
                         }
                     }
-                    Column(modifier = Modifier.fillMaxWidth().wrapContentHeight().align(Alignment.TopCenter)) {
-                        Text(modifier = Modifier.fillMaxWidth(), text = "${device.name}", style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.Black, textAlign = TextAlign.Center))
-                        Text(modifier = Modifier.fillMaxWidth(),text = "$distance m", style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium, color = Color.DarkGray, textAlign = TextAlign.Center))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .align(Alignment.TopCenter)
+                    ) {
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = "${device.name}",
+                            style = TextStyle(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Black,
+                                color = Color.Black,
+                                textAlign = TextAlign.Center
+                            )
+                        )
+                        Text(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = "$distance m",
+                            style = TextStyle(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color.DarkGray,
+                                textAlign = TextAlign.Center
+                            )
+                        )
                     }
 
                     Icon(
