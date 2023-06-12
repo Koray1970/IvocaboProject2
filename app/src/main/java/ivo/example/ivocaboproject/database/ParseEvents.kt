@@ -1,5 +1,6 @@
 package ivo.example.ivocaboproject.database
 
+import android.telephony.CellSignalStrength
 import android.util.Log
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -10,16 +11,16 @@ import com.parse.ParseObject
 import com.parse.ParseQuery
 import com.parse.ParseUser
 import ivo.example.ivocaboproject.AppHelpers
-import ivo.example.ivocaboproject.appHelpers
 import ivo.example.ivocaboproject.database.localdb.Device
 import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
+import java.sql.Date
 
 
 class ParseEvents {
     private val TAG = ParseEvents::class.java.simpleName
-    private lateinit var appHelpers: AppHelpers
+    private val appHelpers = AppHelpers()
     fun AddUser(user: User, userViewModel: UserViewModel): EventResult<String> {
         var eventResult = EventResult<String>("")
         try {
@@ -53,8 +54,7 @@ class ParseEvents {
                 var parseUser = ParseUser.logIn(username, password)
                 if (parseUser.isDataAvailable)
                     if (parseUser.isAuthenticated) {
-                        appHelpers=AppHelpers()
-                        if(userViewModel.count<=0) {
+                        if (userViewModel.count <= 0) {
                             userViewModel.addUser(
                                 User(
                                     0,
@@ -65,11 +65,10 @@ class ParseEvents {
                                     parseUser.objectId
                                 )
                             )
-                        }
-                        else{
+                        } else {
                             //update curren user created before
-                            val getUser=userViewModel.getUserDetail
-                            if(getUser!=null){
+                            val getUser = userViewModel.getUserDetail
+                            if (getUser != null) {
                                 userViewModel.updateUser(
                                     User(
                                         getUser.id,
@@ -80,8 +79,7 @@ class ParseEvents {
                                         parseUser.objectId
                                     )
                                 )
-                            }
-                            else{
+                            } else {
                                 userViewModel.deleteUser(getUser)
                                 userViewModel.addUser(
                                     User(
@@ -110,7 +108,6 @@ class ParseEvents {
     fun ResetUserPassword(email: String): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
-            appHelpers = AppHelpers()
             if (email.isNotEmpty()) {
                 if (appHelpers.isValidEmail(email)) {
                     ParseUser.requestPasswordReset(email)
@@ -163,6 +160,49 @@ class ParseEvents {
             eventResult.exception = exception
         }
         return eventResult
+    }
+
+    fun getDeviceList(): EventResult<List<Device>?> {
+        val listOfDevice = ArrayList<Device>()
+        val dbresult = EventResult<List<Device>?>(listOfDevice)
+        try {
+            val parseQuery = ParseQuery<ParseObject>("Beacons")
+            parseQuery.whereEqualTo("parseUserId", ParseUser.getCurrentUser().objectId)
+            var queryResult = parseQuery.find()
+            if (!queryResult.isNullOrEmpty()) {
+                queryResult.forEach {
+                    var macaddress = it.getString("mac")
+                    var ismissing = false
+                    val missingQuery = ParseQuery<ParseObject>("MissingBeacons")
+                    missingQuery.whereEqualTo("mac", macaddress)
+                    if (!missingQuery.find().isNullOrEmpty())
+                        ismissing = true
+
+
+                    listOfDevice.add(
+                        Device(
+                            0,
+                            appHelpers.javaUtilDateToJavaSqlDate(it.updatedAt),
+                            macaddress!!,
+                            it.getString("devicename")!!,
+                            it.getString("latitude")!!,
+                            it.getString("longitude")!!,
+                            it.objectId,
+                            ismissing, true, it.getInt("devicetype")
+                        )
+                    )
+                }
+                if (listOfDevice.size > 0) {
+                    dbresult.result = listOfDevice.toList()
+                } else {
+                    dbresult.result = null
+                }
+                dbresult.eventResultFlags = EventResultFlags.SUCCESS
+            }
+        } catch (exception: Exception) {
+            dbresult.exception = exception
+        }
+        return dbresult
     }
 
     fun DeleteDevice(device: Device, deviceViewModel: DeviceViewModel): EventResult<Boolean> {
@@ -260,7 +300,6 @@ class ParseEvents {
     ): EventResult<Boolean> {
         val eventResult = EventResult<Boolean>(false)
         try {
-            val appHelpers = AppHelpers()
             val query = ParseQuery<ParseObject>("MissingBeacons")
             query.whereContainedIn("mac", macaddresses)
             query.findInBackground { objects: List<ParseObject>, e: ParseException? ->
@@ -302,4 +341,5 @@ class ParseEvents {
         }
         return eventResult
     }
+
 }

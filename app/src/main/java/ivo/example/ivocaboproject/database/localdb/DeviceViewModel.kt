@@ -16,6 +16,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import ivo.example.ivocaboproject.database.EventResultFlags
+import ivo.example.ivocaboproject.database.ParseEvents
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,14 +30,30 @@ class DeviceViewModel @Inject constructor(
     val appHandle = AppHelpers()
 
     private val uiState = MutableStateFlow(DeviceListViewState(false, emptyList()))
-    var getTrackDevicelist= MutableLiveData<List<Device>>()
+    var getTrackDevicelist = MutableLiveData<List<Device>>()
     fun consumableState() = uiState.asStateFlow()
 
     init {
         fetchDeviceListData()
         initTrackDeviceList()
     }
-    fun initTrackDeviceList(){
+
+    fun syncDeviceList() {
+        val parseEvents = ParseEvents()
+        val dbrmresult = parseEvents.getDeviceList()
+        if (dbrmresult.eventResultFlags == EventResultFlags.SUCCESS) {
+            if (!dbrmresult.result.isNullOrEmpty())
+                if (dbrmresult.result!!.size > 0) {
+                    dbrmresult.result!!.forEach {
+                        viewModelScope.launch {
+                            repo.insert(it)
+                        }
+                    }
+                }
+        }
+    }
+
+    fun initTrackDeviceList() {
         viewModelScope.launch {
             var dbTrackList = repo.trackDeviceList()
             if (dbTrackList.size > 0)

@@ -6,6 +6,9 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class AppHelpers {
+    fun javaUtilDateToJavaSqlDate(date:java.util.Date):java.sql.Date{
+        return java.sql.Date(date.time)
+    }
     fun getNOWasDate(): java.util.Date {
         return java.util.Date()
     }

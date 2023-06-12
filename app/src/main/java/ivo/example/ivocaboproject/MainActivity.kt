@@ -214,7 +214,7 @@ fun Dashboard(
         if (!ParseUser.getCurrentUser().isAuthenticated) {
             var user = userviewModel.getUserDetail
             val parseEvents = ParseEvents()
-            val dbresult = parseEvents.SingInUser(user.email, user.password,userviewModel)
+            val dbresult = parseEvents.SingInUser(user.email, user.password, userviewModel)
             if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                 Toast.makeText(
                     context, context.getString(R.string.userisauthenticated), Toast.LENGTH_SHORT
@@ -279,7 +279,11 @@ fun Dashboard(
                     }
                 }, containerColor = MaterialTheme.colorScheme.primary
             ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(id = R.string.addnewdevice), tint =MaterialTheme.colorScheme.onTertiaryContainer)
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(id = R.string.addnewdevice),
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
             }
         },
         floatingActionButtonPosition = FabPosition.End,
@@ -357,12 +361,17 @@ fun DeviceList(
         IvocaboleTrackService.SCANNING_STATUS = true
         context.startService(lIntent)
     }
-    Box(modifier = Modifier.fillMaxWidth().wrapContentHeight().background(MaterialTheme.colorScheme.onSecondaryContainer)){
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+            .background(MaterialTheme.colorScheme.onSecondaryContainer)
+    ) {
         Text(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight().padding(20.dp,10.dp)
-            ,
+                .wrapContentHeight()
+                .padding(20.dp, 10.dp),
             text = stringResource(id = R.string.devicelisttitle),
             style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
         )
@@ -480,7 +489,7 @@ fun RegisterUser(
     navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
-    val logodescription=stringResource(id = R.string.logodescription)
+    val logodescription = stringResource(id = R.string.logodescription)
     GetLocation(context)
     Column(modifier = Modifier
         .fillMaxSize()
@@ -496,7 +505,7 @@ fun RegisterUser(
                 .align(alignment = Alignment.CenterHorizontally)
                 .padding(0.dp, 10.dp),
             painter = painterResource(id = R.drawable.ic_launcher_round),
-            contentDescription =logodescription
+            contentDescription = logodescription
         )
 
         Text(
@@ -528,7 +537,7 @@ fun RegisterUser(
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
             onValueChange = { txtrgusername = it },
             label = { Text(text = stringResource(id = R.string.rg_username)) },
-            supportingText={Text(text = stringResource(id = R.string.rg_usernamesupporting))},
+            supportingText = { Text(text = stringResource(id = R.string.rg_usernamesupporting)) },
             value = txtrgusername,
             textStyle = TextStyle(color = Color.White),
             keyboardOptions = KeyboardOptions(
@@ -540,7 +549,8 @@ fun RegisterUser(
                 if (isusernameVisible) {
                     IconButton(onClick = { txtrgusername = "" }) {
                         Icon(
-                            imageVector = Icons.Default.Clear, contentDescription = context.getString(R.string.rg_usernameremoving)
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = context.getString(R.string.rg_usernameremoving)
                         )
                     }
                 }
@@ -550,7 +560,7 @@ fun RegisterUser(
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
             onValueChange = { txtrgemail = it },
             label = { Text(text = stringResource(id = R.string.email)) },
-            supportingText={Text(text = stringResource(id = R.string.emailsupporting))},
+            supportingText = { Text(text = stringResource(id = R.string.emailsupporting)) },
             value = txtrgemail,
             textStyle = TextStyle(color = Color.White),
             keyboardOptions = KeyboardOptions(
@@ -562,25 +572,26 @@ fun RegisterUser(
                 if (isemailVisible) {
                     IconButton(onClick = { txtrgemail = "" }) {
                         Icon(
-                            imageVector = Icons.Default.Clear, contentDescription = context.getString(R.string.emailremoving)
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = context.getString(R.string.emailremoving)
                         )
                     }
                 }
             })
         var txtrgpassword by rememberSaveable { mutableStateOf("") }
         var ispasswordVisible by remember { mutableStateOf(false) }
-        var displayiconDesc= ""
-        val icon = if (ispasswordVisible){
-            displayiconDesc= stringResource(id = R.string.rg_passwordhide)
+        var displayiconDesc = ""
+        val icon = if (ispasswordVisible) {
+            displayiconDesc = stringResource(id = R.string.rg_passwordhide)
             painterResource(id = R.drawable.baseline_visibility_2480)
+        } else {
+            displayiconDesc = stringResource(id = R.string.rg_passworddisplay)
+            painterResource(id = R.drawable.baseline_visibility_off_24)
         }
-        else {
-            displayiconDesc= stringResource(id = R.string.rg_passworddisplay)
-            painterResource(id = R.drawable.baseline_visibility_off_24)}
         OutlinedTextField(modifier = Modifier.fillMaxWidth(),
             onValueChange = { txtrgpassword = it },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
-            supportingText={Text(text = stringResource(id = R.string.rg_passwordsupporting))},
+            supportingText = { Text(text = stringResource(id = R.string.rg_passwordsupporting)) },
             value = txtrgpassword,
             textStyle = TextStyle(color = Color.White),
             visualTransformation = if (ispasswordVisible) VisualTransformation.None
@@ -647,7 +658,11 @@ fun RegisterUser(
 }
 
 @Composable
-fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltViewModel()) {
+fun SignIn(
+    navController: NavController,
+    userviewModel: UserViewModel = hiltViewModel(),
+    deviceViewModel: DeviceViewModel = hiltViewModel()
+) {
     val scope = rememberCoroutineScope()
 
     var txtsiusername by rememberSaveable { mutableStateOf("") }
@@ -764,12 +779,15 @@ fun SignIn(navController: NavController, userviewModel: UserViewModel = hiltView
             FilledTonalButton(
                 onClick = {
                     scope.launch {
-                        if(txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
+                        if (txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
                             val parseEvents = ParseEvents()
                             var dbresult =
                                 parseEvents.SingInUser(txtsiusername, txtsipassword, userviewModel)
-                            if (dbresult.eventResultFlags == EventResultFlags.SUCCESS)
+                            if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                                deviceViewModel.syncDeviceList()
+                                delay(2800L)
                                 navController.navigate("dashboard")
+                            }
                         }
                     }
                 },
@@ -893,7 +911,7 @@ fun ResetPassword(navController: NavController) {
                                 val parseEvents = ParseEvents()
                                 var dbresult = parseEvents.ResetUserPassword(txtrpemail)
                                 if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                                    confirmOpenDialog.value=true
+                                    confirmOpenDialog.value = true
                                 } else {
                                     scope.launch {
                                         var msg = ""
@@ -959,7 +977,7 @@ fun DeviceForm(
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(DeviceTypes.values()[0]) }
 
     BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
-        sheetContainerColor =MaterialTheme.colorScheme.background,
+        sheetContainerColor = MaterialTheme.colorScheme.background,
         sheetPeekHeight = 0.dp,
         sheetContent = {
             Column(
@@ -1127,7 +1145,10 @@ fun DeviceForm(
                             if (txtdevicename.isEmpty()) iserrordevicename = true
                         }
                     }) {
-                        Text(text = context.getString(R.string.save),style= TextStyle(color = MaterialTheme.colorScheme.primary))
+                        Text(
+                            text = context.getString(R.string.save),
+                            style = TextStyle(color = MaterialTheme.colorScheme.primary)
+                        )
                     }
                 }
 
