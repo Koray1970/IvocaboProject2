@@ -10,27 +10,36 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
+import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.net.MacAddress
+import android.net.Uri
 import android.os.IBinder
 import android.util.Log
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.MutableLiveData
+import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import ivo.example.ivocaboproject.AppHelpers
+import ivo.example.ivocaboproject.CurrentLoc
 import ivo.example.ivocaboproject.R
 import ivo.example.ivocaboproject.database.localdb.Device
+import ivo.example.ivocaboproject.latLng
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
 
 data class DisconnectedDevice(var macaddress: String, var countofdisconnect: Int)
 class IvocaboleTrackService : Service() {
     private val TAG = IvocaboleTrackService::class.java.simpleName
     private val appHelpers = AppHelpers()
-    private val gson=Gson()
+    private val gson = Gson()
     private var scanFilter = mutableListOf<ScanFilter>()
     private lateinit var scanSettings: ScanSettings
     private lateinit var bluetoothManager: BluetoothManager
@@ -41,6 +50,7 @@ class IvocaboleTrackService : Service() {
     private var notificationManager: NotificationManager? = null
     private var deviceSize = MutableLiveData<Int>(0)
     private var deviceList = arrayListOf<String>()
+    private lateinit var soundUri: Uri
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
@@ -49,6 +59,8 @@ class IvocaboleTrackService : Service() {
     override fun onCreate() {
         super.onCreate()
         //appAlarm = MediaPlayer.create(applicationContext, R.raw.alarm)
+        soundUri =
+            Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + applicationContext.packageName + "/" + R.raw.alarm)
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     }
 
@@ -64,7 +76,7 @@ class IvocaboleTrackService : Service() {
                 it.forEach {
 
                     var nMacaddress = appHelpers.formatedMacAddress(it.macaddress)
-                    if(BluetoothAdapter.checkBluetoothAddress(nMacaddress)) {
+                    if (BluetoothAdapter.checkBluetoothAddress(nMacaddress)) {
                         deviceList.add(nMacaddress)
                         val checkHasDevice =
                             scanFilter.filter { f -> f.deviceAddress == nMacaddress }
@@ -90,9 +102,9 @@ class IvocaboleTrackService : Service() {
         GlobalScope.launch {
             delay(2000L)
             bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
-            if(scanFilter.isNotEmpty()) {
+            if (scanFilter.isNotEmpty()) {
                 scanSettings =
-                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED)
+                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                         .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
                         .setReportDelay(10000L).build()
                 bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
@@ -119,6 +131,7 @@ class IvocaboleTrackService : Service() {
         Log.v(TAG, "scanStop")
     }
 
+
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
@@ -134,7 +147,7 @@ class IvocaboleTrackService : Service() {
             var maclist = arrayListOf<String>()
             results?.forEach { maclist.add(it.device.address) }
             var findResult = deviceList.filter { maclist.contains(it) }
-            if(disconnectedControl.isNotEmpty()){
+            if (disconnectedControl.isNotEmpty()) {
                 disconnectedControl.removeIf { findResult.contains(it.macaddress) }
             }
             var fResult = deviceList.filterNot { g -> maclist.contains(g) }
@@ -149,32 +162,50 @@ class IvocaboleTrackService : Service() {
                             var currentDevice = disconnectFilters.first()
 
                             currentDevice.countofdisconnect = currentDevice.countofdisconnect + 1
-                            if (currentDevice.countofdisconnect >= 20) {
-                                currentDevice.countofdisconnect=0
+                            if (currentDevice.countofdisconnect >= 2) {
+                                currentDevice.countofdisconnect = 0
                                 var notifyContent =
                                     currentDevice.macaddress + " - " + getString(R.string.devicefarfrom)
-                                val notification =
-                                    NotificationCompat.Builder(
-                                        applicationContext,
-                                        "ivocabobluetooth"
-                                    )
-                                        .setContentTitle(getString(R.string.notificationtitle))
-                                        .setTicker(getString(R.string.notificationtitle))
-                                        .setContentText(notifyContent)
-                                        .setSmallIcon(R.drawable.outofrange_24)
-                                        .setOngoing(true)
-                                        .build()
-                                notificationManager?.notify(fResult.indexOf(d), notification)
+                                var latLng = LatLng(0.0, 0.0)
+                                val getLoc = CurrentLoc(applicationContext)
+                                MainScope().launch {
+                                    getLoc.startScanLoc()
+                                    getLoc.loc.observeForever {
+                                        if (it != null) {
+                                            latLng = it
+                                            val notification =
+                                                NotificationCompat.Builder(
+                                                    applicationContext,
+                                                    "ivocabobluetooth"
+                                                )
+                                                    .setContentTitle(getString(R.string.notificationtitle))
+                                                    .setTicker(getString(R.string.notificationtitle))
+                                                    .setContentText(notifyContent)
+                                                    .setStyle(NotificationCompat.BigTextStyle()
+                                                        .bigText("Device current lost location  :\n ${it.latitude} , ${it.longitude}"))
+                                                    .setSmallIcon(R.drawable.outofrange_24)
+                                                    .setOngoing(true)
+                                                    .setSound(soundUri)
+                                                    .build()
+
+                                            notificationManager?.notify(
+                                                fResult.indexOf(d),
+                                                notification
+                                            )
+                                        }
+                                    }
+                                }
+
+
                             }
                         } else
                             disconnectedControl.add(DisconnectedDevice(d, 1))
                     }
                 }
-                if(disconnectedControl.isNotEmpty())
-                    Log.v(TAG,gson.toJson(disconnectedControl))
-            }
-            else{
-                if(findResult.isNotEmpty()){
+                if (disconnectedControl.isNotEmpty())
+                    Log.v(TAG, gson.toJson(disconnectedControl))
+            } else {
+                if (findResult.isNotEmpty()) {
                     if (disconnectedControl.isEmpty()) {
                         disconnectedControl.removeIf { findResult.contains(it.macaddress) }
                     }
