@@ -18,9 +18,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -37,9 +39,14 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DismissDirection
@@ -51,10 +58,13 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -190,6 +200,48 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
+private lateinit var deviceformsheetState:BottomSheetScaffoldState
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppNavigationBar(navController: NavController) {
+    val scope = rememberCoroutineScope()
+    deviceformsheetState = rememberBottomSheetScaffoldState()
+    var context = LocalContext.current.applicationContext
+    var selectedItem by remember { mutableStateOf(0) }
+    val items = listOf(
+        Pair(context.getString(R.string.menu_1), Pair("dashboard", R.drawable.baseline_home_24)),
+        Pair(context.getString(R.string.menu_2), Pair("", R.drawable.baseline_emoji_people_24)),
+        Pair(context.getString(R.string.menu_3), Pair("", R.drawable.baseline_settings_24))
+    )
+    BottomAppBar(
+        actions = {
+            items.forEachIndexed { index, s ->
+                IconButton(onClick = { navController.navigate(s.second.first) }) {
+                    Icon(
+                        painter = painterResource(id = s.second.second),
+                        contentDescription = s.first
+                    )
+                }
+            }
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = {
+                    scope.launch {
+                        deviceformsheetState.bottomSheetState.expand()
+                    }
+                }, containerColor = MaterialTheme.colorScheme.primary
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = stringResource(id = R.string.addnewdevice),
+                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                )
+            }
+        })
+}
 
 //private lateinit var latLng: LatLng
 private lateinit var camState: CameraPositionState
@@ -202,8 +254,7 @@ fun Dashboard(
     navController: NavController,
     userviewModel: UserViewModel = hiltViewModel(),
     deviceViewModel: DeviceViewModel = hiltViewModel(),
-
-    ) {
+) {
     val context = LocalContext.current.applicationContext
     //val application = context.applicationContext as Application
     val scope = rememberCoroutineScope()
@@ -266,12 +317,12 @@ fun Dashboard(
             )
         )
     }
-    val deviceformsheetState = rememberBottomSheetScaffoldState()
+    //val deviceformsheetState = rememberBottomSheetScaffoldState()
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        floatingActionButton = {
+        /*floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
                     scope.launch {
@@ -286,9 +337,9 @@ fun Dashboard(
                 )
             }
         },
-        floatingActionButtonPosition = FabPosition.End,
+        floatingActionButtonPosition = FabPosition.End,*/
 
-        ) {
+    ) {
 
         LaunchedEffect(Unit) {
             delay(2000L)
@@ -328,8 +379,9 @@ fun Dashboard(
             //device list
             DeviceList(navController, deviceViewState)
         }
+        AppNavigationBar(navController)
     }
-    DeviceForm(deviceformsheetState.bottomSheetState)
+    DeviceForm()
 }
 
 private lateinit var lIntent: Intent
@@ -483,6 +535,14 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
         Icon(painter = icon, "", Modifier.scale(scale))
     }
 }
+
+@Composable
+fun ViewPrivacyPolicy() {
+    Surface() {
+
+    }
+}
+
 
 @Composable
 fun RegisterUser(
@@ -958,11 +1018,11 @@ fun ResetPassword(navController: NavController) {
 @ExperimentalMaterial3Api
 @Composable
 fun DeviceForm(
-    sheetState: SheetState, deviceViewModel: DeviceViewModel = hiltViewModel(),
+     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
-    val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(sheetState)
+    //val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(sheetState)
 
 
     var txtmacaddress by rememberSaveable { mutableStateOf("") }
@@ -976,7 +1036,7 @@ fun DeviceForm(
     GetLocation(context)
     val (selectedOption, onOptionSelected) = remember { mutableStateOf(DeviceTypes.values()[0]) }
 
-    BottomSheetScaffold(scaffoldState = bottomSheetScaffoldState,
+    BottomSheetScaffold(scaffoldState = deviceformsheetState,
         sheetContainerColor = MaterialTheme.colorScheme.background,
         sheetPeekHeight = 0.dp,
         sheetContent = {
@@ -998,7 +1058,7 @@ fun DeviceForm(
                     .fillMaxWidth()
                     .focusable(true),
                     onValueChange = {
-                        if (bottomSheetScaffoldState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                        if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
                             txtmacaddress = ""
                         } else txtmacaddress = it
                     },
@@ -1024,7 +1084,7 @@ fun DeviceForm(
                     })
                 OutlinedTextField(modifier = Modifier.fillMaxWidth(),
                     onValueChange = {
-                        if (bottomSheetScaffoldState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                        if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
                             txtdevicename = ""
                         } else txtdevicename = it
                     },
@@ -1108,7 +1168,7 @@ fun DeviceForm(
                         txtmacaddress = ""
                         txtdevicename = ""
                         scope.launch {
-                            bottomSheetScaffoldState.bottomSheetState.partialExpand()
+                            deviceformsheetState.bottomSheetState.partialExpand()
                         }
                     }) {
                         Text(text = context.getString(R.string.cancel))
@@ -1137,7 +1197,7 @@ fun DeviceForm(
                                             lDevice
                                         )
                                     )
-                                    bottomSheetScaffoldState.bottomSheetState.partialExpand()
+                                    deviceformsheetState.bottomSheetState.partialExpand()
                                 }
                             }
                         } else {

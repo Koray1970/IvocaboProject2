@@ -12,6 +12,9 @@
     <string name="logodescription">Ivocabo Logotype</string>
     <string name="emailsupporting">Please enter a valid email address!</string>
     <string name="generalexceptionmessage">We encountered an unexpected problem, please try again later or contact with us.</string>
+    <string name="menu_1">Dashboard</string>
+    <string name="menu_2">Profile</string>
+    <string name="menu_3">Settings</string>
 
     <string name="addnewdevice">Add New Device</string>
 

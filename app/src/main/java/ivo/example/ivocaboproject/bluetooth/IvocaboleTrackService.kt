@@ -13,13 +13,10 @@ import android.bluetooth.le.ScanSettings
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.IBinder
 import android.util.Log
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.maps.model.LatLng
@@ -28,7 +25,6 @@ import ivo.example.ivocaboproject.AppHelpers
 import ivo.example.ivocaboproject.CurrentLoc
 import ivo.example.ivocaboproject.R
 import ivo.example.ivocaboproject.database.localdb.Device
-import ivo.example.ivocaboproject.latLng
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
