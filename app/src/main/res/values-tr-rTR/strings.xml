@@ -1,9 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Ivocabo</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
-    <string name="ccontinue">Continue</string>
+    <string name="ccontinue">Devam</string>
     <string name="goback">Go back</string>
     <string name="signin">Sing-in</string>
     <string name="gotosignin">Go To Sing-in</string>
@@ -18,9 +19,10 @@
     <string name="menu_3">Settings</string>
 
     <string name="addnewdevice">Add New Device</string>
-    <string name="privacypolicy_title">Privacy Policy</string>
-    <string name="privacypolicy_detail1">Ivocabo firmly believes that privacy is a fundamental human right that must be respected.</string>
-    <string name="privacypolicy_detail2">As Ivocabo, you can review how we process your personal data and your rights regarding your data by visiting the link below in our Privacy Policy.</string>
+
+    <string name="privacypolicy_title">Gizlilik Politikası</string>
+    <string name="privacypolicy_detail1">Ivocabo, gizliliğin saygı duyulması gereken temel bir insani hak olduğuna kesinlikle inanmaktadır.</string>
+    <string name="privacypolicy_detail2">Ivocabo olarak kişisel verilerinize nasıl işlem yaptığımız ve verilenizle ilgili haklarınız Gizlilik Politikamızdan aşağıdaki bağlantıyı ziyaret ederek inceleyebilirsiniz.</string>
     <string name="internetdisconnected">Device internet is disconnected! Please check internet connection</string>
     <string name="internetconnected">Device internet is connected!</string>
     <string name="internetwifeconnected">Device is connecting over wifi!</string>
