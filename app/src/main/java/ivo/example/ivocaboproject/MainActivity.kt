@@ -184,6 +184,7 @@ class MainActivity : ComponentActivity() {
                     color = Color.Black,
                 ) {
                     AppNavigator()
+
                 }
             }
         }
@@ -201,13 +202,12 @@ class MainActivity : ComponentActivity() {
     }
 }
 @OptIn(ExperimentalMaterial3Api::class)
-private lateinit var deviceformsheetState:BottomSheetScaffoldState
-
+var deviceFormSheetState= mutableStateOf(SheetState(false,SheetValue.PartiallyExpanded))
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigationBar(navController: NavController) {
     val scope = rememberCoroutineScope()
-    deviceformsheetState = rememberBottomSheetScaffoldState()
+
     var context = LocalContext.current.applicationContext
     var selectedItem by remember { mutableStateOf(0) }
     val items = listOf(
@@ -230,7 +230,7 @@ fun AppNavigationBar(navController: NavController) {
             ExtendedFloatingActionButton(
                 onClick = {
                     scope.launch {
-                        deviceformsheetState.bottomSheetState.expand()
+                        deviceFormSheetState.value.expand()
                     }
                 }, containerColor = MaterialTheme.colorScheme.primary
             ) {
@@ -321,6 +321,7 @@ fun Dashboard(
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        bottomBar={AppNavigationBar(navController)},
         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
         /*floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -363,7 +364,7 @@ fun Dashboard(
                 GoogleMap(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(320.dp),
+                        .height(230.dp),
                     cameraPositionState = cameraPositionState,
                     properties = mapProperties,
                     uiSettings = mapUiSettings
@@ -379,9 +380,10 @@ fun Dashboard(
             //device list
             DeviceList(navController, deviceViewState)
         }
-        AppNavigationBar(navController)
+
     }
     DeviceForm()
+
 }
 
 private lateinit var lIntent: Intent
@@ -429,7 +431,7 @@ fun DeviceList(
         )
     }
 
-    LazyColumn(modifier = Modifier.fillMaxWidth(), state = listState, userScrollEnabled = true) {
+    LazyColumn(modifier = Modifier.fillMaxWidth().wrapContentHeight(), state = listState, userScrollEnabled = true) {
         itemsIndexed(state.value.devices) { index, item ->
             val dismissState = rememberDismissState(confirmValueChange = {
                 if (it == DismissValue.DismissedToStart || it == DismissValue.DismissedToEnd) {
@@ -721,7 +723,7 @@ fun RegisterUser(
 fun SignIn(
     navController: NavController,
     userviewModel: UserViewModel = hiltViewModel(),
-    deviceViewModel: DeviceViewModel = hiltViewModel()
+    deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
 
@@ -1018,12 +1020,12 @@ fun ResetPassword(navController: NavController) {
 @ExperimentalMaterial3Api
 @Composable
 fun DeviceForm(
-     deviceViewModel: DeviceViewModel = hiltViewModel(),
+    deviceViewModel: DeviceViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
-    //val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(sheetState)
 
+    val deviceformsheetState = rememberBottomSheetScaffoldState(deviceFormSheetState.value)
 
     var txtmacaddress by rememberSaveable { mutableStateOf("") }
     val ismacaddressVisible by remember { derivedStateOf { txtmacaddress.isNotBlank() } }
