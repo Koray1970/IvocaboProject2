@@ -18,11 +18,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -39,14 +37,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DismissDirection
@@ -55,16 +49,12 @@ import androidx.compose.material3.DismissValue
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -189,7 +179,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
     @Composable
     fun AppNavigator() {
         val navController = rememberNavController()
@@ -198,6 +187,7 @@ class MainActivity : ComponentActivity() {
             composable("registeruser") { RegisterUser(navController) }
             composable("signin") { SignIn(navController) }
             composable("resetpassword") { ResetPassword(navController) }
+            composable("settings") { Settings() }
         }
     }
 }
@@ -213,7 +203,7 @@ fun AppNavigationBar(navController: NavController) {
     val items = listOf(
         Pair(context.getString(R.string.menu_1), Pair("dashboard", R.drawable.baseline_home_24)),
         Pair(context.getString(R.string.menu_2), Pair("", R.drawable.baseline_emoji_people_24)),
-        Pair(context.getString(R.string.menu_3), Pair("", R.drawable.baseline_settings_24))
+        Pair(context.getString(R.string.menu_3), Pair("settings", R.drawable.baseline_settings_24))
     )
     BottomAppBar(
         actions = {
@@ -431,7 +421,9 @@ fun DeviceList(
         )
     }
 
-    LazyColumn(modifier = Modifier.fillMaxWidth().wrapContentHeight(), state = listState, userScrollEnabled = true) {
+    LazyColumn(modifier = Modifier
+        .fillMaxWidth()
+        .wrapContentHeight(), state = listState, userScrollEnabled = true) {
         itemsIndexed(state.value.devices) { index, item ->
             val dismissState = rememberDismissState(confirmValueChange = {
                 if (it == DismissValue.DismissedToStart || it == DismissValue.DismissedToEnd) {

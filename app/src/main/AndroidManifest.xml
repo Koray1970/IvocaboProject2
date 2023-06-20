@@ -44,6 +44,7 @@
         android:name=".ivocaboprojectApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
+        android:forceDarkAllowed="true"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -51,7 +52,16 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.IvocaboProject"
         tools:targetApi="31">
-
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="@string/title_activity_settings"
+            android:theme="@style/Theme.IvocaboProject" />
+        <activity
+            android:name=".ProfileActivity"
+            android:exported="false"
+            android:label="@string/title_activity_profile"
+            android:theme="@style/Theme.IvocaboProject" />
 
         <service
             android:name=".bluetooth.CopanianDeviceService"
@@ -99,15 +109,13 @@
             android:exported="false"
             android:label="@string/app_name"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.IvocaboProject">
-
-        </activity>
+            android:theme="@style/Theme.IvocaboProject" />
         <activity
             android:name=".PrivacyViewer"
             android:exported="true"
             android:label="@string/title_activity_privacy_viewer"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.IvocaboProject" >
+            android:theme="@style/Theme.IvocaboProject">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
