@@ -183,4 +183,5 @@ dependencies {
     implementation 'com.google.maps.android:maps-compose-widgets:2.11.4'
     implementation 'com.google.accompanist:accompanist-permissions:0.31.3-beta'
     implementation "androidx.transition:transition-ktx:1.4.1"
+    implementation "com.google.accompanist:accompanist-webview:0.31.3-beta"
 }

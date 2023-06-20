@@ -1,53 +1,55 @@
 package ivo.example.ivocaboproject
 
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.view.ViewGroup
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.ScrollView
+import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.rememberScrollableState
-import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat.startActivity
-import androidx.core.view.ViewCompat
-import androidx.core.widget.NestedScrollView
+import androidx.compose.ui.window.DialogProperties
+import com.google.accompanist.web.WebView
+import com.google.accompanist.web.rememberWebViewState
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import kotlinx.coroutines.launch
 
 class PrivacyViewer : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        //if(!ParseUser.getCurrentUser().isAuthenticated) {
         setContent {
             IvocaboProjectTheme {
                 // A surface container using the 'background' color from the theme
@@ -59,6 +61,12 @@ class PrivacyViewer : ComponentActivity() {
                 }
             }
         }
+        /*}
+        else{
+            val int= Intent(this,MainActivity::class.java).apply {
+                startActivity(this)
+            }
+        }*/
     }
 }
 
@@ -67,59 +75,127 @@ class PrivacyViewer : ComponentActivity() {
 fun Privacy() {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
-    val scaffoldState = rememberBottomSheetScaffoldState()
-    Surface() {
-        Column() {
-            Text(text = context.getString(R.string.privacypolicy_title))
-            Icon(
-                painterResource(id = R.drawable.baseline_privacy_tip_24),
-                contentDescription = null
+    val openDialog = remember { mutableStateOf(false) }
+
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.inverseOnSurface
+    ) {
+        Column(
+            Modifier.padding(it).padding(10.dp).background(color = MaterialTheme.colorScheme.inverseOnSurface)
+        ) {
+            Spacer(modifier = Modifier.padding(10.dp))
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                text = context.getString(R.string.privacypolicy_title)
             )
-            Text(text = context.getString(R.string.privacypolicy_detail1))
-            Text(text = context.getString(R.string.privacypolicy_detail2))
+            Spacer(modifier = Modifier.padding(10.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f, false),
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.baseline_privacy_tip_24),
+                    contentDescription = null,
+                    Modifier.fillMaxWidth(.3f).aspectRatio(1f)
+                )
+            }
+            Spacer(modifier = Modifier.padding(10.dp))
+            Text(
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Light,
+                text = context.getString(R.string.privacypolicy_detail1)
+            )
+            Spacer(modifier = Modifier.padding(10.dp))
+            Text(
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Light,
+                text = context.getString(R.string.privacypolicy_detail2)
+            )
+            Spacer(modifier = Modifier.padding(10.dp))
             Button(onClick = { /*TODO*/ }) {
                 Text(context.getString(R.string.ccontinue))
             }
             TextButton(onClick = {
-                scope.launch { scaffoldState.bottomSheetState.expand() }
+                scope.launch { openDialog.value = true }
             }) {
                 Text(text = context.getString(R.string.privacypolicy_title).uppercase())
             }
         }
     }
-    val mUrl = "https://www.ivocabo.com/gi-zli-li-k-poli-ti-kasi"
-    BottomSheetScaffold(
+    val urlState = rememberWebViewState("https://www.ivocabo.com/gi-zli-li-k-poli-ti-kasi")
+
+    if (openDialog.value) {
+        AlertDialog(
+            onDismissRequest = { openDialog.value = false },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(0.dp),
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false
+            ),
+            content = {
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    topBar = {
+                        CenterAlignedTopAppBar(
+                            title = {
+                                Text(
+                                    context.getString(R.string.privacypolicy_title),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        )
+                    },
+                    bottomBar = {
+                        BottomAppBar() {
+                            TextButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { openDialog.value = false }) {
+                                Text(
+                                    text = context.getString(R.string.readandconfirm),
+                                    style = TextStyle(textAlign = TextAlign.Center)
+                                )
+                            }
+                        }
+                    }
+                ) { it ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(it)
+                    ) {
+                        WebView(
+                            urlState
+                        )
+                    }
+
+                }
+
+            }
+        )
+    }
+    /*BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetPeekHeight = 0.dp,
+        sheetSwipeEnabled = true,
         sheetContent = {
-            AndroidView(modifier = Modifier
-                .wrapContentHeight()
-                .scrollable(rememberScrollableState {
-                    // view world deltas should be reflected in compose world
-                    // components that participate in nested scrolling
-                    it
-                }, Orientation.Vertical), factory = {
-                WebView(it).apply {
-                    /* layoutParams = ViewGroup.LayoutParams(
-                         ViewGroup.LayoutParams.MATCH_PARENT,
-                         ViewGroup.LayoutParams.WRAP_CONTENT
-                     )*/
-                    webViewClient = WebViewClient()
-                    loadUrl(mUrl)
-                }
-            }, update = {
-                it.loadUrl(mUrl)
-            })
 
-        }) {}
+        }) {}*/
 }
 
 
-/*
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
+fun PrivacyPreview() {
     IvocaboProjectTheme {
-        Greeting("Android")
+        Privacy()
     }
-}*/
+}
