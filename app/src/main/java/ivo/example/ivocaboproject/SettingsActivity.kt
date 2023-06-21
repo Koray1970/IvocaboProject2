@@ -333,7 +333,10 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
                         }
                     }
                     Spacer(modifier = Modifier.weight(2f))
-                    Button(onClick = { /*TODO*/ }) {
+                    Button(onClick = {
+
+                        context.deleteDatabase("ivocabo.db")
+                    }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 painter = painterResource(id = R.drawable.baseline_delete_forever_24),

@@ -104,7 +104,30 @@ class ParseEvents {
         }
         return eventResult
     }
+    fun RemoveUser(){
+        var user=ParseUser.getCurrentUser()
+        try{
+            //track archive
+            val trackArhiveDB=ParseQuery.getQuery<ParseObject>("TrackArchive")
+            var listofTrackArchive=trackArhiveDB.whereEqualTo("User",user.objectId) as List<ParseObject>
+            if(listofTrackArchive.isNotEmpty()){
+                for( z in listofTrackArchive)
+                    z.delete()
+            }
+            //MissingBeacons
+            val missingBeaconsDB=ParseQuery.getQuery<ParseObject>("MissingBeacons")
+            var listofTrackArchive=missingBeaconsDB.whereEqualTo("User",user.objectId) as List<ParseObject>
+            if(listofTrackArchive.isNotEmpty()){
+                for( z in listofTrackArchive)
+                    z.delete()
+            }
 
+        }
+        catch (exception:Exception){
+
+        }
+
+    }
     fun ResetUserPassword(email: String): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
