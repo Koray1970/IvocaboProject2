@@ -104,29 +104,29 @@ class ParseEvents {
         }
         return eventResult
     }
-    fun RemoveUser(){
+    fun RemoveUser():EventResult<Boolean>{
+        var eventResult = EventResult<Boolean>(false)
         var user=ParseUser.getCurrentUser()
         try{
-            //track archive
-            val trackArhiveDB=ParseQuery.getQuery<ParseObject>("TrackArchive")
-            var listofTrackArchive=trackArhiveDB.whereEqualTo("User",user.objectId) as List<ParseObject>
-            if(listofTrackArchive.isNotEmpty()){
-                for( z in listofTrackArchive)
-                    z.delete()
+           val deleteUserPO=ParseObject("DeletedUsers")
+            deleteUserPO.put("username",user.username)
+            deleteUserPO.put("email",user.email)
+            deleteUserPO.put("userObjectId",user.objectId)
+            deleteUserPO.put("clientdeletedatetime",appHelpers.getNOWasSQLDate())
+            deleteUserPO.save()
+            if(deleteUserPO.isDataAvailable){
+                ParseUser.getCurrentUser().delete()
+                ParseUser.logOut()
+                if(!ParseUser.getCurrentUser().isAuthenticated) {
+                    eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                    eventResult.result=true
+                }
             }
-            //MissingBeacons
-            val missingBeaconsDB=ParseQuery.getQuery<ParseObject>("MissingBeacons")
-            var listofTrackArchive=missingBeaconsDB.whereEqualTo("User",user.objectId) as List<ParseObject>
-            if(listofTrackArchive.isNotEmpty()){
-                for( z in listofTrackArchive)
-                    z.delete()
-            }
-
         }
         catch (exception:Exception){
-
+            eventResult.exception=exception
         }
-
+        return eventResult
     }
     fun ResetUserPassword(email: String): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)

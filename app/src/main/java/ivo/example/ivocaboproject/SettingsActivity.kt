@@ -3,6 +3,7 @@ package ivo.example.ivocaboproject
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
@@ -57,6 +58,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.parse.ParseUser
+import ivo.example.ivocaboproject.database.EventResultFlags
+import ivo.example.ivocaboproject.database.ParseEvents
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import kotlinx.coroutines.CoroutineScope
@@ -301,6 +304,7 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
+    val parseEvents=ParseEvents()
     val context= LocalContext.current.applicationContext
     var user=userViewModel.getUserDetail
     BottomSheetScaffold(
@@ -322,7 +326,9 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
                 Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(0.dp,20.dp)) {
                     Button(onClick = {
                         ParseUser.logOut()
-
+                        val int=Intent(context,PrivacyViewer::class.java).apply {
+                            context.startActivity(this)
+                        }
                     }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -334,8 +340,16 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
                     }
                     Spacer(modifier = Modifier.weight(2f))
                     Button(onClick = {
-
-                        context.deleteDatabase("ivocabo.db")
+                        var dbresult=parseEvents.RemoveUser()
+                        if(dbresult.eventResultFlags==EventResultFlags.SUCCESS) {
+                            context.deleteDatabase("ivocabo.db")
+                            val int=Intent(context,PrivacyViewer::class.java).apply {
+                                context.startActivity(this)
+                            }
+                        }
+                        else{
+                            Toast.makeText(context,context.getString(R.string.generalexceptionmessage),Toast.LENGTH_LONG).show()
+                        }
                     }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
