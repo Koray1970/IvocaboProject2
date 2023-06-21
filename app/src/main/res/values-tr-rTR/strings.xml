@@ -8,6 +8,8 @@
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
+    <string name="logout">Çıkış</string>
+    <string name="remove">Hesap Sil</string>
     <string name="ccontinue">Devam</string>
     <string name="goback">Go back</string>
     <string name="signin">Sing-in</string>
