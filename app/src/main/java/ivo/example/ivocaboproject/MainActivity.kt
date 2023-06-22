@@ -155,6 +155,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         context = applicationContext
         //context.deleteDatabase("ivocabo.db")
+        //ParseUser.logOut()
 
 
         val cld = FetchNetworkConnectivity(application)
@@ -684,6 +685,7 @@ fun RegisterUser(
                             txtrgusername,
                             txtrgemail,
                             txtrgpassword,
+                            null,
                             null
                         )
                         val dbresult = parseEvents.AddUser(user, userviewModel)

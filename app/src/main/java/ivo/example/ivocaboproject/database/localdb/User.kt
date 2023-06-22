@@ -24,6 +24,8 @@ data class User(
     val email:String,
     @ColumnInfo(name ="password")
     val password:String,
+    @ColumnInfo(name="notification")
+    var notification:Boolean?,
     @ColumnInfo(name ="parseid")
     var objectId:String?
 )

@@ -67,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.parse.ParseUser
+import dagger.hilt.android.lifecycle.HiltViewModel
 import ivo.example.ivocaboproject.database.EventResultFlags
 import ivo.example.ivocaboproject.database.ParseEvents
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
@@ -111,7 +112,7 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
     context = LocalContext.current.applicationContext
     val user = userViewModel.getUserDetail
     profileSheetScaffoldState = rememberBottomSheetScaffoldState(SheetState(false))
-    permissionsSheetScaffoldState= rememberBottomSheetScaffoldState(SheetState(false))
+    permissionsSheetScaffoldState = rememberBottomSheetScaffoldState(SheetState(false))
     Column(
         Modifier
             .background(MaterialTheme.colorScheme.secondaryContainer)
@@ -232,9 +233,9 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
             },
             trailingContent = {
                 IconButton(onClick = {
-                   scope.launch {
-                       permissionsSheetScaffoldState.bottomSheetState.expand()
-                   }
+                    scope.launch {
+                        permissionsSheetScaffoldState.bottomSheetState.expand()
+                    }
                 }) {
                     Icon(
                         Icons.Filled.KeyboardArrowRight,
@@ -402,50 +403,52 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Permissions() {
-    context= LocalContext.current.applicationContext
-    var locationCheckedState = remember{ mutableStateOf(false) }
-    if(context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED){
-        locationCheckedState.value=true
+fun Permissions(userView: UserViewModel = hiltViewModel()) {
+    context = LocalContext.current.applicationContext
+    var locationCheckedState = remember { mutableStateOf(false) }
+    if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+        locationCheckedState.value = true
     }
 
 
-    var bluetoothCheckedState = remember{ mutableStateOf(false) }
-    if(Build.VERSION.SDK_INT<=30) {
+    var bluetoothCheckedState = remember { mutableStateOf(false) }
+    if (Build.VERSION.SDK_INT <= 30) {
         if (context.checkSelfPermission(android.Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED
-            && context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         ) {
             bluetoothCheckedState.value = true
         }
-    }
-    else{
+    } else {
         if (context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
-            && context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_ADVERTISE)==PackageManager.PERMISSION_GRANTED
-            && context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED
-            && context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_ADVERTISE) == PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         ) {
             bluetoothCheckedState.value = true
         }
     }
-    var notificationCheckedState = remember{ mutableStateOf(false) }
-    if(Build.VERSION.SDK_INT>32) {
+    var notificationCheckedState = remember { mutableStateOf(false) }
+    if (Build.VERSION.SDK_INT > 32) {
         if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
             notificationCheckedState.value = true
         }
+    } else {
+        if (userView.getUserDetail.notification != null)
+            notificationCheckedState.value = userView.getUserDetail.notification!!
     }
-    var trackingCheckedState = remember{ mutableStateOf(false) }
-    if(Build.VERSION.SDK_INT<=28){
+    var trackingCheckedState = remember { mutableStateOf(false) }
+    if (Build.VERSION.SDK_INT <= 28) {
         if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             && context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         ) {
             trackingCheckedState.value = true
         }
-    }
-    else {
+    } else {
         if (
             context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
             && context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-            && context.checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ) {
             trackingCheckedState.value = true
         }
     }
@@ -454,7 +457,8 @@ fun Permissions() {
         sheetContent = {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = context.getString(R.string.prf_permissions).uppercase(Locale.forLanguageTag("tr-TR")),
+                    text = context.getString(R.string.prf_permissions)
+                        .uppercase(Locale.forLanguageTag("tr-TR")),
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
@@ -515,7 +519,15 @@ fun Permissions() {
                     trailingContent = {
                         Checkbox(
                             checked = trackingCheckedState.value,
-                            onCheckedChange = { trackingCheckedState.value = it }
+                            onCheckedChange = {
+                                trackingCheckedState.value = it
+
+                                userView.user.notification = it
+                                if (it == false)
+                                    userView.user.notification = null
+                                userView.updateUser(userView.user)
+
+                            }
                         )
                     }
                 )

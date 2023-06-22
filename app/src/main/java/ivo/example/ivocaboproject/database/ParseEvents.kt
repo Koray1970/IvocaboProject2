@@ -62,6 +62,7 @@ class ParseEvents {
                                     parseUser.username,
                                     parseUser.email,
                                     password,
+                                    null,
                                     parseUser.objectId
                                 )
                             )
@@ -76,6 +77,7 @@ class ParseEvents {
                                         parseUser.username,
                                         parseUser.email,
                                         password,
+                                        null,
                                         parseUser.objectId
                                     )
                                 )
@@ -88,6 +90,7 @@ class ParseEvents {
                                         parseUser.username,
                                         parseUser.email,
                                         password,
+                                        null,
                                         parseUser.objectId
                                     )
                                 )
