@@ -86,14 +86,18 @@
     <string name="resetpasswordsuccessful">Please check your emails, find and fill the reset form that send from Ivocabo to given at the email to reset your password.</string>
     <!--Settings-->
     <string name="prf_settings_title">Ayarlar</string>
-    <string name="prf_profile_title">Profile</string>
-    <string name="prf_yourfeedback_title">Your Feedback</string>
-    <string name="prf_sendfeedback">Send feedback</string>
-    <string name="prf_defaultsettings_title">Default Settings</string>
-    <string name="prf_savedlocations">Saved Locations</string>
-    <string name="prf_permissions">Permissions</string>
-    <string name="prf_privacy">Privacy</string>
-    <string name="prf_moreinformation_title">More Information</string>
-    <string name="prf_help">Help</string>
-    <string name="prf_aboutivocabo">About Ivocabo</string>
+    <string name="prf_profile_title">Profil</string>
+    <string name="prf_yourfeedback_title">Geri Bildirim</string>
+    <string name="prf_sendfeedback">Geribildirim Gönderimi</string>
+    <string name="prf_defaultsettings_title">Genel Ayarlar</string>
+    <string name="prf_savedlocations">Kayıtlı Konumlar</string>
+    <string name="prf_permissions">İzinler</string>
+    <string name="prf_prm_location">Konum</string>
+    <string name="prf_prm_bluetooth">Bluetooth</string>
+    <string name="prf_prm_notification">Bildirim</string>
+    <string name="prf_prm_tracking">Hareket</string>
+    <string name="prf_privacy">Gizlilik</string>
+    <string name="prf_moreinformation_title">Daha Fazlası</string>
+    <string name="prf_help">Yardım</string>
+    <string name="prf_aboutivocabo">Ivocabo Hakkında</string>
 </resources>

@@ -1,11 +1,15 @@
 package ivo.example.ivocaboproject
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.scrollable
@@ -28,6 +32,7 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,6 +48,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.parse.ParseUser
 import ivo.example.ivocaboproject.database.EventResultFlags
@@ -64,10 +73,12 @@ import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             IvocaboProjectTheme {
                 // A surface container using the 'background' color from the theme
@@ -83,16 +94,24 @@ class SettingsActivity : ComponentActivity() {
         }
     }
 }
+
+lateinit var context: Context
+
 @OptIn(ExperimentalMaterial3Api::class)
-lateinit var profileSheetScaffoldState:BottomSheetScaffoldState
+lateinit var profileSheetScaffoldState: BottomSheetScaffoldState
+
+@OptIn(ExperimentalMaterial3Api::class)
+lateinit var permissionsSheetScaffoldState: BottomSheetScaffoldState
+
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
-    var scope= rememberCoroutineScope()
-    val context = LocalContext.current.applicationContext
+    var scope = rememberCoroutineScope()
+    context = LocalContext.current.applicationContext
     val user = userViewModel.getUserDetail
     profileSheetScaffoldState = rememberBottomSheetScaffoldState(SheetState(false))
+    permissionsSheetScaffoldState= rememberBottomSheetScaffoldState(SheetState(false))
     Column(
         Modifier
             .background(MaterialTheme.colorScheme.secondaryContainer)
@@ -213,9 +232,9 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
             },
             trailingContent = {
                 IconButton(onClick = {
-                    /*val int = Intent(context, ProfileActivity::class.java).apply {
-                        context.startActivity(this)
-                    }*/
+                   scope.launch {
+                       permissionsSheetScaffoldState.bottomSheetState.expand()
+                   }
                 }) {
                     Icon(
                         Icons.Filled.KeyboardArrowRight,
@@ -299,76 +318,215 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
         Divider(thickness = 1.dp)
     }
     Profile()
+    Permissions()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
-    val parseEvents=ParseEvents()
-    val context= LocalContext.current.applicationContext
-    var user=userViewModel.getUserDetail
+    val parseEvents = ParseEvents()
+    context = LocalContext.current.applicationContext
+    var user = userViewModel.getUserDetail
     BottomSheetScaffold(
-        modifier=Modifier.padding(15.dp),
+        modifier = Modifier.padding(15.dp),
         scaffoldState = profileSheetScaffoldState,
         sheetPeekHeight = 0.dp,
         sheetContent = {
-        Column(modifier=Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text=context.getString(R.string.prf_profile_title).uppercase(),
-                modifier=Modifier.fillMaxWidth(),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = context.getString(R.string.prf_profile_title).uppercase(),
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                )
 
-            Divider()
-            Column(Modifier.padding(15.dp),horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(text = context.getString(R.string.rg_username)+" : "+user.username)
-                Text(text = context.getString(R.string.email)+" : "+user.email)
-                Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.padding(0.dp,20.dp)) {
-                    Button(onClick = {
-                        ParseUser.logOut()
-                        val int=Intent(context,PrivacyViewer::class.java).apply {
-                            context.startActivity(this)
-                        }
-                    }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.baseline_logout_24),
-                                contentDescription = null
-                            )
-                            Text(text = context.getString(R.string.logout))
-                        }
-                    }
-                    Spacer(modifier = Modifier.weight(2f))
-                    Button(onClick = {
-                        var dbresult=parseEvents.RemoveUser()
-                        if(dbresult.eventResultFlags==EventResultFlags.SUCCESS) {
+                Divider()
+                Column(
+                    Modifier.padding(15.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = context.getString(R.string.rg_username) + " : " + user.username)
+                    Text(text = context.getString(R.string.email) + " : " + user.email)
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(0.dp, 20.dp)
+                    ) {
+                        Button(onClick = {
                             context.deleteDatabase("ivocabo.db")
-                            val int=Intent(context,PrivacyViewer::class.java).apply {
+                            ParseUser.logOut()
+                            val int = Intent(context, PrivacyViewer::class.java).apply {
                                 context.startActivity(this)
                             }
+                        }) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.baseline_logout_24),
+                                    contentDescription = null
+                                )
+                                Text(text = context.getString(R.string.logout))
+                            }
                         }
-                        else{
-                            Toast.makeText(context,context.getString(R.string.generalexceptionmessage),Toast.LENGTH_LONG).show()
-                        }
-                    }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.baseline_delete_forever_24),
-                                contentDescription = null
-                            )
-                            Text(text = context.getString(R.string.remove))
+                        Spacer(modifier = Modifier.weight(2f))
+                        Button(onClick = {
+                            var dbresult = parseEvents.RemoveUser()
+                            if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                                context.deleteDatabase("ivocabo.db")
+                                val int = Intent(context, PrivacyViewer::class.java).apply {
+                                    context.startActivity(this)
+                                }
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.generalexceptionmessage),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.baseline_delete_forever_24),
+                                    contentDescription = null
+                                )
+                                Text(text = context.getString(R.string.remove))
+                            }
                         }
                     }
                 }
-            }
 
+            }
+        }) {}
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun Permissions() {
+    context= LocalContext.current.applicationContext
+    var locationCheckedState = remember{ mutableStateOf(false) }
+    if(context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED){
+        locationCheckedState.value=true
+    }
+
+
+    var bluetoothCheckedState = remember{ mutableStateOf(false) }
+    if(Build.VERSION.SDK_INT<=30) {
+        if (context.checkSelfPermission(android.Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+        ) {
+            bluetoothCheckedState.value = true
         }
-    }) {}
+    }
+    else{
+        if (context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_ADVERTISE)==PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT)==PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)==PackageManager.PERMISSION_GRANTED
+        ) {
+            bluetoothCheckedState.value = true
+        }
+    }
+    var notificationCheckedState = remember{ mutableStateOf(false) }
+    if(Build.VERSION.SDK_INT>32) {
+        if (context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            notificationCheckedState.value = true
+        }
+    }
+    var trackingCheckedState = remember{ mutableStateOf(false) }
+    if(Build.VERSION.SDK_INT<=28){
+        if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        ) {
+            trackingCheckedState.value = true
+        }
+    }
+    else {
+        if (
+            context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            && context.checkSelfPermission(android.Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            trackingCheckedState.value = true
+        }
+    }
+    BottomSheetScaffold(
+        scaffoldState = permissionsSheetScaffoldState,
+        sheetContent = {
+            Column(modifier = Modifier.fillMaxSize()) {
+                Text(
+                    text = context.getString(R.string.prf_permissions).uppercase(Locale.forLanguageTag("tr-TR")),
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
+                )
+                Divider()
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            context.getString(R.string.prf_prm_location),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = locationCheckedState.value,
+                            onCheckedChange = { locationCheckedState.value = it }
+                        )
+                    }
+                )
+                Divider()
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            context.getString(R.string.prf_prm_bluetooth),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = bluetoothCheckedState.value,
+                            onCheckedChange = { bluetoothCheckedState.value = it }
+                        )
+                    }
+                )
+                Divider()
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            context.getString(R.string.prf_prm_notification),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = notificationCheckedState.value,
+                            onCheckedChange = { notificationCheckedState.value = it }
+                        )
+                    }
+                )
+                Divider()
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            context.getString(R.string.prf_prm_tracking),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    },
+                    trailingContent = {
+                        Checkbox(
+                            checked = trackingCheckedState.value,
+                            onCheckedChange = { trackingCheckedState.value = it }
+                        )
+                    }
+                )
+                Divider()
+            }
+        }) {}
 }
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview2() {
+fun SettingsPreview() {
     IvocaboProjectTheme {
         Settings()
     }

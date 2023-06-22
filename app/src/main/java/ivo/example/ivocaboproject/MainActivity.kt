@@ -179,10 +179,11 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
     @Composable
     fun AppNavigator() {
         val navController = rememberNavController()
-        NavHost(navController = navController, startDestination = "dashboard") {
+        NavHost(navController = navController, startDestination = "registeruser") {
             composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
             composable("signin") { SignIn(navController) }
@@ -191,8 +192,10 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
-var deviceFormSheetState= mutableStateOf(SheetState(false,SheetValue.PartiallyExpanded))
+var deviceFormSheetState = mutableStateOf(SheetState(false, SheetValue.PartiallyExpanded))
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigationBar(navController: NavController) {
@@ -311,25 +314,8 @@ fun Dashboard(
     val deviceViewState = deviceViewModel.consumableState().collectAsState()
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        bottomBar={AppNavigationBar(navController)},
+        bottomBar = { AppNavigationBar(navController) },
         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        /*floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    scope.launch {
-                        deviceformsheetState.bottomSheetState.expand()
-                    }
-                }, containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    Icons.Default.Add,
-                    contentDescription = stringResource(id = R.string.addnewdevice),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
-                )
-            }
-        },
-        floatingActionButtonPosition = FabPosition.End,*/
-
     ) {
 
         LaunchedEffect(Unit) {
@@ -421,9 +407,11 @@ fun DeviceList(
         )
     }
 
-    LazyColumn(modifier = Modifier
-        .fillMaxWidth()
-        .wrapContentHeight(), state = listState, userScrollEnabled = true) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight(), state = listState, userScrollEnabled = true
+    ) {
         itemsIndexed(state.value.devices) { index, item ->
             val dismissState = rememberDismissState(confirmValueChange = {
                 if (it == DismissValue.DismissedToStart || it == DismissValue.DismissedToEnd) {
@@ -544,170 +532,174 @@ fun RegisterUser(
 ) {
     val context = LocalContext.current.applicationContext
     val logodescription = stringResource(id = R.string.logodescription)
-    GetLocation(context)
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .padding(16.dp)
-        .background(color = Color.Black)
-        .pointerInput(Unit) {
+    if(ParseUser.getCurrentUser()!=null){
+        navController.navigate("dashboard")
+    }else {
+        GetLocation(context)
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .background(color = Color.Black)
+            .pointerInput(Unit) {
 
-        }) {
+            }) {
 
-        Image(
-            modifier = Modifier
-                .width(80.dp)
-                .align(alignment = Alignment.CenterHorizontally)
-                .padding(0.dp, 10.dp),
-            painter = painterResource(id = R.drawable.ic_launcher_round),
-            contentDescription = logodescription
-        )
-
-        Text(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(0.dp, 8.dp),
-            text = stringResource(id = R.string.rg_title),
-            style = TextStyle(
-                color = MaterialTheme.colorScheme.onPrimary,
-                textAlign = TextAlign.Center,
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold
+            Image(
+                modifier = Modifier
+                    .width(80.dp)
+                    .align(alignment = Alignment.CenterHorizontally)
+                    .padding(0.dp, 10.dp),
+                painter = painterResource(id = R.drawable.ic_launcher_round),
+                contentDescription = logodescription
             )
-        )
-        Text(
-            modifier = Modifier.fillMaxWidth(),
-            text = stringResource(id = R.string.rg_subtitle),
-            style = TextStyle(
-                color = MaterialTheme.colorScheme.inversePrimary,
-                fontStyle = FontStyle.Italic,
-                fontWeight = FontWeight.Light,
-                textAlign = TextAlign.Center,
-                fontSize = 10.sp
-            )
-        )
 
-        var txtrgusername by rememberSaveable { mutableStateOf("") }
-        val isusernameVisible by remember { derivedStateOf { txtrgusername.isNotBlank() } }
-        OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtrgusername = it },
-            label = { Text(text = stringResource(id = R.string.rg_username)) },
-            supportingText = { Text(text = stringResource(id = R.string.rg_usernamesupporting)) },
-            value = txtrgusername,
-            textStyle = TextStyle(color = Color.White),
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Words,
-                autoCorrect = false,
-                keyboardType = KeyboardType.Text
-            ),
-            trailingIcon = {
-                if (isusernameVisible) {
-                    IconButton(onClick = { txtrgusername = "" }) {
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(0.dp, 8.dp),
+                text = stringResource(id = R.string.rg_title),
+                style = TextStyle(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    textAlign = TextAlign.Center,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            )
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                text = stringResource(id = R.string.rg_subtitle),
+                style = TextStyle(
+                    color = MaterialTheme.colorScheme.inversePrimary,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Light,
+                    textAlign = TextAlign.Center,
+                    fontSize = 10.sp
+                )
+            )
+
+            var txtrgusername by rememberSaveable { mutableStateOf("") }
+            val isusernameVisible by remember { derivedStateOf { txtrgusername.isNotBlank() } }
+            OutlinedTextField(modifier = Modifier.fillMaxWidth(),
+                onValueChange = { txtrgusername = it },
+                label = { Text(text = stringResource(id = R.string.rg_username)) },
+                supportingText = { Text(text = stringResource(id = R.string.rg_usernamesupporting)) },
+                value = txtrgusername,
+                textStyle = TextStyle(color = Color.White),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Words,
+                    autoCorrect = false,
+                    keyboardType = KeyboardType.Text
+                ),
+                trailingIcon = {
+                    if (isusernameVisible) {
+                        IconButton(onClick = { txtrgusername = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = context.getString(R.string.rg_usernameremoving)
+                            )
+                        }
+                    }
+                })
+            var txtrgemail by rememberSaveable { mutableStateOf("") }
+            val isemailVisible by remember { derivedStateOf { txtrgemail.isNotBlank() } }
+            OutlinedTextField(modifier = Modifier.fillMaxWidth(),
+                onValueChange = { txtrgemail = it },
+                label = { Text(text = stringResource(id = R.string.email)) },
+                supportingText = { Text(text = stringResource(id = R.string.emailsupporting)) },
+                value = txtrgemail,
+                textStyle = TextStyle(color = Color.White),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrect = false,
+                    keyboardType = KeyboardType.Email
+                ),
+                trailingIcon = {
+                    if (isemailVisible) {
+                        IconButton(onClick = { txtrgemail = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = context.getString(R.string.emailremoving)
+                            )
+                        }
+                    }
+                })
+            var txtrgpassword by rememberSaveable { mutableStateOf("") }
+            var ispasswordVisible by remember { mutableStateOf(false) }
+            var displayiconDesc = ""
+            val icon = if (ispasswordVisible) {
+                displayiconDesc = stringResource(id = R.string.rg_passwordhide)
+                painterResource(id = R.drawable.baseline_visibility_2480)
+            } else {
+                displayiconDesc = stringResource(id = R.string.rg_passworddisplay)
+                painterResource(id = R.drawable.baseline_visibility_off_24)
+            }
+            OutlinedTextField(modifier = Modifier.fillMaxWidth(),
+                onValueChange = { txtrgpassword = it },
+                label = { Text(text = stringResource(id = R.string.rg_password)) },
+                supportingText = { Text(text = stringResource(id = R.string.rg_passwordsupporting)) },
+                value = txtrgpassword,
+                textStyle = TextStyle(color = Color.White),
+                visualTransformation = if (ispasswordVisible) VisualTransformation.None
+                else PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    autoCorrect = false
+                ),
+                trailingIcon = {
+                    IconButton(onClick = {
+                        ispasswordVisible = !ispasswordVisible
+                    }) {
                         Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = context.getString(R.string.rg_usernameremoving)
+                            painter = icon, contentDescription = displayiconDesc
                         )
                     }
-                }
-            })
-        var txtrgemail by rememberSaveable { mutableStateOf("") }
-        val isemailVisible by remember { derivedStateOf { txtrgemail.isNotBlank() } }
-        OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtrgemail = it },
-            label = { Text(text = stringResource(id = R.string.email)) },
-            supportingText = { Text(text = stringResource(id = R.string.emailsupporting)) },
-            value = txtrgemail,
-            textStyle = TextStyle(color = Color.White),
-            keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.None,
-                autoCorrect = false,
-                keyboardType = KeyboardType.Email
-            ),
-            trailingIcon = {
-                if (isemailVisible) {
-                    IconButton(onClick = { txtrgemail = "" }) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = context.getString(R.string.emailremoving)
-                        )
-                    }
-                }
-            })
-        var txtrgpassword by rememberSaveable { mutableStateOf("") }
-        var ispasswordVisible by remember { mutableStateOf(false) }
-        var displayiconDesc = ""
-        val icon = if (ispasswordVisible) {
-            displayiconDesc = stringResource(id = R.string.rg_passwordhide)
-            painterResource(id = R.drawable.baseline_visibility_2480)
-        } else {
-            displayiconDesc = stringResource(id = R.string.rg_passworddisplay)
-            painterResource(id = R.drawable.baseline_visibility_off_24)
-        }
-        OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtrgpassword = it },
-            label = { Text(text = stringResource(id = R.string.rg_password)) },
-            supportingText = { Text(text = stringResource(id = R.string.rg_passwordsupporting)) },
-            value = txtrgpassword,
-            textStyle = TextStyle(color = Color.White),
-            visualTransformation = if (ispasswordVisible) VisualTransformation.None
-            else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                autoCorrect = false
-            ),
-            trailingIcon = {
-                IconButton(onClick = {
-                    ispasswordVisible = !ispasswordVisible
-                }) {
-                    Icon(
-                        painter = icon, contentDescription = displayiconDesc
-                    )
-                }
-            })
-        Text(
-            modifier = Modifier.padding(0.dp, 10.dp),
-            text = stringResource(id = R.string.rg_warning),
-            style = TextStyle(
-                color = MaterialTheme.colorScheme.inversePrimary,
-                fontStyle = FontStyle.Italic,
-                fontWeight = FontWeight.Light,
-                fontSize = 14.sp
+                })
+            Text(
+                modifier = Modifier.padding(0.dp, 10.dp),
+                text = stringResource(id = R.string.rg_warning),
+                style = TextStyle(
+                    color = MaterialTheme.colorScheme.inversePrimary,
+                    fontStyle = FontStyle.Italic,
+                    fontWeight = FontWeight.Light,
+                    fontSize = 14.sp
+                )
             )
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-        ) {
-            FilledTonalButton(
-                onClick = { navController.navigate("signin") },
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
             ) {
-                Text(text = stringResource(id = R.string.signin))
+                FilledTonalButton(
+                    onClick = { navController.navigate("signin") },
+                ) {
+                    Text(text = stringResource(id = R.string.signin))
+                }
+                Spacer(modifier = Modifier.weight(1f))
+                FilledTonalButton(
+                    onClick = {
+                        val parseEvents = ParseEvents()
+                        val user = User(
+                            0,
+                            appHelpers.getNOWasSQLDate(),
+                            txtrgusername,
+                            txtrgemail,
+                            txtrgpassword,
+                            null
+                        )
+                        val dbresult = parseEvents.AddUser(user, userviewModel)
+                        if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                            txtrgusername = ""
+                            txtrgemail = ""
+                            txtrgpassword = ""
+                            navController.navigate("dashboard")
+                        }
+                    },
+                ) {
+                    Text(text = stringResource(id = R.string.save))
+                }
             }
-            Spacer(modifier = Modifier.weight(1f))
-            FilledTonalButton(
-                onClick = {
-                    val parseEvents = ParseEvents()
-                    val user = User(
-                        0,
-                        appHelpers.getNOWasSQLDate(),
-                        txtrgusername,
-                        txtrgemail,
-                        txtrgpassword,
-                        null
-                    )
-                    val dbresult = parseEvents.AddUser(user, userviewModel)
-                    if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                        txtrgusername = ""
-                        txtrgemail = ""
-                        txtrgpassword = ""
-                        navController.navigate("dashboard")
-                    }
-                },
-            ) {
-                Text(text = stringResource(id = R.string.save))
-            }
-        }
 
+        }
     }
 }
 
@@ -1012,7 +1004,7 @@ fun ResetPassword(navController: NavController) {
 @ExperimentalMaterial3Api
 @Composable
 fun DeviceForm(
-    deviceViewModel: DeviceViewModel = hiltViewModel()
+    deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()

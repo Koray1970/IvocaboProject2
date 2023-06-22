@@ -42,13 +42,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.google.accompanist.web.WebView
 import com.google.accompanist.web.rememberWebViewState
 import com.parse.ParseUser
+import dagger.hilt.android.AndroidEntryPoint
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import kotlinx.coroutines.launch
-
+@AndroidEntryPoint
 class PrivacyViewer : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (!ParseUser.getCurrentUser().isAuthenticated) {
+        if (ParseUser.getCurrentUser()==null) {
             setContent {
                 IvocaboProjectTheme {
                     // A surface container using the 'background' color from the theme

@@ -63,31 +63,31 @@ android {
 dependencies {
     implementation 'androidx.core:core-ktx:1.10.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.1'
-    implementation 'androidx.activity:activity-compose:1.8.0-alpha04'
-    implementation platform('androidx.compose:compose-bom:2023.05.01')
-    implementation 'androidx.compose.ui:ui:1.5.0-beta01'
-    implementation 'androidx.compose.ui:ui-graphics:1.5.0-beta01'
-    implementation 'androidx.compose.ui:ui-tooling-preview:1.5.0-beta01'
+    implementation 'androidx.activity:activity-compose:1.8.0-alpha05'
+    implementation platform('androidx.compose:compose-bom:2023.06.00')
+    implementation 'androidx.compose.ui:ui:1.5.0-beta02'
+    implementation 'androidx.compose.ui:ui-graphics:1.5.0-beta02'
+    implementation 'androidx.compose.ui:ui-tooling-preview:1.5.0-beta02'
     implementation 'androidx.compose.material3:material3:1.2.0-alpha02'
     implementation 'com.google.android.gms:play-services-location:21.0.1'
-    implementation platform('androidx.compose:compose-bom:2023.05.01')
-    implementation platform('androidx.compose:compose-bom:2022.10.00')
-    implementation platform('androidx.compose:compose-bom:2022.10.00')
-    implementation platform('androidx.compose:compose-bom:2022.10.00')
+    implementation platform('androidx.compose:compose-bom:2023.06.00')
+    implementation platform('androidx.compose:compose-bom:2023.06.00')
+    implementation platform('androidx.compose:compose-bom:2023.06.00')
+    implementation platform('androidx.compose:compose-bom:2023.06.00')
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.0-alpha01'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.0-alpha01'
-    androidTestImplementation platform('androidx.compose:compose-bom:2023.05.01')
-    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.5.0-beta01'
-    androidTestImplementation platform('androidx.compose:compose-bom:2023.05.01')
-    androidTestImplementation platform('androidx.compose:compose-bom:2022.10.00')
-    androidTestImplementation platform('androidx.compose:compose-bom:2022.10.00')
-    androidTestImplementation platform('androidx.compose:compose-bom:2022.10.00')
-    debugImplementation 'androidx.compose.ui:ui-tooling:1.5.0-beta01'
-    debugImplementation 'androidx.compose.ui:ui-test-manifest:1.5.0-beta01'
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.06.00')
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4:1.5.0-beta02'
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.06.00')
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.06.00')
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.06.00')
+    androidTestImplementation platform('androidx.compose:compose-bom:2023.06.00')
+    debugImplementation 'androidx.compose.ui:ui-tooling:1.5.0-beta02'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest:1.5.0-beta02'
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.6.1"
     implementation "androidx.collection:collection-ktx:1.2.0"
-    implementation "androidx.fragment:fragment-ktx:1.5.7"
+    implementation 'androidx.fragment:fragment-ktx:1.6.0'
     implementation 'com.google.code.gson:gson:2.10.1'
 
     //start::WorkManager
@@ -155,9 +155,9 @@ dependencies {
     testImplementation "androidx.lifecycle:lifecycle-runtime-testing:$lifecycle_version"
 
     //end::lifecycle
-    implementation "androidx.navigation:navigation-runtime-ktx:2.5.3"
-    implementation "androidx.navigation:navigation-fragment-ktx:2.5.3"
-    implementation "androidx.navigation:navigation-ui-ktx:2.5.3"
+    implementation 'androidx.navigation:navigation-runtime-ktx:2.6.0'
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.6.0'
+    implementation 'androidx.navigation:navigation-ui-ktx:2.6.0'
 
     //Room
     implementation "androidx.room:room-runtime:$room_version"

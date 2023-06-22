@@ -24,6 +24,7 @@
     <string name="menu_2">Profile</string>
     <string name="menu_3">Settings</string>
 
+
     <string name="addnewdevice">Add New Device</string>
     <string name="privacypolicy_title">Privacy Policy</string>
     <string name="privacypolicy_detail1">Ivocabo firmly believes that privacy is a fundamental human right that must be respected.</string>
@@ -90,6 +91,10 @@
     <string name="prf_defaultsettings_title">Default Settings</string>
     <string name="prf_savedlocations">Saved Locations</string>
     <string name="prf_permissions">Permissions</string>
+    <string name="prf_prm_location">Location</string>
+    <string name="prf_prm_bluetooth">Bluetooth</string>
+    <string name="prf_prm_notification">Notification</string>
+    <string name="prf_prm_tracking">Tracking</string>
     <string name="prf_privacy">Privacy</string>
     <string name="prf_moreinformation_title">More Information</string>
     <string name="prf_help">Help</string>
