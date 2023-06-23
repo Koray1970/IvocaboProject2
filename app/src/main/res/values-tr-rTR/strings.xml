@@ -93,9 +93,17 @@
     <string name="prf_savedlocations">Kayıtlı Konumlar</string>
     <string name="prf_permissions">İzinler</string>
     <string name="prf_prm_location">Konum</string>
+    <string name="prf_location_warning_title">Neden Konum Servisi izninine ihtiyacımız var?</string>
+    <string name="prf_location_warning">Bilinen son konumunuzu ve geçmiş Konum Bilgilerinizi her zaman saklayacağız ve bunları yalnızca sizin açık izniniz üzerine Hizmetlerimizi iyileştirmek ve kişiselleştirmek için kullanacağız.</string>
     <string name="prf_prm_bluetooth">Bluetooth</string>
+    <string name="prf_bluetooth_warning_title">Neden Bluetooth Servis iznine ihtiyacımız var?</string>
+    <string name="prf_bluetooth_warning">Ivocabo size nerede olduğunu iletmesi için bluetooth bağlantısına ihtiyaç duymaktadır.</string>
     <string name="prf_prm_notification">Bildirim</string>
+    <string name="prf_notification_warning_title">Neden Bildirim Servis iznine ihtiyacımız var?</string>
+    <string name="prf_notification_warning">Ivocabo \'dan gelecek bildirimleri ve güncellemeleri almak için izin vermeniz gerekmektedir.</string>
     <string name="prf_prm_tracking">Hareket</string>
+    <string name="prf_tracking_warning_title">Hareket iznine neden ihtiyacımız var?</string>
+    <string name="prf_tracking_warning">Ivocabo kapsam dışı uyarıları için hareket iznine ihtiyacı vardır.</string>
     <string name="prf_privacy">Gizlilik</string>
     <string name="prf_moreinformation_title">Daha Fazlası</string>
     <string name="prf_help">Yardım</string>

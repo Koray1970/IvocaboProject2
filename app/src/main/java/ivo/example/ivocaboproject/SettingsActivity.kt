@@ -63,7 +63,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.parse.ParseUser
@@ -405,6 +407,7 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
 @Composable
 fun Permissions(userView: UserViewModel = hiltViewModel()) {
     context = LocalContext.current.applicationContext
+    var user=userView.getUserDetail
     var locationCheckedState = remember { mutableStateOf(false) }
     if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
         locationCheckedState.value = true
@@ -433,7 +436,7 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
             notificationCheckedState.value = true
         }
     } else {
-        if (userView.getUserDetail.notification != null)
+        if (user.notification != null)
             notificationCheckedState.value = userView.getUserDetail.notification!!
     }
     var trackingCheckedState = remember { mutableStateOf(false) }
@@ -465,6 +468,12 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                 )
                 Divider()
                 ListItem(
+                    supportingContent = {
+                        Column() {
+                            Text(text=context.getString(R.string.prf_location_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
+                            Text(text=context.getString(R.string.prf_location_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                        }
+                    },
                     headlineContent = {
                         Text(
                             context.getString(R.string.prf_prm_location),
@@ -473,6 +482,7 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     },
                     trailingContent = {
                         Checkbox(
+                            enabled=false,
                             checked = locationCheckedState.value,
                             onCheckedChange = { locationCheckedState.value = it }
                         )
@@ -480,6 +490,12 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                 )
                 Divider()
                 ListItem(
+                    supportingContent = {
+                        Column() {
+                            Text(text=context.getString(R.string.prf_bluetooth_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
+                            Text(text=context.getString(R.string.prf_bluetooth_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                        }
+                    },
                     headlineContent = {
                         Text(
                             context.getString(R.string.prf_prm_bluetooth),
@@ -488,6 +504,7 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     },
                     trailingContent = {
                         Checkbox(
+                            enabled=false,
                             checked = bluetoothCheckedState.value,
                             onCheckedChange = { bluetoothCheckedState.value = it }
                         )
@@ -495,6 +512,12 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                 )
                 Divider()
                 ListItem(
+                    supportingContent = {
+                        Column() {
+                            Text(text=context.getString(R.string.prf_notification_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
+                            Text(text=context.getString(R.string.prf_notification_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                        }
+                    },
                     headlineContent = {
                         Text(
                             context.getString(R.string.prf_prm_notification),
@@ -504,12 +527,23 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     trailingContent = {
                         Checkbox(
                             checked = notificationCheckedState.value,
-                            onCheckedChange = { notificationCheckedState.value = it }
+                            onCheckedChange = { notificationCheckedState.value = it
+                                user.notification = it
+                                if (it == false)
+                                    userView.user.notification = null
+                                userView.updateUser(user)
+                            }
                         )
                     }
                 )
                 Divider()
                 ListItem(
+                    supportingContent = {
+                        Column() {
+                            Text(text=context.getString(R.string.prf_tracking_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
+                            Text(text=context.getString(R.string.prf_tracking_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                        }
+                    },
                     headlineContent = {
                         Text(
                             context.getString(R.string.prf_prm_tracking),
@@ -518,15 +552,10 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     },
                     trailingContent = {
                         Checkbox(
+                            enabled=false,
                             checked = trackingCheckedState.value,
                             onCheckedChange = {
                                 trackingCheckedState.value = it
-
-                                userView.user.notification = it
-                                if (it == false)
-                                    userView.user.notification = null
-                                userView.updateUser(userView.user)
-
                             }
                         )
                     }

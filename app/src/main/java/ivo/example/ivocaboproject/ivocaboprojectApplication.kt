@@ -20,7 +20,7 @@ class ivocaboprojectApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        val viewModel=ViewModelProvider(applicationContext).get(UserViewModel::class.java)
+
         Parse.initialize(
             Parse.Configuration.Builder(this)
                 .applicationId(getString(R.string.back4app_app_id))
@@ -59,25 +59,7 @@ class ivocaboprojectApplication : Application() {
             }
             val bluetoothnotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            userViewModel.getUserNotification()
-            userViewModel.userNotification.observeForever {
-                if (it != null) {
-                    if (it) {
-                        bluetoothnotificationManager.createNotificationChannel(bluetoothchannel)
-                        Log.v(TAG, "bluetoothnotificationManager.createNotificationChannel")
-                    } else {
-                        if (bluetoothnotificationManager.notificationChannels.contains(bluetoothchannel)) {
-                            bluetoothnotificationManager.deleteNotificationChannel("ivocabobluetooth")
-                            Log.v(TAG, "bluetoothnotificationManager.deleteNotificationChannel1")
-                        }
-                    }
-                } else {
-                    if (bluetoothnotificationManager.notificationChannels.contains(bluetoothchannel)) {
-                        bluetoothnotificationManager.deleteNotificationChannel("ivocabobluetooth")
-                        Log.v(TAG, "bluetoothnotificationManager.deleteNotificationChannel2")
-                    }
-                }
-            }
+            bluetoothnotificationManager.createNotificationChannel(bluetoothchannel)
         }
     }
 }
