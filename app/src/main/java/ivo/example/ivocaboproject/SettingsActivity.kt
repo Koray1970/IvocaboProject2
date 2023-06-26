@@ -9,10 +9,8 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,12 +20,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
 import androidx.compose.material3.Button
@@ -38,43 +36,39 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemColors
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.modifier.modifierLocalMapOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.accompanist.web.WebView
+import com.google.accompanist.web.rememberWebViewState
 import com.parse.ParseUser
-import dagger.hilt.android.lifecycle.HiltViewModel
 import ivo.example.ivocaboproject.database.EventResultFlags
 import ivo.example.ivocaboproject.database.ParseEvents
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.Locale
 
@@ -105,6 +99,8 @@ lateinit var profileSheetScaffoldState: BottomSheetScaffoldState
 
 @OptIn(ExperimentalMaterial3Api::class)
 lateinit var permissionsSheetScaffoldState: BottomSheetScaffoldState
+
+var privacyOpenDialog= mutableStateOf(false)
 
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -256,9 +252,7 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
             },
             trailingContent = {
                 IconButton(onClick = {
-                    /*val int = Intent(context, ProfileActivity::class.java).apply {
-                        context.startActivity(this)
-                    }*/
+                    privacyOpenDialog.value=true
                 }) {
                     Icon(
                         Icons.Filled.KeyboardArrowRight,
@@ -322,6 +316,7 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
     }
     Profile()
     Permissions()
+    ShowPrivacy()
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -405,9 +400,69 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun ShowPrivacy(){
+    context = LocalContext.current.applicationContext
+    val urlState = rememberWebViewState("https://www.ivocabo.com/gi-zli-li-k-poli-ti-kasi")
+    if (privacyOpenDialog.value) {
+        AlertDialog(
+            onDismissRequest = { privacyOpenDialog.value = false },
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(0.dp),
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false
+            ),
+            content = {
+
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    topBar = {
+                        CenterAlignedTopAppBar(
+                            title = {
+                                Text(
+                                    context.getString(R.string.privacypolicy_title),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        )
+                    },
+                    bottomBar = {
+                        BottomAppBar() {
+                            TextButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { privacyOpenDialog.value = false }) {
+                                Text(
+                                    text = context.getString(R.string.readandconfirm),
+                                    style = TextStyle(textAlign = TextAlign.Center)
+                                )
+                            }
+                        }
+                    }
+                ) { it ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(it)
+                    ) {
+                        WebView(
+                            urlState
+                        )
+                    }
+
+                }
+
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun Permissions(userView: UserViewModel = hiltViewModel()) {
     context = LocalContext.current.applicationContext
     var user=userView.getUserDetail
+
     var locationCheckedState = remember { mutableStateOf(false) }
     if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
         locationCheckedState.value = true
@@ -455,13 +510,20 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
             trackingCheckedState.value = true
         }
     }
+    var culture= Locale.getDefault().language
+
     BottomSheetScaffold(
         scaffoldState = permissionsSheetScaffoldState,
         sheetContent = {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = context.getString(R.string.prf_permissions)
-                        .uppercase(Locale.forLanguageTag("tr-TR")),
+                    text =
+                    if(culture==Locale.forLanguageTag("tr-TR").language)
+                        context.getString(R.string.prf_permissions)
+                        .uppercase(Locale.forLanguageTag("tr-TR"))
+                    else
+                        context.getString(R.string.prf_permissions).uppercase()
+                    ,
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold, textAlign = TextAlign.Center

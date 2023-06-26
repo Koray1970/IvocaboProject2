@@ -11,9 +11,9 @@
     <string name="remove">Remove</string>
     <string name="ccontinue">Continue</string>
     <string name="goback">Go back</string>
-    <string name="signin">Sing-in</string>
+    <string name="signin">Sign-in</string>
     <string name="readandconfirm">I read &amp; confirm</string>
-    <string name="gotosignin">Go To Sing-in</string>
+    <string name="gotosignin">Go To Sign-in</string>
     <string name="reset">Reset</string>
     <string name="email">E-mail</string>
     <string name="emailremoving">Removing e-mail address!</string>
