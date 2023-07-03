@@ -5,27 +5,27 @@
     <string name="title_activity_profile">ProfileActivity</string>
     <string name="title_activity_settings">SettingsActivity</string>
     <string name="title_activity_device">DeviceActivity</string>
-    <string name="save">Save</string>
-    <string name="cancel">Cancel</string>
+    <string name="save">Kaydet</string>
+    <string name="cancel">İptal</string>
     <string name="ok">OK</string>
     <string name="logout">Çıkış</string>
     <string name="remove">Hesap Sil</string>
     <string name="ccontinue">Devam</string>
-    <string name="goback">Go back</string>
-    <string name="signin">Sing-in</string>
+    <string name="goback">Geri</string>
+    <string name="signin">Üye Giriş</string>
     <string name="readandconfirm">Okudum ve Anladım</string>
-    <string name="gotosignin">Go To Sing-in</string>
-    <string name="reset">Reset</string>
+    <string name="gotosignin">Üye Girişe Git</string>
+    <string name="reset">Sıfırla</string>
     <string name="email">E-mail</string>
-    <string name="emailremoving">Removing e-mail address!</string>
+    <string name="emailremoving">E-mail adresini sil!</string>
     <string name="logodescription">Ivocabo Logotype</string>
-    <string name="emailsupporting">Please enter a valid email address!</string>
+    <string name="emailsupporting">Lütfen düzgün formatlı e-mail giriniz!</string>
     <string name="generalexceptionmessage">We encountered an unexpected problem, please try again later or contact with us.</string>
     <string name="menu_1">Dashboard</string>
     <string name="menu_2">Profile</string>
     <string name="menu_3">Settings</string>
 
-    <string name="addnewdevice">Add New Device</string>
+    <string name="addnewdevice">Yeni Cihaz</string>
 
     <string name="privacypolicy_title">Gizlilik Politikası</string>
     <string name="privacypolicy_detail1">Ivocabo, gizliliğin saygı duyulması gereken temel bir insani hak olduğuna kesinlikle inanmaktadır.</string>
@@ -41,13 +41,13 @@
     <string name="back4app_app_id">6OeFz5FXnW7YSzpgybpMHW7AZjcy8ae23hFuhvI8</string>
     <string name="back4app_client_key">76ve3Hc2utzbskckgdIjGBb4egC4vP0KvsnYrfQb</string>
     <!--Register form-->
-    <string name="rg_title">Registration Form</string>
+    <string name="rg_title">Kullanıcı Kayıt Formu</string>
     <string name="rg_subtitle">Please fill below form, cause we only communicate with your given data.</string>
     <string name="rg_warning">We undertake that the data you register with this form will not be shared with third parties and will be protected.</string>
-    <string name="rg_username">Username</string>
+    <string name="rg_username">Kullanıcı Adı</string>
     <string name="rg_usernameremoving">Removing given username!</string>
     <string name="rg_usernamesupporting">Please enter a username you can remember!</string>
-    <string name="rg_password">Password</string>
+    <string name="rg_password">Şifre</string>
     <string name="rg_passworddisplay">Display password!</string>
     <string name="rg_passwordhide">Hide password!</string>
     <string name="rg_passwordsupporting">Please enter a password you can remember!</string>
@@ -55,18 +55,27 @@
     <string name="parseerror208">Account already exists for this username.</string>
     <string name="userisauthenticated">User is reauthenticated!!!</string>
 
+    <!--start::location permission titles-->
+    <string name="prm_locationbtn">Konum İzini Talebi</string>
+    <string name="prm_locationbtnallowprecise">Kesin Konuma İzin Ver</string>
+    <string name="prm_locationtitle">Konum İzinleri</string>
+    <string name="prm_locationrequest">Doğru bilgiler sağlamak ve konum tabanlı hizmetlerimizle deneyiminizi geliştirmek için Ivocabo&amp;nun konumunuza erişmesine izin verin. Menzil dışına çıktığında bile Ivocabo cihazının bilinen son konumunu takip etmek için konum takibini kullanırız. Bu, işarete yakın olduğunuzda size ilgili bildirimleri ve güncellemeleri sağlayabileceğimizden emin olmamıza yardımcı olur. Konum verilerinizin yalnızca uygulama içinde kullanılacağından ve üçüncü taraflarla paylaşılmayacağından emin olabilirsiniz. Gizliliğiniz ve veri güvenliğiniz en önemli önceliklerimizdir.</string>
+    <string name="prm_locationrequestdenied">Konum erişimine izin vermediğiniz için, cihaz bağlantısı koptuğunda son konum bilgisine ulaşamayacaksınız! Ayarlardan konum iznini vermenizi öneririz.</string>
+    <string name="prm_locationrequestonbehalf">Çok kesin bir konum isteğine izin vermediğiniz için, eşyalarınızla olan bağlantınızın kaybolduğu tam konum verilerini alamayacaksınız.</string>
+    <!--end::location permission titles-->
+
     <string name="deviceregistretionformtitle">Device Registration Form</string>
     <string name="deviceregistretionformwarning">Please input all form fields completely.</string>
-    <string name="devicelisttitle">Devices</string>
-    <string name="adddevice">Add Device</string>
-    <string name="macaddress">Mac Address</string>
-    <string name="devicename">Device Name</string>
-    <string name="devicedelete">Selected device is deleted.</string>
+    <string name="devicelisttitle">Cihazlar</string>
+    <string name="adddevice">Cihaz Ekle</string>
+    <string name="macaddress">Mac Adres</string>
+    <string name="devicename">Cihaz Adı</string>
+    <string name="devicedelete">Seçili cihaz silinmiş.</string>
 
     <string name="deviceeventalerttitle">Device Event Form</string>
     <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
-    <string name="tracking">Tracking</string>
-    <string name="find">Find</string>
+    <string name="tracking">Takip Et</string>
+    <string name="find">Bul</string>
     <string name="enablenotifications">Enable Notifications</string>
     <string name="missing">Missing</string>
     <string name="ivocaboisfarfromyou">Ivocabo is far from you</string>

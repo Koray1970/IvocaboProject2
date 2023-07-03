@@ -41,6 +41,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffold
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DismissDirection
@@ -151,6 +152,8 @@ val appHelpers = AppHelpers()
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     lateinit var context: Context
+
+    @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         context = applicationContext
@@ -169,12 +172,97 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             IvocaboProjectTheme {
+
                 // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black,
                 ) {
-                    AppNavigator()
+                    val locationPermissionsState = rememberMultiplePermissionsState(
+                        listOf(
+                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                            android.Manifest.permission.ACCESS_FINE_LOCATION,
+                        )
+                    )
+                    val approximateDialog = remember { mutableStateOf(false) }
+                    val requestDialog = remember { mutableStateOf(false) }
+                    val deniedDialog = remember { mutableStateOf(false) }
+
+                    if (locationPermissionsState.allPermissionsGranted) {
+                        AppNavigator()
+                    } else {
+                        Column {
+                            val allPermissionsRevoked =
+                                locationPermissionsState.permissions.size ==
+                                        locationPermissionsState.revokedPermissions.size
+
+                            val textToShow =
+                                if (!allPermissionsRevoked) {
+                                    // If not all the permissions are revoked, it's because the user accepted the COARSE
+                                    // location permission, but not the FINE one.
+                                    /*"Thanks for letting me access your approximate location. " +
+                                            "But you know what would be great? If you allow me to know where you " +
+                                            "exactly are. Thank you!"*/
+                                    approximateDialog.value = true
+                                } else if (locationPermissionsState.shouldShowRationale) {
+                                    // Both location permissions have been denied
+                                    //"Getting your exact location is important for this app. " +
+                                    //"Please grant us fine location. Thank you :D"
+
+                                    deniedDialog.value = true
+                                } else {
+                                    // First time the user sees this feature or the user doesn't want to be asked again
+                                    //"This feature requires location permission"
+                                    requestDialog.value = true
+
+                                }
+                            if (requestDialog.value) {
+                                AlertDialog(onDismissRequest = { requestDialog.value = false },
+                                    title = { Text(text = getString(R.string.prm_locationtitle)) },
+                                    text = { Text(text = getString(R.string.prm_locationrequest)) },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            locationPermissionsState.launchMultiplePermissionRequest()
+                                            requestDialog.value = false
+                                        }) {
+                                            Text(text = getString(R.string.prm_locationbtn))
+                                        }
+                                    }
+                                )
+                            }
+                            if (approximateDialog.value) {
+                                AlertDialog(onDismissRequest = { approximateDialog.value = false },
+                                    title = { Text(text = getString(R.string.prm_locationtitle)) },
+                                    text = { Text(text = getString(R.string.prm_locationrequestonbehalf)) },
+                                    confirmButton = {
+
+                                        TextButton(onClick = {
+                                            locationPermissionsState.launchMultiplePermissionRequest()
+                                            approximateDialog.value = false
+                                        }) {
+                                            Text(text = getString(R.string.prm_locationbtnallowprecise))
+                                        }
+                                    }
+                                )
+                            }
+                            if (deniedDialog.value) {
+                                AlertDialog(onDismissRequest = { deniedDialog.value = false },
+                                    title = { Text(text = getString(R.string.prm_locationtitle)) },
+                                    text = { Text(text = getString(R.string.prm_locationrequestdenied)) },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            locationPermissionsState.launchMultiplePermissionRequest()
+                                            deniedDialog.value = false
+                                        }) {
+                                            Text(text = getString(R.string.prm_locationbtn))
+                                        }
+                                    }
+                                )
+                            }
+
+                        }
+                    }
+                    //
 
                 }
             }
@@ -236,6 +324,56 @@ fun AppNavigationBar(navController: NavController) {
             }
         })
 }
+
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun LocationPermissionScreen() {
+    val locationPermissionsState = rememberMultiplePermissionsState(
+        listOf(
+            android.Manifest.permission.ACCESS_COARSE_LOCATION,
+            android.Manifest.permission.ACCESS_FINE_LOCATION,
+        )
+    )
+
+    if (locationPermissionsState.allPermissionsGranted) {
+        Text("Thanks! I can access your exact location :D")
+    } else {
+        Column {
+            val allPermissionsRevoked =
+                locationPermissionsState.permissions.size ==
+                        locationPermissionsState.revokedPermissions.size
+
+            val textToShow = if (!allPermissionsRevoked) {
+                // If not all the permissions are revoked, it's because the user accepted the COARSE
+                // location permission, but not the FINE one.
+                "Yay! Thanks for letting me access your approximate location. " +
+                        "But you know what would be great? If you allow me to know where you " +
+                        "exactly are. Thank you!"
+            } else if (locationPermissionsState.shouldShowRationale) {
+                // Both location permissions have been denied
+                "Getting your exact location is important for this app. " +
+                        "Please grant us fine location. Thank you :D"
+            } else {
+                // First time the user sees this feature or the user doesn't want to be asked again
+                "This feature requires location permission"
+            }
+
+            val buttonText = if (!allPermissionsRevoked) {
+                "Allow precise location"
+            } else {
+                "Request permissions"
+            }
+
+            Text(text = textToShow)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { locationPermissionsState.launchMultiplePermissionRequest() }) {
+                Text(buttonText)
+            }
+        }
+    }
+}
+
 
 //private lateinit var latLng: LatLng
 private lateinit var camState: CameraPositionState
@@ -533,9 +671,9 @@ fun RegisterUser(
 ) {
     val context = LocalContext.current.applicationContext
     val logodescription = stringResource(id = R.string.logodescription)
-    if(ParseUser.getCurrentUser()!=null){
+    if (ParseUser.getCurrentUser() != null) {
         navController.navigate("dashboard")
-    }else {
+    } else {
         GetLocation(context)
         Column(modifier = Modifier
             .fillMaxSize()

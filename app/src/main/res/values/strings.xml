@@ -54,6 +54,15 @@
     <string name="parseerror208">Account already exists for this username.</string>
     <string name="userisauthenticated">User is reauthenticated!!!</string>
 
+    <!--start::location permission titles-->
+    <string name="prm_locationbtn">Request Location Permissions</string>
+    <string name="prm_locationbtnallowprecise">Allow Precise Location</string>
+    <string name="prm_locationtitle">Location Permission</string>
+    <string name="prm_locationrequest">Allow Ivocabo to access your location to provide accurate information and improve your experience with our location-based services. We utilize location tracking to keep track of the last known location of the Ivocabo device even when it goes out of range. This helps us ensure that we can provide you with relevant notifications and updates when you are in proximity to the beacon. Rest assured that your location data will only be used within the app and will not be shared with any third parties. Your privacy and data security are our top priorities.</string>
+    <string name="prm_locationrequestdenied">Since you do not allow location access, you will not be able to access the last location information when the device is disconnected! We recommend that you give the location permission in the settings.</string>
+    <string name="prm_locationrequestonbehalf">You won&amp;t be able to get the exact location data where your connection to your stuff is lost because you don&amp;t allow a very precise location request.</string>
+    <!--end::location permission titles-->
+
     <string name="deviceregistretionformtitle">Device Registration Form</string>
     <string name="deviceregistretionformwarning">Please input all form fields completely.</string>
     <string name="devicelisttitle">Devices</string>

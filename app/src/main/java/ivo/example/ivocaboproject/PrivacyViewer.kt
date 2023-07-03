@@ -133,6 +133,7 @@ fun Privacy() {
             ) {
                 Button(onClick = {
                     val int = Intent(context, MainActivity::class.java).apply {
+                        this.flags=Intent.FLAG_ACTIVITY_NEW_TASK
                         context.startActivity(this)
                     }
                 }) {
