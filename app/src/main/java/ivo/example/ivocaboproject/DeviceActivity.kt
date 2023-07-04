@@ -67,6 +67,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -121,6 +122,7 @@ import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import okhttp3.internal.wait
 
 private val TAG = DeviceActivity::class.java.simpleName
 private val gson = Gson()
@@ -229,21 +231,21 @@ class DeviceActivity : ComponentActivity() {
     @SuppressLint("MissingPermission")
     @Composable
     private fun SetUpBluetooth() {
+        val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+        val launcheractivity =
+            rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult(),
+                onResult = { r ->
+                    r.resultCode
+                })
         val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
         bluetoothAdapter = bluetoothManager.getAdapter()
         if (bluetoothAdapter == null) {
             // Device doesn't support Bluetooth
         } else {
             if (bluetoothAdapter?.isEnabled == false) {
-                val enableBtIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-                val launcheractivity =
-                    rememberLauncherForActivityResult(contract = ActivityResultContracts.StartActivityForResult(),
-                        onResult = { r ->
-                            r.resultCode
-                        })
-                launcheractivity.launch(enableBtIntent)
-
-                //startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT)
+                SideEffect {
+                    launcheractivity.launch(enableBtIntent)
+                }
             }
         }
     }
