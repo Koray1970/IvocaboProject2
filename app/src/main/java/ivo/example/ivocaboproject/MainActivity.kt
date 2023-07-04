@@ -1,14 +1,14 @@
 package ivo.example.ivocaboproject
 
-import android.Manifest.permission.ACCESS_COARSE_LOCATION
-import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
@@ -41,7 +41,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DismissDirection
@@ -120,7 +119,6 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
-import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -153,13 +151,26 @@ val appHelpers = AppHelpers()
 class MainActivity : ComponentActivity() {
     lateinit var context: Context
 
-    @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+    @RequiresApi(Build.VERSION_CODES.S)
+    @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         context = applicationContext
         //context.deleteDatabase("ivocabo.db")
         //ParseUser.logOut()
-
+        val permissions = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
+            listOf(
+                android.Manifest.permission.BLUETOOTH,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        } else {
+            listOf(
+                android.Manifest.permission.BLUETOOTH_SCAN,
+                android.Manifest.permission.BLUETOOTH_ADVERTISE,
+                android.Manifest.permission.BLUETOOTH_CONNECT,
+                android.Manifest.permission.ACCESS_FINE_LOCATION
+            )
+        }
 
         val cld = FetchNetworkConnectivity(application)
         cld.observe(this) { isConnected ->
@@ -178,12 +189,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black,
                 ) {
-                    val locationPermissionsState = rememberMultiplePermissionsState(
-                        listOf(
-                            android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                            android.Manifest.permission.ACCESS_FINE_LOCATION,
-                        )
-                    )
+                    val locationPermissionsState = rememberMultiplePermissionsState(permissions)
                     val approximateDialog = remember { mutableStateOf(false) }
                     val requestDialog = remember { mutableStateOf(false) }
                     val deniedDialog = remember { mutableStateOf(false) }
@@ -196,26 +202,25 @@ class MainActivity : ComponentActivity() {
                                 locationPermissionsState.permissions.size ==
                                         locationPermissionsState.revokedPermissions.size
 
-                            val textToShow =
-                                if (!allPermissionsRevoked) {
-                                    // If not all the permissions are revoked, it's because the user accepted the COARSE
-                                    // location permission, but not the FINE one.
-                                    /*"Thanks for letting me access your approximate location. " +
-                                            "But you know what would be great? If you allow me to know where you " +
-                                            "exactly are. Thank you!"*/
-                                    approximateDialog.value = true
-                                } else if (locationPermissionsState.shouldShowRationale) {
-                                    // Both location permissions have been denied
-                                    //"Getting your exact location is important for this app. " +
-                                    //"Please grant us fine location. Thank you :D"
+                            if (!allPermissionsRevoked) {
+                                // If not all the permissions are revoked, it's because the user accepted the COARSE
+                                // location permission, but not the FINE one.
+                                /*"Thanks for letting me access your approximate location. " +
+                                        "But you know what would be great? If you allow me to know where you " +
+                                        "exactly are. Thank you!"*/
+                                approximateDialog.value = true
+                            } else if (locationPermissionsState.shouldShowRationale) {
+                                // Both location permissions have been denied
+                                //"Getting your exact location is important for this app. " +
+                                //"Please grant us fine location. Thank you :D"
 
-                                    deniedDialog.value = true
-                                } else {
-                                    // First time the user sees this feature or the user doesn't want to be asked again
-                                    //"This feature requires location permission"
-                                    requestDialog.value = true
+                                deniedDialog.value = true
+                            } else {
+                                // First time the user sees this feature or the user doesn't want to be asked again
+                                //"This feature requires location permission"
+                                requestDialog.value = true
 
-                                }
+                            }
                             if (requestDialog.value) {
                                 AlertDialog(onDismissRequest = { requestDialog.value = false },
                                     title = { Text(text = getString(R.string.prm_locationtitle)) },
@@ -289,8 +294,7 @@ var deviceFormSheetState = mutableStateOf(SheetState(false, SheetValue.Partially
 fun AppNavigationBar(navController: NavController) {
     val scope = rememberCoroutineScope()
 
-    var context = LocalContext.current.applicationContext
-    var selectedItem by remember { mutableStateOf(0) }
+    val context = LocalContext.current.applicationContext
     val items = listOf(
         Pair(context.getString(R.string.menu_1), Pair("dashboard", R.drawable.baseline_home_24)),
         Pair(context.getString(R.string.menu_2), Pair("", R.drawable.baseline_emoji_people_24)),
@@ -298,7 +302,7 @@ fun AppNavigationBar(navController: NavController) {
     )
     BottomAppBar(
         actions = {
-            items.forEachIndexed { index, s ->
+            items.forEachIndexed { _, s ->
                 IconButton(onClick = { navController.navigate(s.second.first) }) {
                     Icon(
                         painter = painterResource(id = s.second.second),
@@ -324,62 +328,11 @@ fun AppNavigationBar(navController: NavController) {
         })
 }
 
-
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun LocationPermissionScreen() {
-    val locationPermissionsState = rememberMultiplePermissionsState(
-        listOf(
-            android.Manifest.permission.ACCESS_COARSE_LOCATION,
-            android.Manifest.permission.ACCESS_FINE_LOCATION,
-        )
-    )
-
-    if (locationPermissionsState.allPermissionsGranted) {
-        Text("Thanks! I can access your exact location :D")
-    } else {
-        Column {
-            val allPermissionsRevoked =
-                locationPermissionsState.permissions.size ==
-                        locationPermissionsState.revokedPermissions.size
-
-            val textToShow = if (!allPermissionsRevoked) {
-                // If not all the permissions are revoked, it's because the user accepted the COARSE
-                // location permission, but not the FINE one.
-                "Yay! Thanks for letting me access your approximate location. " +
-                        "But you know what would be great? If you allow me to know where you " +
-                        "exactly are. Thank you!"
-            } else if (locationPermissionsState.shouldShowRationale) {
-                // Both location permissions have been denied
-                "Getting your exact location is important for this app. " +
-                        "Please grant us fine location. Thank you :D"
-            } else {
-                // First time the user sees this feature or the user doesn't want to be asked again
-                "This feature requires location permission"
-            }
-
-            val buttonText = if (!allPermissionsRevoked) {
-                "Allow precise location"
-            } else {
-                "Request permissions"
-            }
-
-            Text(text = textToShow)
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { locationPermissionsState.launchMultiplePermissionRequest() }) {
-                Text(buttonText)
-            }
-        }
-    }
-}
-
-
 //private lateinit var latLng: LatLng
-private lateinit var camState: CameraPositionState
 private val gson: Gson = Gson()
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Dashboard(
     navController: NavController,
@@ -387,14 +340,12 @@ fun Dashboard(
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
-    //val application = context.applicationContext as Application
-    val scope = rememberCoroutineScope()
 
     if (userviewModel.count <= 0) {
         navController.navigate("registeruser")
     } else {
         if (!ParseUser.getCurrentUser().isAuthenticated) {
-            var user = userviewModel.getUserDetail
+            val user = userviewModel.getUserDetail
             val parseEvents = ParseEvents()
             val dbresult = parseEvents.SingInUser(user.email, user.password, userviewModel)
             if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
@@ -402,16 +353,6 @@ fun Dashboard(
                     context, context.getString(R.string.userisauthenticated), Toast.LENGTH_SHORT
                 ).show()
             }
-        }
-    }
-    val multiplePermissionState = rememberMultiplePermissionsState(
-        permissions = listOf(
-            ACCESS_COARSE_LOCATION, ACCESS_FINE_LOCATION
-        )
-    )
-    if (!context.hasLocationPermission()) {
-        LaunchedEffect(Unit) {
-            multiplePermissionState.launchMultiplePermissionRequest()
         }
     }
 
@@ -492,7 +433,7 @@ fun Dashboard(
                 )
             }
             //device list
-            DeviceList(navController, deviceViewState)
+            DeviceList(deviceViewState)
         }
 
     }
@@ -505,7 +446,6 @@ private lateinit var lIntent: Intent
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceList(
-    navController: NavController,
     state: State<DeviceListViewState>,
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
@@ -521,7 +461,7 @@ fun DeviceList(
     val localLifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(Unit) {
         deviceViewModel.getTrackDevicelist.observe(localLifecycleOwner) {
-            if (!it.isEmpty()) {
+            if (it.isNotEmpty()) {
                 IvocaboleTrackService.devicelist.postValue(it)
             }
         }
@@ -550,7 +490,7 @@ fun DeviceList(
             .fillMaxWidth()
             .wrapContentHeight(), state = listState, userScrollEnabled = true
     ) {
-        itemsIndexed(state.value.devices) { index, item ->
+        itemsIndexed(state.value.devices) { _, item ->
             val dismissState = rememberDismissState(confirmValueChange = {
                 if (it == DismissValue.DismissedToStart || it == DismissValue.DismissedToEnd) {
                     val dbresult = parseEvents.DeleteDevice(item, deviceViewModel)
@@ -656,20 +596,14 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
     }
 }
 
-@Composable
-fun ViewPrivacyPolicy() {
-    Surface() {
-
-    }
-}
-
-
+lateinit var displayiconDesc:String
 @Composable
 fun RegisterUser(
     navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
     val logodescription = stringResource(id = R.string.logodescription)
+
     if (ParseUser.getCurrentUser() != null) {
         navController.navigate("dashboard")
     } else {
@@ -763,7 +697,7 @@ fun RegisterUser(
                 })
             var txtrgpassword by rememberSaveable { mutableStateOf("") }
             var ispasswordVisible by remember { mutableStateOf(false) }
-            var displayiconDesc = ""
+
             val icon = if (ispasswordVisible) {
                 displayiconDesc = stringResource(id = R.string.rg_passwordhide)
                 painterResource(id = R.drawable.baseline_visibility_2480)
@@ -966,7 +900,7 @@ fun SignIn(
                     scope.launch {
                         if (txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
                             val parseEvents = ParseEvents()
-                            var dbresult =
+                            val dbresult =
                                 parseEvents.SingInUser(txtsiusername, txtsipassword, userviewModel)
                             if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                                 deviceViewModel.syncDeviceList()
@@ -982,7 +916,7 @@ fun SignIn(
         }
     }
 }
-
+lateinit var msg:String
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPassword(navController: NavController) {
@@ -994,6 +928,7 @@ fun ResetPassword(navController: NavController) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val confirmOpenDialog = remember { mutableStateOf(false) }
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = alertbarHostState) },
         modifier = Modifier
@@ -1094,24 +1029,23 @@ fun ResetPassword(navController: NavController) {
                             keyboardController?.hide()
                             if (txtrpemail.isNotEmpty()) {
                                 val parseEvents = ParseEvents()
-                                var dbresult = parseEvents.ResetUserPassword(txtrpemail)
+                                val dbresult = parseEvents.ResetUserPassword(txtrpemail)
                                 if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                                     confirmOpenDialog.value = true
                                 } else {
                                     scope.launch {
-                                        var msg = ""
-                                        when (dbresult.errorcode) {
+
+                                        msg = when (dbresult.errorcode) {
                                             "RUP-103" -> {
-                                                msg = context.getString(R.string.emailnotvalid)
+                                                context.getString(R.string.emailnotvalid)
                                             }
 
                                             "RUP-102" -> {
-                                                msg = context.getString(R.string.emailnotnull)
+                                                context.getString(R.string.emailnotnull)
                                             }
 
                                             else -> {
-                                                msg =
-                                                    context.getString(R.string.generalexceptionmessage)
+                                                context.getString(R.string.generalexceptionmessage)
                                             }
                                         }
                                         alertbarHostState.showSnackbar(
@@ -1183,9 +1117,9 @@ fun DeviceForm(
                     .fillMaxWidth()
                     .focusable(true),
                     onValueChange = {
-                        if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
-                            txtmacaddress = ""
-                        } else txtmacaddress = it
+                        txtmacaddress = if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                            ""
+                        } else it
                     },
                     label = { Text(text = stringResource(id = R.string.macaddress)) },
                     value = txtmacaddress,
@@ -1209,9 +1143,9 @@ fun DeviceForm(
                     })
                 OutlinedTextField(modifier = Modifier.fillMaxWidth(),
                     onValueChange = {
-                        if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
-                            txtdevicename = ""
-                        } else txtdevicename = it
+                        txtdevicename = if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                            ""
+                        } else it
                     },
                     label = { Text(text = stringResource(id = R.string.devicename)) },
                     value = txtdevicename,
@@ -1233,13 +1167,8 @@ fun DeviceForm(
                             }
                         }
                     })
-
-
-                LazyColumn(
-                    modifier = Modifier.selectableGroup()
-
-                ) {
-                    itemsIndexed(DeviceTypes.values()) { index, item ->
+                LazyColumn(modifier = Modifier.selectableGroup()) {
+                    itemsIndexed(DeviceTypes.values()) { _, item ->
                         var name = ""
                         var iconid = -1
                         when (item.value) {

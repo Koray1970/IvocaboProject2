@@ -62,7 +62,7 @@ class PrivacyViewer : ComponentActivity() {
                 }
             }
         } else {
-            val int = Intent(this, MainActivity::class.java).apply {
+            Intent(this, MainActivity::class.java).apply {
                 startActivity(this)
             }
         }
@@ -132,7 +132,7 @@ fun Privacy() {
                     .weight(1f, false),
             ) {
                 Button(onClick = {
-                    val int = Intent(context, MainActivity::class.java).apply {
+                    Intent(context, MainActivity::class.java).apply {
                         this.flags=Intent.FLAG_ACTIVITY_NEW_TASK
                         context.startActivity(this)
                     }
@@ -183,7 +183,7 @@ fun Privacy() {
                         )
                     },
                     bottomBar = {
-                        BottomAppBar() {
+                        BottomAppBar {
                             TextButton(
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = { openDialog.value = false }) {
@@ -194,7 +194,7 @@ fun Privacy() {
                             }
                         }
                     }
-                ) { it ->
+                ) {
                     Column(
                         modifier = Modifier
                             .fillMaxSize()

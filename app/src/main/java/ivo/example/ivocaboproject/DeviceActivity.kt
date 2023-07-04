@@ -13,13 +13,11 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -47,11 +45,9 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.BottomSheetScaffoldState
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetState
@@ -62,7 +58,6 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -88,11 +83,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -120,9 +113,7 @@ import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
 import ivo.example.ivocaboproject.deviceevents.FindMyDeviceViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import okhttp3.internal.wait
 
 private val TAG = DeviceActivity::class.java.simpleName
 private val gson = Gson()
@@ -130,9 +121,7 @@ private val gson = Gson()
 @AndroidEntryPoint
 class DeviceActivity : ComponentActivity() {
     private val deviceViewModel by viewModels<DeviceViewModel>()
-    private val appHelpers = AppHelpers()
     private lateinit var bluetoothAdapter: BluetoothAdapter
-    private val REQUEST_ENABLE_BT = 100
 
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -140,7 +129,7 @@ class DeviceActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        var macaddress = intent.getStringExtra("macaddress").toString()
+        val macaddress = intent.getStringExtra("macaddress").toString()
         val dbdetails = deviceViewModel.getDeviceDetail(macaddress)
 
         GlobalScope.launch {
@@ -151,24 +140,20 @@ class DeviceActivity : ComponentActivity() {
 
         setContent {
             IvocaboProjectTheme {
-                var trackBottomSheetState = rememberBottomSheetScaffoldState()
-                var findDeviceBottomSheetState = rememberBottomSheetScaffoldState()
+                val findDeviceBottomSheetState = rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
 
-                if (dbdetails == null) {
-                    openDeviceEventFormDialog.value = true
-                }
                 if (openDeviceEventFormDialog.value) {
                     AlertDialog(onDismissRequest = {
                         openDeviceEventFormDialog.value = false
-                        GoBackEvent()
+                        goBackEvent()
                     },
                         icon = { Icon(Icons.Filled.Warning, "") },
                         title = { Text(text = getString(R.string.deviceeventalerttitle)) },
                         text = { Text(text = getString(R.string.deviceeventalerttext)) },
                         confirmButton = {
                             TextButton(onClick = {
-                                GoBackEvent()
+                                goBackEvent()
                             }) {
                                 Text(text = getString(R.string.goback))
                             }
@@ -187,7 +172,7 @@ class DeviceActivity : ComponentActivity() {
                     }, navigationIcon = {
                         IconButton(
                             onClick = {
-                                GoBackEvent()
+                                goBackEvent()
                             }
                         ) {
                             Icon(Icons.Filled.ArrowBack, "")
@@ -195,7 +180,7 @@ class DeviceActivity : ComponentActivity() {
                     })
                 }) {
                     SetUpBluetooth()
-                    DeviceEvents(dbdetails, trackBottomSheetState, findDeviceBottomSheetState)
+                    DeviceEvents(dbdetails,  findDeviceBottomSheetState)
                 }
 
                 /*DeviceTrackPlaceholder(
@@ -209,21 +194,7 @@ class DeviceActivity : ComponentActivity() {
         }
     }
 
-    fun getDateTimeTick(): String {
-        var result = ""
-        try {
-            this.lifecycleScope.launch {
-                delay(1000)
-                result = appHelpers.getNOWasString()
-                return@launch
-            }
-        } catch (exceptition: Exception) {
-
-        }
-        return result
-    }
-
-    private fun GoBackEvent() {
+    private fun goBackEvent() {
         val intent = Intent(this@DeviceActivity, MainActivity::class.java)
         startActivity(intent)
     }
@@ -238,14 +209,10 @@ class DeviceActivity : ComponentActivity() {
                     r.resultCode
                 })
         val bluetoothManager: BluetoothManager = getSystemService(BluetoothManager::class.java)
-        bluetoothAdapter = bluetoothManager.getAdapter()
-        if (bluetoothAdapter == null) {
-            // Device doesn't support Bluetooth
-        } else {
-            if (bluetoothAdapter?.isEnabled == false) {
-                SideEffect {
-                    launcheractivity.launch(enableBtIntent)
-                }
+        bluetoothAdapter = bluetoothManager.adapter
+        if (!bluetoothAdapter.isEnabled) {
+            SideEffect {
+                launcheractivity.launch(enableBtIntent)
             }
         }
     }
@@ -258,50 +225,10 @@ class DeviceActivity : ComponentActivity() {
             composable("registeruser") { RegisterUser(navController) }
         }
     }
-
-    @OptIn(ExperimentalPermissionsApi::class)
-    @Composable
-    fun BluetoothPermissionRequest(launcher: ManagedActivityResultLauncher<Array<String>, Map<String, Boolean>>) {
-        val permissions = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
-            arrayOf(BLUETOOTH, ACCESS_FINE_LOCATION)
-        } else {
-            arrayOf(
-                BLUETOOTH_SCAN, BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, ACCESS_FINE_LOCATION
-            )
-        }/*val multiplePermissionState = rememberMultiplePermissionsState(
-            permissions =
-            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
-                listOf(BLUETOOTH, ACCESS_FINE_LOCATION)
-            } else {
-                listOf(
-                    BLUETOOTH_SCAN,
-                    BLUETOOTH_ADVERTISE,
-                    BLUETOOTH_CONNECT,
-                    ACCESS_COARSE_LOCATION
-                )
-            }
-        )*/
-
-
-        if (permissions.all {
-                ContextCompat.checkSelfPermission(
-                    LocalContext.current.applicationContext, it
-                ) == PackageManager.PERMISSION_GRANTED
-            }) {
-        } else {
-            LaunchedEffect(Unit) {
-                delay(4000)
-                launcher.launch(permissions)
-            }
-            // Request permissions
-
-        }
-    }
 }
 
 
 lateinit var latLng: LatLng
-private lateinit var camState: CameraPositionState
 private fun permmissions(): List<String> {
     if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
         return listOf(BLUETOOTH, ACCESS_FINE_LOCATION)
@@ -443,17 +370,15 @@ fun GetLocation(ctx: Context) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DeviceEvents(
     device: Device,
-    deviceBottomSheetScaffoldState: BottomSheetScaffoldState,
     findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState,
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
-    val activity = LocalContext.current as Activity
 
     if (!context.hasBluetoothPermission()) PermissionStateInit()
 
@@ -491,7 +416,6 @@ fun DeviceEvents(
             )
         )
     }
-    val lIntent = Intent(context, IvocaboleTrackService::class.java)
     var trackMyDeviceSwitchStatus by remember { mutableStateOf(false) }
     if (device.istracking!!) trackMyDeviceSwitchStatus = true
     val trackMyDeviceSwitchIcon: (@Composable () -> Unit)? = if (trackMyDeviceSwitchStatus) {
@@ -560,7 +484,7 @@ fun DeviceEvents(
             )
         }
         Column(modifier = Modifier.padding(40.dp, 0.dp)) {
-            Row() {
+            Row {
                 /*start::Track This Device Switch*/
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Switch(
@@ -672,11 +596,10 @@ fun DeviceEvents(
 fun DeviceFindPlaceholder(
     device: Device,
     bottomSheetState: SheetState,
-    findMyDeviceViewModel: FindMyDeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
     val bottomSheetScaffoldState = rememberBottomSheetScaffoldState(bottomSheetState)
-    val appCalcs = ivo.example.ivocaboproject.AppCalcs()
+    val appCalcs = AppCalcs()
     val lIntent = Intent(context, IvocaboleService::class.java)
     lIntent.putExtra("macaddress", appHelpers.formatedMacAddress(device.macaddress))
     when (bottomSheetState.currentValue) {
@@ -703,7 +626,7 @@ fun DeviceFindPlaceholder(
     val rssiRange = 120 - 45
     val screenRange = screenCurrentHeight / rssiRange
     val screenWidth = screenCurrentWidth / 2
-    val cirleData = listOf<Color>(
+    val cirleData = listOf(
         Color(context.getColor(R.color.orange_100)),
         Color(context.getColor(R.color.orange_90)),
         Color(context.getColor(R.color.orange_80)),
@@ -758,7 +681,7 @@ fun DeviceFindPlaceholder(
                     ) {
                         Text(
                             modifier = Modifier.fillMaxWidth(),
-                            text = "${device.name}",
+                            text = device.name,
                             style = TextStyle(
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Black,
