@@ -158,7 +158,7 @@ class MainActivity : ComponentActivity() {
         context = applicationContext
         //context.deleteDatabase("ivocabo.db")
         //ParseUser.logOut()
-        val permissions = if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
+        val permissions = if (Build.VERSION.SDK_INT <= 30) {
             listOf(
                 android.Manifest.permission.BLUETOOTH,
                 android.Manifest.permission.ACCESS_FINE_LOCATION
@@ -297,7 +297,7 @@ fun AppNavigationBar(navController: NavController) {
     val context = LocalContext.current.applicationContext
     val items = listOf(
         Pair(context.getString(R.string.menu_1), Pair("dashboard", R.drawable.baseline_home_24)),
-        Pair(context.getString(R.string.menu_2), Pair("", R.drawable.baseline_emoji_people_24)),
+        //Pair(context.getString(R.string.menu_2), Pair("", R.drawable.baseline_emoji_people_24)),
         Pair(context.getString(R.string.menu_3), Pair("settings", R.drawable.baseline_settings_24))
     )
     BottomAppBar(
@@ -317,12 +317,13 @@ fun AppNavigationBar(navController: NavController) {
                     scope.launch {
                         deviceFormSheetState.value.expand()
                     }
-                }, containerColor = MaterialTheme.colorScheme.primary
+                },
+                //containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(
                     Icons.Default.Add,
                     contentDescription = stringResource(id = R.string.addnewdevice),
-                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                    //tint = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             }
         })
@@ -394,7 +395,7 @@ fun Dashboard(
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = { AppNavigationBar(navController) },
-        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        //containerColor = MaterialTheme.colorScheme.tertiaryContainer,
     ) {
 
         LaunchedEffect(Unit) {
@@ -451,9 +452,6 @@ fun DeviceList(
 ) {
     val context = LocalContext.current.applicationContext
     val parseEvents = ParseEvents()
-    /*Text(
-        text = "Toplam Kayıt : " + state.value.devices.size, style = TextStyle(color = Color.Green)
-    )*/
     val listState = rememberLazyListState()
     val txtitemdelete = stringResource(id = R.string.devicedelete)
     val scope = rememberCoroutineScope()
@@ -473,7 +471,6 @@ fun DeviceList(
         modifier = Modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .background(MaterialTheme.colorScheme.onSecondaryContainer)
     ) {
         Text(
             modifier = Modifier
@@ -481,7 +478,7 @@ fun DeviceList(
                 .wrapContentHeight()
                 .padding(20.dp, 10.dp),
             text = stringResource(id = R.string.devicelisttitle),
-            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
         )
     }
 
@@ -533,9 +530,9 @@ fun DeviceList(
                     )
                 ) {
                     ListItem(
-                        colors = ListItemDefaults.colors(
+                        /*colors = ListItemDefaults.colors(
                             containerColor = MaterialTheme.colorScheme.secondary
-                        ),
+                        ),*/
                         leadingContent = {
                             Image(
                                 painter = painterResource(id = deviceicon),

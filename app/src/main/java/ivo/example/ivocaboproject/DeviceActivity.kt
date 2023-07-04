@@ -180,7 +180,7 @@ class DeviceActivity : ComponentActivity() {
                     })
                 }) {
                     SetUpBluetooth()
-                    DeviceEvents(dbdetails,  findDeviceBottomSheetState)
+                    DeviceEvents(dbdetails, findDeviceBottomSheetState)
                 }
 
                 /*DeviceTrackPlaceholder(
@@ -236,130 +236,6 @@ private fun permmissions(): List<String> {
     return listOf(BLUETOOTH_SCAN, BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, ACCESS_FINE_LOCATION)
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun PermissionStateInit() {
-    val context = LocalContext.current.applicationContext
-    val openPermissionDialog = remember { mutableStateOf(false) }
-    val permissionsState = rememberMultiplePermissionsState(permissions = permmissions())
-
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(key1 = lifecycleOwner, effect = {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_START) {
-                permissionsState.launchMultiplePermissionRequest()
-                openPermissionDialog.value = true
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    })
-    if (openPermissionDialog.value) {
-        AlertDialog(onDismissRequest = {
-            openPermissionDialog.value = false
-        },
-            icon = { Icon(Icons.Filled.Info, "") },
-            title = { Text(text = context.getString(R.string.devicepermissionalerttitle)) },
-            text = {
-                Column {
-                    permissionsState.permissions.forEach {
-                        when (it.permission) {
-                            ACCESS_FINE_LOCATION -> {
-                                when {
-                                    it.status.isGranted -> {
-                                        Text(text = "Location permission has been granted.")
-                                    }
-
-                                    it.status.shouldShowRationale -> {
-                                        Text(text = "Location permission is needed.")
-                                    }
-
-                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
-                                        Text(text = "Navigate to device settings and enable the location permission.")
-                                    }
-                                }
-                            }
-
-                            BLUETOOTH -> {
-                                when {
-                                    it.status.isGranted -> {
-                                        Text(text = "Bluetooth permission has been granted.")
-                                    }
-
-                                    it.status.shouldShowRationale -> {
-                                        Text(text = "Bluetooth permission is needed.")
-                                    }
-
-                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
-                                        Text(text = "Navigate to device settings and enable the bluetooth permission.")
-                                    }
-                                }
-                            }
-
-                            BLUETOOTH_SCAN -> {
-                                when {
-                                    it.status.isGranted -> {
-                                        Text(text = "Bluetooth scan permission has been granted.")
-                                    }
-
-                                    it.status.shouldShowRationale -> {
-                                        Text(text = "Bluetooth scan permission is needed.")
-                                    }
-
-                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
-                                        Text(text = "Navigate to device settings and enable the bluetooth scan permission.")
-                                    }
-                                }
-                            }
-
-                            BLUETOOTH_ADVERTISE -> {
-                                when {
-                                    it.status.isGranted -> {
-                                        Text(text = "Bluetooth advertise permission has been granted.")
-                                    }
-
-                                    it.status.shouldShowRationale -> {
-                                        Text(text = "Bluetooth advertise permission is needed.")
-                                    }
-
-                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
-                                        Text(text = "Navigate to device settings and enable the bluetooth advertise permission.")
-                                    }
-                                }
-                            }
-
-                            BLUETOOTH_CONNECT -> {
-                                when {
-                                    it.status.isGranted -> {
-                                        Text(text = "Bluetooth connect permission has been granted.")
-                                    }
-
-                                    it.status.shouldShowRationale -> {
-                                        Text(text = "Bluetooth connect permission is needed.")
-                                    }
-
-                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
-                                        Text(text = "Navigate to device settings and enable the bluetooth connect permission.")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    openPermissionDialog.value = false
-                }) {
-                    Text(text = context.getString(R.string.ok))
-                }
-            })
-
-
-    }
-}
 
 @Composable
 fun GetLocation(ctx: Context) {
@@ -379,9 +255,8 @@ fun DeviceEvents(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
-
-    if (!context.hasBluetoothPermission()) PermissionStateInit()
-
+    val parseEvents = ParseEvents()
+    //if (!context.hasBluetoothPermission()) PermissionStateInit()
 
 
     latLng = LatLng(0.0, 0.0)
@@ -416,14 +291,13 @@ fun DeviceEvents(
             )
         )
     }
-    var trackMyDeviceSwitchStatus by remember { mutableStateOf(false) }
-    if (device.istracking!!) trackMyDeviceSwitchStatus = true
+    var trackMyDeviceStatus=false
+    if (device.istracking != null) trackMyDeviceStatus = device.istracking!!
+    var trackMyDeviceSwitchStatus by remember { mutableStateOf(trackMyDeviceStatus) }
+
+
     val trackMyDeviceSwitchIcon: (@Composable () -> Unit)? = if (trackMyDeviceSwitchStatus) {
         {
-            LaunchedEffect(Unit) {
-                device.istracking = true
-                deviceViewModel.update(device)
-            }
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = null,
@@ -431,13 +305,8 @@ fun DeviceEvents(
             )
         }
     } else {
-        LaunchedEffect(Unit) {
-            device.istracking = false
-            deviceViewModel.update(device)
-        }
         null
     }
-
 
     var ismissing = false
     if (device.ismissing != null) ismissing = device.ismissing!!
@@ -450,10 +319,7 @@ fun DeviceEvents(
                 modifier = Modifier.size(SwitchDefaults.IconSize),
             )
         }
-    } else {
-
-        null
-    }
+    } else { null }
 
     //var notificationSwitchChecked by remember { mutableStateOf(false) }
     Column(
@@ -489,7 +355,17 @@ fun DeviceEvents(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Switch(
                         checked = trackMyDeviceSwitchStatus,
-                        onCheckedChange = { trackMyDeviceSwitchStatus = it },
+                        onCheckedChange = {
+                            trackMyDeviceSwitchStatus = it
+                            device.istracking = null
+                            if (it)
+                                device.istracking = true
+                            parseEvents.AddEditDevice(device,deviceViewModel)
+                            /*scope.launch {
+                                deviceViewModel.update(device)
+
+                            }*/
+                        },
                         thumbContent = trackMyDeviceSwitchIcon
                     )
                     Text(
@@ -541,7 +417,9 @@ fun DeviceEvents(
                 Spacer(modifier = Modifier.weight(1f))
                 /*start::Missing Device Switch*/
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Switch(checked = missingSwitchChecked, onCheckedChange = {
+                    Switch(
+                        checked = missingSwitchChecked,
+                        onCheckedChange = {
                         missingSwitchChecked = it
                         device.ismissing = null
                         if (missingSwitchChecked) {
@@ -549,7 +427,7 @@ fun DeviceEvents(
                             device.latitude = latLng.latitude.toString()
                             device.longitude = latLng.longitude.toString()
                         }
-                        val parseEvents = ParseEvents()
+
                         val dbresult = parseEvents.addRemoveMissingBeacon(device, deviceViewModel)
 
                         if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
@@ -712,7 +590,130 @@ fun DeviceFindPlaceholder(
             }
         }) {}
 }
+/*@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun PermissionStateInit() {
+    val context = LocalContext.current.applicationContext
+    val openPermissionDialog = remember { mutableStateOf(false) }
+    val permissionsState = rememberMultiplePermissionsState(permissions = permmissions())
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(key1 = lifecycleOwner, effect = {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_START) {
+                permissionsState.launchMultiplePermissionRequest()
+                openPermissionDialog.value = true
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    })
+    if (openPermissionDialog.value) {
+        AlertDialog(onDismissRequest = {
+            openPermissionDialog.value = false
+        },
+            icon = { Icon(Icons.Filled.Info, "") },
+            title = { Text(text = context.getString(R.string.devicepermissionalerttitle)) },
+            text = {
+                Column {
+                    permissionsState.permissions.forEach {
+                        when (it.permission) {
+                            ACCESS_FINE_LOCATION -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Location permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Location permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the location permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH_SCAN -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth scan permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth scan permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth scan permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH_ADVERTISE -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth advertise permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth advertise permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth advertise permission.")
+                                    }
+                                }
+                            }
+
+                            BLUETOOTH_CONNECT -> {
+                                when {
+                                    it.status.isGranted -> {
+                                        Text(text = "Bluetooth connect permission has been granted.")
+                                    }
+
+                                    it.status.shouldShowRationale -> {
+                                        Text(text = "Bluetooth connect permission is needed.")
+                                    }
+
+                                    !(it.status.isGranted && it.status.shouldShowRationale) -> {
+                                        Text(text = "Navigate to device settings and enable the bluetooth connect permission.")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    openPermissionDialog.value = false
+                }) {
+                    Text(text = context.getString(R.string.ok))
+                }
+            })
+
+
+    }
+}*/
 /*@SuppressLint("StateFlowValueCalledInComposition")
 @ExperimentalMaterial3Api
 @Composable
