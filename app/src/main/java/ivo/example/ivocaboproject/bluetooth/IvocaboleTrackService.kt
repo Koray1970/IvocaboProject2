@@ -16,6 +16,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.IBinder
 import android.util.Log
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.MutableLiveData
 import com.google.gson.Gson
@@ -65,7 +67,7 @@ class IvocaboleTrackService : Service() {
             deviceSize.postValue(it.size)
 
             if (it.isEmpty()) {
-                SCANNING_STATUS=false
+                SCANNING_STATUS.postValue(false)
                 deviceSize.postValue(0)
                 stopScan()
             } else {
@@ -83,10 +85,13 @@ class IvocaboleTrackService : Service() {
                 }
             }
         }
-        when (SCANNING_STATUS) {
+
+        when (SCANNING_STATUS.value!!) {
             false -> stopScan()
             true -> startScan()
         }
+
+
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -104,31 +109,32 @@ class IvocaboleTrackService : Service() {
                         .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
                         .setReportDelay(10000L).build()
                 bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
-                SCANNING_STATUS = true
+                SCANNING_STATUS.postValue(true)
                 Log.v(TAG, "scanStart 1")
 
-
                 while (true) {
-                    if(!SCANNING_STATUS) {
+                    if (SCANNING_STATUS.value == false) {
                         stopScan()
-                        return@launch
+                        break
+                    } else {
+                        delay(120000L) //2 minute
+                        stopScan()
+                        delay(15000L) //15 second
+                        bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
+                        SCANNING_STATUS.postValue(true)
+                        Log.v(TAG, "scanStart 2")
                     }
-
-                    delay(120000L) //2 minute
-                    stopScan()
-                    delay(15000L) //15 second
-                    bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
-                    SCANNING_STATUS = true
-                    Log.v(TAG, "scanStart 2")
-
                 }
+            } else {
+                SCANNING_STATUS.postValue(false)
+                stopScan()
             }
         }
     }
 
     @SuppressLint("MissingPermission")
     private fun stopScan() {
-        SCANNING_STATUS = false
+        SCANNING_STATUS.postValue(false)
         bluetoothLeScanner?.stopScan(scanCallback)
         Log.v(TAG, "scanStop")
     }
@@ -174,7 +180,8 @@ class IvocaboleTrackService : Service() {
                                     getLoc.startScanLoc()
                                     getLoc.loc.observeForever {
                                         if (it != null) {
-                                            val bigText="${currentDevice.macaddress} device current lost location  :\n ${it.latitude} , ${it.longitude}"
+                                            val bigText =
+                                                "${currentDevice.macaddress} device current lost location  :\n ${it.latitude} , ${it.longitude}"
                                             if (notificationManager!!.areNotificationsEnabled()) {
                                                 val notification =
                                                     NotificationCompat.Builder(
@@ -185,18 +192,22 @@ class IvocaboleTrackService : Service() {
                                                         .setTicker(getString(R.string.notificationtitle))
                                                         .setContentText(notifyContent)
                                                         .setStyle(
-                                                            NotificationCompat.BigTextStyle().bigText(bigText)
+                                                            NotificationCompat.BigTextStyle()
+                                                                .bigText(bigText)
                                                         )
                                                         .setSmallIcon(R.drawable.outofrange_24)
                                                         .setOngoing(true)
                                                         .setSound(soundUri)
                                                         .build()
-                                                Intent().also { intent->
-                                                    intent.action="hasTrackNotification"
-                                                    intent.putExtra("detail",bigText)
-                                                    intent.putExtra("macaddress",currentDevice.macaddress)
-                                                    intent.putExtra("latitude",it.latitude)
-                                                    intent.putExtra("longitude",it.longitude)
+                                                Intent().also { intent ->
+                                                    intent.action = "hasTrackNotification"
+                                                    intent.putExtra("detail", bigText)
+                                                    intent.putExtra(
+                                                        "macaddress",
+                                                        currentDevice.macaddress
+                                                    )
+                                                    intent.putExtra("latitude", it.latitude)
+                                                    intent.putExtra("longitude", it.longitude)
                                                     sendBroadcast(intent)
                                                 }
 
@@ -204,6 +215,7 @@ class IvocaboleTrackService : Service() {
                                                     fResult.indexOf(d),
                                                     notification
                                                 )
+
                                             }
                                         }
                                     }
@@ -224,6 +236,7 @@ class IvocaboleTrackService : Service() {
                     }
                 }
             }
+            Log.v(TAG, "SCANNING_STATUS 1 = ${SCANNING_STATUS.value}")
         }
 
         override fun onScanFailed(errorCode: Int) {
@@ -252,14 +265,14 @@ class IvocaboleTrackService : Service() {
         stopSelf()
     }
 
-   /* override fun onLowMemory() {
-        super.onLowMemory()
-    }*/
+    /* override fun onLowMemory() {
+         super.onLowMemory()
+     }*/
 
     companion object {
         var devicelist = MutableLiveData<List<Device>>()
         var macaddress: String? = null
-        var SCANNING_STATUS: Boolean = false
+        var SCANNING_STATUS = MutableLiveData<Boolean>(false)
         var CURRENT_RSSI = MutableLiveData<Int>()
         var DISCONNECTED = MutableLiveData<Boolean?>()
         var ERROR_CODE = MutableLiveData<Int>()

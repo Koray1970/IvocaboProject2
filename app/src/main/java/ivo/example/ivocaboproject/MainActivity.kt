@@ -137,6 +137,7 @@ import ivo.example.ivocaboproject.database.localdb.Device
 import ivo.example.ivocaboproject.database.localdb.DeviceListViewEvent
 import ivo.example.ivocaboproject.database.localdb.DeviceListViewState
 import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
+import ivo.example.ivocaboproject.database.localdb.TrackArchiveViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
@@ -148,7 +149,8 @@ val appHelpers = AppHelpers()
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    val parseEvents=ParseEvents()
+    val parseEvents = ParseEvents()
+
     @RequiresApi(Build.VERSION_CODES.S)
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -168,8 +170,8 @@ class MainActivity : ComponentActivity() {
                 android.Manifest.permission.ACCESS_FINE_LOCATION
             )
         }
-        val deviceViewModel:DeviceViewModel by viewModels()
-
+        val deviceViewModel: DeviceViewModel by viewModels()
+        val trackArchiveViewModel: TrackArchiveViewModel by viewModels()
         val cld = FetchNetworkConnectivity(application)
         cld.observe(this) { isConnected ->
             if (isConnected == InternetConnectionStatus.DISCONNECTED) {
@@ -192,16 +194,6 @@ class MainActivity : ComponentActivity() {
 
                     if (locationPermissionsState.allPermissionsGranted) {
 
-                        trackServiceIntent= Intent(applicationContext, IvocaboleTrackService::class.java)
-                        LaunchedEffect(Unit) {
-                            deviceViewModel.getTrackDevicelist.observeForever {
-                                if (it.isNotEmpty()) {
-                                    IvocaboleTrackService.devicelist.postValue(it)
-                                }
-                            }
-                            IvocaboleTrackService.SCANNING_STATUS = true
-                            startService(trackServiceIntent)
-                        }
 
                         //start::Track Notification Broadcastreceiver
                         val trackNotificationIntent = remember { mutableStateOf("") }
@@ -210,20 +202,61 @@ class MainActivity : ComponentActivity() {
                             val action = receiverState?.action ?: return@SystemBroadcastReceiver
                             if (action == "hasTrackNotification") {
                                 trackNotificationOpenDialog.value = true
-                                trackNotificationIntent.value = receiverState.getStringExtra("detail")!!
-                                val finddevice=deviceViewModel.getDeviceDetail(receiverState.getStringExtra("macaddress")!!.replace(":",""))
-                                if(finddevice!=null){
-                                    finddevice.istracking=null
-                                    parseEvents.AddEditDevice(finddevice,deviceViewModel)
+                                trackNotificationIntent.value =
+                                    receiverState.getStringExtra("detail")!!
+                                val finddevice = deviceViewModel.getDeviceDetail(
+                                    receiverState.getStringExtra("macaddress")!!.replace(":", "")
+                                )
+                                if (!(finddevice == null && finddevice.istracking == null)) {
+                                    finddevice.istracking = null
+                                    try {
+                                        var dbresult = parseEvents.AddTrackDeviceArchive(
+                                            finddevice,
+                                            receiverState.getDoubleExtra("latitude", 0.0)
+                                                .toString(),
+                                            receiverState.getDoubleExtra("longitude", 0.0)
+                                                .toString(),
+                                            trackArchiveViewModel,
+                                            deviceViewModel
+                                        )
+                                        if (dbresult.eventResultFlags == EventResultFlags.FAILED) {
+                                            Toast.makeText(
+                                                applicationContext,
+                                                "Please contact with us, as soon as possible! ${dbresult.errormessage}",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+                                        deviceViewModel.initTrackDeviceList()
+                                        deviceViewModel.getTrackDevicelist.observeForever {
+                                            if (it.isNotEmpty()) {
+                                                IvocaboleTrackService.SCANNING_STATUS.postValue(true)
+                                                IvocaboleTrackService.devicelist.postValue(it)
+                                            } else {
+                                                IvocaboleTrackService.SCANNING_STATUS.postValue(false)
+                                                IvocaboleTrackService.devicelist.postValue(null)
+                                            }
+                                        }
+                                    } catch (exception: Exception) {
+                                        Toast.makeText(
+                                            applicationContext,
+                                            exception.message,
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+
                                 }
                             }
                         }
                         if (trackNotificationOpenDialog.value) {
-                            AlertDialog(onDismissRequest = { trackNotificationOpenDialog.value = false },
+                            AlertDialog(onDismissRequest = {
+                                trackNotificationOpenDialog.value = false
+                            },
                                 title = { Text(text = "AKDJLASJAK") },
                                 text = { Text(text = trackNotificationIntent.value) },
                                 confirmButton = {
-                                    TextButton(onClick = { trackNotificationOpenDialog.value = false }) {
+                                    TextButton(onClick = {
+                                        trackNotificationOpenDialog.value = false
+                                    }) {
                                         Text(text = "Oki")
                                     }
                                 }
@@ -231,6 +264,20 @@ class MainActivity : ComponentActivity() {
                         }
                         //end::Track Notification Broadcastreceiver
                         AppNavigator()
+                        LaunchedEffect(Unit) {
+                            trackServiceIntent =
+                                Intent(applicationContext, IvocaboleTrackService::class.java)
+
+                            deviceViewModel.getTrackDevicelist.observeForever {
+                                if (it.isNotEmpty()) {
+                                    IvocaboleTrackService.devicelist.postValue(it)
+                                }
+                            }
+                            IvocaboleTrackService.SCANNING_STATUS.postValue(true)
+                            delay(2000L)
+                            applicationContext.startService(trackServiceIntent)
+                        }
+
                     } else {
                         Column {
                             val allPermissionsRevoked =
@@ -307,8 +354,9 @@ class MainActivity : ComponentActivity() {
             composable("settings") { Settings() }
         }
     }
-    companion object{
-        lateinit var trackServiceIntent:Intent
+
+    companion object {
+        lateinit var trackServiceIntent: Intent
     }
 }
 
@@ -527,7 +575,7 @@ fun DeviceList(
                 Card(
                     onClick = {
                         scope.launch {
-                            IvocaboleTrackService.SCANNING_STATUS = false
+                            IvocaboleTrackService.SCANNING_STATUS.postValue(false)
                             context.stopService(MainActivity.trackServiceIntent)
                             delay(1500L)
                             val intent = Intent(context, DeviceActivity::class.java)

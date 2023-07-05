@@ -134,7 +134,7 @@ class DeviceActivity : ComponentActivity() {
         val dbdetails = deviceViewModel.getDeviceDetail(macaddress)
 
         GlobalScope.launch {
-            IvocaboleTrackService.SCANNING_STATUS = false
+            IvocaboleTrackService.SCANNING_STATUS.postValue( false)
             val lIntent = Intent(applicationContext, IvocaboleTrackService::class.java)
             applicationContext.stopService(lIntent)
         }

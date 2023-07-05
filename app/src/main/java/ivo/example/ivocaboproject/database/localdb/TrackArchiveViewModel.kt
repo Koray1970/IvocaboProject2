@@ -27,6 +27,6 @@ class TrackArchiveViewModel @Inject constructor(private val repo: TrackArchiveRe
     }
 
     companion object {
-        lateinit var macAddress: MutableLiveData<String>
+       var macAddress= MutableLiveData<String>()
     }
 }

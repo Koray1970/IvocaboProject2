@@ -13,6 +13,9 @@ import ivo.example.ivocaboproject.database.localdb.TrackArchive
 import ivo.example.ivocaboproject.database.localdb.TrackArchiveViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 
 class ParseEvents {
@@ -104,30 +107,31 @@ class ParseEvents {
         }
         return eventResult
     }
-    fun RemoveUser():EventResult<Boolean>{
+
+    fun RemoveUser(): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
-        var user=ParseUser.getCurrentUser()
-        try{
-           val deleteUserPO=ParseObject("DeletedUsers")
-            deleteUserPO.put("username",user.username)
-            deleteUserPO.put("email",user.email)
-            deleteUserPO.put("userObjectId",user.objectId)
-            deleteUserPO.put("clientdeletedatetime",appHelpers.getNOWasSQLDate())
+        var user = ParseUser.getCurrentUser()
+        try {
+            val deleteUserPO = ParseObject("DeletedUsers")
+            deleteUserPO.put("username", user.username)
+            deleteUserPO.put("email", user.email)
+            deleteUserPO.put("userObjectId", user.objectId)
+            deleteUserPO.put("clientdeletedatetime", appHelpers.getNOWasSQLDate())
             deleteUserPO.save()
-            if(deleteUserPO.isDataAvailable){
+            if (deleteUserPO.isDataAvailable) {
                 ParseUser.getCurrentUser().delete()
                 ParseUser.logOut()
-                if(!ParseUser.getCurrentUser().isAuthenticated) {
+                if (!ParseUser.getCurrentUser().isAuthenticated) {
                     eventResult.eventResultFlags = EventResultFlags.SUCCESS
-                    eventResult.result=true
+                    eventResult.result = true
                 }
             }
-        }
-        catch (exception:Exception){
-            eventResult.exception=exception
+        } catch (exception: Exception) {
+            eventResult.exception = exception
         }
         return eventResult
     }
+
     fun ResetUserPassword(email: String): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
@@ -364,23 +368,42 @@ class ParseEvents {
         }
         return eventResult
     }
-    fun AddTrackDeviceArchive(device:Device,trackArchive: TrackArchive,trackArchiveViewModel: TrackArchiveViewModel): EventResult<Boolean> {
+
+    fun AddTrackDeviceArchive(
+        device: Device,
+        latitude: String,
+        longitude: String,
+        trackArchiveViewModel: TrackArchiveViewModel,
+        deviceViewModel: DeviceViewModel
+    ): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
             val parseuserid = ParseUser.getCurrentUser().objectId
             val parseObject = ParseObject("TrackArchive")
 
             parseObject.put("parseDeviceId", device.objectId)
-            parseObject.put("User",parseuserid)
-            parseObject.put("latitude", trackArchive.latitude)
+            parseObject.put("User", parseuserid)
+            parseObject.put("latitude", latitude)
             parseObject.put("time", appHelpers.getNOWasString())
-            parseObject.put("mac", trackArchive.macaddress)
-            parseObject.put("longitude", trackArchive.longitude)
+            parseObject.put("mac", device.macaddress)
+            parseObject.put("longitude", longitude)
             parseObject.save()
             if (parseObject.isDataAvailable) {
-                trackArchive.objectId = parseObject.objectId
-                trackArchiveViewModel.insert(trackArchive)
-
+                MainScope().launch {
+                    val trackArchive = TrackArchive(
+                        0,
+                        appHelpers.getNOWasString(),
+                        device.macaddress,
+                        latitude,
+                        longitude,
+                        parseuserid,
+                        parseObject.objectId
+                    )
+                    trackArchiveViewModel.insert(trackArchive)
+                    
+                    delay(600L)
+                    deviceViewModel.update(device)
+                }
                 eventResult.eventResultFlags = EventResultFlags.SUCCESS
                 eventResult.result = true
             }
