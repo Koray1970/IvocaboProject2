@@ -1,10 +1,6 @@
 package ivo.example.ivocaboproject.database
 
-import android.telephony.CellSignalStrength
 import android.util.Log
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.maps.model.LatLng
 import com.parse.ParseException
 import com.parse.ParseObject
@@ -14,10 +10,9 @@ import ivo.example.ivocaboproject.AppHelpers
 import ivo.example.ivocaboproject.database.localdb.Device
 import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
 import ivo.example.ivocaboproject.database.localdb.TrackArchive
-import ivo.example.ivocaboproject.database.localdb.TrackDeviceViewModel
+import ivo.example.ivocaboproject.database.localdb.TrackArchiveViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
-import java.sql.Date
 
 
 class ParseEvents {
@@ -369,7 +364,7 @@ class ParseEvents {
         }
         return eventResult
     }
-    fun AddTrackDeviceArchive(device:Device,trackArchive: TrackArchive, trackDeviceViewModel: TrackDeviceViewModel): EventResult<Boolean> {
+    fun AddTrackDeviceArchive(device:Device,trackArchive: TrackArchive,trackArchiveViewModel: TrackArchiveViewModel): EventResult<Boolean> {
         var eventResult = EventResult<Boolean>(false)
         try {
             val parseuserid = ParseUser.getCurrentUser().objectId
@@ -384,7 +379,7 @@ class ParseEvents {
             parseObject.save()
             if (parseObject.isDataAvailable) {
                 trackArchive.objectId = parseObject.objectId
-                trackDeviceViewModel.insert(trackArchive)
+                trackArchiveViewModel.insert(trackArchive)
 
                 eventResult.eventResultFlags = EventResultFlags.SUCCESS
                 eventResult.result = true

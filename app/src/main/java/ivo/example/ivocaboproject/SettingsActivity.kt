@@ -92,7 +92,6 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
-lateinit var context: Context
 
 @OptIn(ExperimentalMaterial3Api::class)
 lateinit var profileSheetScaffoldState: BottomSheetScaffoldState
@@ -107,7 +106,7 @@ var privacyOpenDialog= mutableStateOf(false)
 @Composable
 fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
     var scope = rememberCoroutineScope()
-    context = LocalContext.current.applicationContext
+    val context = LocalContext.current.applicationContext
     val user = userViewModel.getUserDetail
     profileSheetScaffoldState = rememberBottomSheetScaffoldState(SheetState(false))
     permissionsSheetScaffoldState = rememberBottomSheetScaffoldState(SheetState(false))
@@ -323,7 +322,7 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
 @Composable
 fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
     val parseEvents = ParseEvents()
-    context = LocalContext.current.applicationContext
+    val context = LocalContext.current.applicationContext
     var user = userViewModel.getUserDetail
     BottomSheetScaffold(
         modifier = Modifier.padding(15.dp),
@@ -401,7 +400,7 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShowPrivacy(){
-    context = LocalContext.current.applicationContext
+    val context = LocalContext.current.applicationContext
     val urlState = rememberWebViewState("https://www.ivocabo.com/gi-zli-li-k-poli-ti-kasi")
     if (privacyOpenDialog.value) {
         AlertDialog(
@@ -460,7 +459,7 @@ fun ShowPrivacy(){
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Permissions(userView: UserViewModel = hiltViewModel()) {
-    context = LocalContext.current.applicationContext
+    val context = LocalContext.current.applicationContext
     var user=userView.getUserDetail
 
     var locationCheckedState = remember { mutableStateOf(false) }

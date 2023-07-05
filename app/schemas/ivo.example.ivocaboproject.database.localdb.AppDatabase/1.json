@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d3c2d2d2d543dd68b95caed2aef861df",
+    "identityHash": "22bc6e03cc7d4f32e2fe66f7c40d3b4c",
     "entities": [
       {
         "tableName": "users",
@@ -135,7 +135,7 @@
         "foreignKeys": []
       },
       {
-        "tableName": "TrackArchive",
+        "tableName": "trackarchive",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `registerdate` TEXT NOT NULL, `macaddress` TEXT NOT NULL, `latitude` TEXT NOT NULL, `longitude` TEXT NOT NULL, `parseuserid` TEXT NOT NULL, `parseid` TEXT NOT NULL)",
         "fields": [
           {
@@ -306,7 +306,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd3c2d2d2d543dd68b95caed2aef861df')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '22bc6e03cc7d4f32e2fe66f7c40d3b4c')"
     ]
   }
 }

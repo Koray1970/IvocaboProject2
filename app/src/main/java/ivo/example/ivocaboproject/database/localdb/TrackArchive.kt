@@ -1,5 +1,6 @@
 package ivo.example.ivocaboproject.database.localdb
 
+import android.os.Parcelable
 import androidx.lifecycle.MutableLiveData
 import androidx.room.ColumnInfo
 import androidx.room.Dao
@@ -11,8 +12,10 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
+import kotlinx.parcelize.Parcelize
 
-@Entity(tableName = "TrackArchive")
+@Parcelize
+@Entity(tableName = "trackarchive")
 data class TrackArchive(
     @PrimaryKey(autoGenerate = true)
     val id:Int,
@@ -28,14 +31,15 @@ data class TrackArchive(
     val userobjectId:String,
     @ColumnInfo(name ="parseid")
     var objectId:String
-)
+) : Parcelable
+
 @Dao
 interface trackArchiveDao{
     @Query("SELECT COUNT(*) FROM trackarchive WHERE macaddress=:macaddress")
     fun count(macaddress: String): Flow<Int>
 
     @Query("SELECT * FROM trackarchive WHERE macaddress=:macaddress LIMIT 1")
-    fun findbyMacAddress(macaddress: String):MutableLiveData<List<TrackArchive>>
+    fun findbyMacAddress(macaddress: String):Flow<List<TrackArchive>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg trackArchive: TrackArchive)

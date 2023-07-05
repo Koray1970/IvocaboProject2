@@ -22,4 +22,9 @@ class AppModule {
     fun provideDeviceDao(appDatabase: AppDatabase)=appDatabase.deviceDao()
     @Provides
     fun provideDeviceReposity(deviceDao: deviceDao):DeviceRepository=DeviceOfflineRepository(deviceDao = deviceDao)
+
+    @Provides
+    fun provideTrackArchiveDao(appDatabase: AppDatabase)=appDatabase.trackArchiveDao()
+    @Provides
+    fun provideTrackArchiveRepository(trackArchiveDao: trackArchiveDao):TrackArchiveRepository=TrackArchiveOfflineRepository(trackArchiveDao = trackArchiveDao)
 }

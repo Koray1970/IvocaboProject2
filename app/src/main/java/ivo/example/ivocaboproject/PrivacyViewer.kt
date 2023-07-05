@@ -49,6 +49,8 @@ import kotlinx.coroutines.launch
 class PrivacyViewer : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        /*context.deleteDatabase("ivocabo.db")
+        ParseUser.logOut()*/
         if (ParseUser.getCurrentUser()==null) {
             setContent {
                 IvocaboProjectTheme {

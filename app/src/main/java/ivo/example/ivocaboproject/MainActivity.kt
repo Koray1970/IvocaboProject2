@@ -1,13 +1,13 @@
 package ivo.example.ivocaboproject
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -53,7 +53,6 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -149,13 +148,11 @@ val appHelpers = AppHelpers()
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    lateinit var context: Context
-
+    val parseEvents=ParseEvents()
     @RequiresApi(Build.VERSION_CODES.S)
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        context = applicationContext
         //context.deleteDatabase("ivocabo.db")
         //ParseUser.logOut()
         val permissions = if (Build.VERSION.SDK_INT <= 30) {
@@ -171,20 +168,19 @@ class MainActivity : ComponentActivity() {
                 android.Manifest.permission.ACCESS_FINE_LOCATION
             )
         }
+        val deviceViewModel:DeviceViewModel by viewModels()
 
         val cld = FetchNetworkConnectivity(application)
         cld.observe(this) { isConnected ->
             if (isConnected == InternetConnectionStatus.DISCONNECTED) {
                 Toast.makeText(
-                    context, getString(R.string.internetdisconnected), Toast.LENGTH_LONG
+                    applicationContext, getString(R.string.internetdisconnected), Toast.LENGTH_LONG
                 ).show()
             }
         }
 
         setContent {
             IvocaboProjectTheme {
-
-                // A surface container using the 'background' color from the theme
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = Color.Black,
@@ -195,6 +191,45 @@ class MainActivity : ComponentActivity() {
                     val deniedDialog = remember { mutableStateOf(false) }
 
                     if (locationPermissionsState.allPermissionsGranted) {
+
+                        trackServiceIntent= Intent(applicationContext, IvocaboleTrackService::class.java)
+                        LaunchedEffect(Unit) {
+                            deviceViewModel.getTrackDevicelist.observeForever {
+                                if (it.isNotEmpty()) {
+                                    IvocaboleTrackService.devicelist.postValue(it)
+                                }
+                            }
+                            IvocaboleTrackService.SCANNING_STATUS = true
+                            startService(trackServiceIntent)
+                        }
+
+                        //start::Track Notification Broadcastreceiver
+                        val trackNotificationIntent = remember { mutableStateOf("") }
+                        val trackNotificationOpenDialog = remember { mutableStateOf(false) }
+                        SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
+                            val action = receiverState?.action ?: return@SystemBroadcastReceiver
+                            if (action == "hasTrackNotification") {
+                                trackNotificationOpenDialog.value = true
+                                trackNotificationIntent.value = receiverState.getStringExtra("detail")!!
+                                val finddevice=deviceViewModel.getDeviceDetail(receiverState.getStringExtra("macaddress")!!.replace(":",""))
+                                if(finddevice!=null){
+                                    finddevice.istracking=null
+                                    parseEvents.AddEditDevice(finddevice,deviceViewModel)
+                                }
+                            }
+                        }
+                        if (trackNotificationOpenDialog.value) {
+                            AlertDialog(onDismissRequest = { trackNotificationOpenDialog.value = false },
+                                title = { Text(text = "AKDJLASJAK") },
+                                text = { Text(text = trackNotificationIntent.value) },
+                                confirmButton = {
+                                    TextButton(onClick = { trackNotificationOpenDialog.value = false }) {
+                                        Text(text = "Oki")
+                                    }
+                                }
+                            )
+                        }
+                        //end::Track Notification Broadcastreceiver
                         AppNavigator()
                     } else {
                         Column {
@@ -203,23 +238,11 @@ class MainActivity : ComponentActivity() {
                                         locationPermissionsState.revokedPermissions.size
 
                             if (!allPermissionsRevoked) {
-                                // If not all the permissions are revoked, it's because the user accepted the COARSE
-                                // location permission, but not the FINE one.
-                                /*"Thanks for letting me access your approximate location. " +
-                                        "But you know what would be great? If you allow me to know where you " +
-                                        "exactly are. Thank you!"*/
                                 approximateDialog.value = true
                             } else if (locationPermissionsState.shouldShowRationale) {
-                                // Both location permissions have been denied
-                                //"Getting your exact location is important for this app. " +
-                                //"Please grant us fine location. Thank you :D"
-
                                 deniedDialog.value = true
                             } else {
-                                // First time the user sees this feature or the user doesn't want to be asked again
-                                //"This feature requires location permission"
                                 requestDialog.value = true
-
                             }
                             if (requestDialog.value) {
                                 AlertDialog(onDismissRequest = { requestDialog.value = false },
@@ -283,6 +306,9 @@ class MainActivity : ComponentActivity() {
             composable("resetpassword") { ResetPassword(navController) }
             composable("settings") { Settings() }
         }
+    }
+    companion object{
+        lateinit var trackServiceIntent:Intent
     }
 }
 
@@ -356,26 +382,7 @@ fun Dashboard(
             }
         }
     }
-    var trackNotificationIntent = remember { mutableStateOf("") }
-    var trackNotificationOpenDialog = remember { mutableStateOf(false) }
-    SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
-        val action = receiverState?.action ?: return@SystemBroadcastReceiver
-        if (action == "hasTrackNotification") {
-            trackNotificationOpenDialog.value = true
-            trackNotificationIntent.value = receiverState.getStringExtra("detail")!!
-        }
-    }
-    if (trackNotificationOpenDialog.value) {
-        AlertDialog(onDismissRequest = { trackNotificationOpenDialog.value = false },
-            title = { Text(text = "AKDJLASJAK") },
-            text = { Text(text = trackNotificationIntent.value) },
-            confirmButton = {
-                TextButton(onClick = { trackNotificationOpenDialog.value = false }) {
-                    Text(text = "Oki")
-                }
-            }
-        )
-    }
+
     var latLng by remember { mutableStateOf(LatLng(0.0, 0.0)) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(latLng, 16f)
@@ -474,18 +481,7 @@ fun DeviceList(
     val listState = rememberLazyListState()
     val txtitemdelete = stringResource(id = R.string.devicedelete)
     val scope = rememberCoroutineScope()
-    lIntent = Intent(context, IvocaboleTrackService::class.java)
-    val localLifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(Unit) {
-        deviceViewModel.getTrackDevicelist.observe(localLifecycleOwner) {
-            if (it.isNotEmpty()) {
-                IvocaboleTrackService.devicelist.postValue(it)
-            }
-        }
-        delay(2000L)
-        IvocaboleTrackService.SCANNING_STATUS = true
-        context.startService(lIntent)
-    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -532,7 +528,7 @@ fun DeviceList(
                     onClick = {
                         scope.launch {
                             IvocaboleTrackService.SCANNING_STATUS = false
-                            context.stopService(lIntent)
+                            context.stopService(MainActivity.trackServiceIntent)
                             delay(1500L)
                             val intent = Intent(context, DeviceActivity::class.java)
                             intent.putExtra("macaddress", item.macaddress)
