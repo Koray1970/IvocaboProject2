@@ -64,6 +64,11 @@
     <string name="prm_locationrequestonbehalf">Çok kesin bir konum isteğine izin vermediğiniz için, eşyalarınızla olan bağlantınızın kaybolduğu tam konum verilerini alamayacaksınız.</string>
     <!--end::location permission titles-->
 
+    <!--start::tracking switch permission details-->
+    <string name="trckswc_title">Arka Plan Konum Bilgisine Neden İhtiyacımız Var?</string>
+    <string name="trckswc_detail">Siz ve Ivocabo cihazınızın bağlantısının nerede koptuğunu bildirmemiz için arka plan konum bilgisine ihtiyacımız bulunmaktadır.</string>
+    <!--end::tracking switch permission details-->
+
     <string name="deviceregistretionformtitle">Device Registration Form</string>
     <string name="deviceregistretionformwarning">Please input all form fields completely.</string>
     <string name="devicelisttitle">Cihazlar</string>

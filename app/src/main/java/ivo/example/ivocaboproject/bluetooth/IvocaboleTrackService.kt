@@ -31,7 +31,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 
-data class DisconnectedDevice(var macaddress: String, var countofdisconnect: Int)
+data class DisconnectedDevice(var macaddress: String, var countofdisconnect: Int,var loc:LatLng)
 class IvocaboleTrackService : Service() {
     private val TAG = IvocaboleTrackService::class.java.simpleName
     private val appHelpers = AppHelpers()
@@ -64,6 +64,7 @@ class IvocaboleTrackService : Service() {
         devicelist.observeForever {
             deviceSize.postValue(it.size)
             if (it.isEmpty()) {
+                SCANNING_STATUS=false
                 deviceSize.postValue(0)
                 stopScan()
             } else {
@@ -100,7 +101,7 @@ class IvocaboleTrackService : Service() {
             bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
             if (scanFilter.isNotEmpty()) {
                 scanSettings =
-                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
+                    ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                         .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
                         .setReportDelay(10000L).build()
                 bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
@@ -109,12 +110,18 @@ class IvocaboleTrackService : Service() {
 
 
                 while (true) {
+                    if(!SCANNING_STATUS) {
+                        stopScan()
+                        return@launch
+                    }
+
                     delay(120000L) //2 minute
                     stopScan()
                     delay(15000L) //15 second
                     bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallback)
                     SCANNING_STATUS = true
                     Log.v(TAG, "scanStart 2")
+
                 }
             }
         }
@@ -150,7 +157,7 @@ class IvocaboleTrackService : Service() {
             if (fResult!!.isNotEmpty()) {
                 fResult.forEach { d ->
                     if (disconnectedControl.isEmpty()) {
-                        disconnectedControl.add(DisconnectedDevice(d, 1))
+                        disconnectedControl.add(DisconnectedDevice(d, 1, LatLng(0.0,0.0)))
                     } else {
                         var disconnectFilters =
                             disconnectedControl.filter { it.macaddress == d }
@@ -158,7 +165,7 @@ class IvocaboleTrackService : Service() {
                             var currentDevice = disconnectFilters.first()
 
                             currentDevice.countofdisconnect = currentDevice.countofdisconnect + 1
-                            if (currentDevice.countofdisconnect >= 2) {
+                            if (currentDevice.countofdisconnect >= 4) {
                                 currentDevice.countofdisconnect = 0
                                 var notifyContent =
                                     currentDevice.macaddress + " - " + getString(R.string.devicefarfrom)
@@ -168,9 +175,16 @@ class IvocaboleTrackService : Service() {
                                     getLoc.startScanLoc()
                                     getLoc.loc.observeForever {
                                         if (it != null) {
+                                            if(currentDevice.countofdisconnect==2) {
+                                                currentDevice.loc = it
+                                            }else {
+                                                val nlist=disconnectFilters.filter { it-> it.macaddress==currentDevice.macaddress }
+                                                if(nlist.size>0)
+                                                currentDevice.loc =nlist.get(1).loc
+                                            }
                                             latLng = it
                                             if (notificationManager!!.areNotificationsEnabled()) {
-                                                var bigText="Device current lost location  :\n ${it.latitude} , ${it.longitude}"
+                                                var bigText="${currentDevice.macaddress} device current lost location  :\n ${it.latitude} , ${it.longitude}"
                                                 val notification =
                                                     NotificationCompat.Builder(
                                                         applicationContext,
@@ -204,7 +218,7 @@ class IvocaboleTrackService : Service() {
 
                             }
                         } else
-                            disconnectedControl.add(DisconnectedDevice(d, 1))
+                            disconnectedControl.add(DisconnectedDevice(d, 1,LatLng(0.0,0.0)))
                     }
                 }
                 if (disconnectedControl.isNotEmpty())

@@ -13,6 +13,8 @@ import com.parse.ParseUser
 import ivo.example.ivocaboproject.AppHelpers
 import ivo.example.ivocaboproject.database.localdb.Device
 import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
+import ivo.example.ivocaboproject.database.localdb.TrackArchive
+import ivo.example.ivocaboproject.database.localdb.TrackDeviceViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import java.sql.Date
@@ -363,6 +365,32 @@ class ParseEvents {
             }
         } catch (exception: Exception) {
             Log.i(TAG, "CheckAndUpdateMissingDevice Gexception : ${exception.message.toString()}")
+            eventResult.exception = exception
+        }
+        return eventResult
+    }
+    fun AddTrackDeviceArchive(device:Device,trackArchive: TrackArchive, trackDeviceViewModel: TrackDeviceViewModel): EventResult<Boolean> {
+        var eventResult = EventResult<Boolean>(false)
+        try {
+            val parseuserid = ParseUser.getCurrentUser().objectId
+            val parseObject = ParseObject("TrackArchive")
+
+            parseObject.put("parseDeviceId", device.objectId)
+            parseObject.put("User",parseuserid)
+            parseObject.put("latitude", trackArchive.latitude)
+            parseObject.put("time", appHelpers.getNOWasString())
+            parseObject.put("mac", trackArchive.macaddress)
+            parseObject.put("longitude", trackArchive.longitude)
+            parseObject.save()
+            if (parseObject.isDataAvailable) {
+                trackArchive.objectId = parseObject.objectId
+                trackDeviceViewModel.insert(trackArchive)
+
+                eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                eventResult.result = true
+            }
+
+        } catch (exception: Exception) {
             eventResult.exception = exception
         }
         return eventResult

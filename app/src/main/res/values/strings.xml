@@ -63,6 +63,10 @@
     <string name="prm_locationrequestonbehalf">You won&amp;t be able to get the exact location data where your connection to your stuff is lost because you don&amp;t allow a very precise location request.</string>
     <!--end::location permission titles-->
 
+    <!--start::tracking switch permission details-->
+    <string name="trckswc_title">Why We Need Background Location?</string>
+    <string name="trckswc_detail">To notify you in the background when your Ivocabo device connection has been lost.</string>
+    <!--end::tracking switch permission details-->
     <string name="deviceregistretionformtitle">Device Registration Form</string>
     <string name="deviceregistretionformwarning">Please input all form fields completely.</string>
     <string name="devicelisttitle">Devices</string>

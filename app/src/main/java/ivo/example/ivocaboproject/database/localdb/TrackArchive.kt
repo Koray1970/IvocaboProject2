@@ -27,7 +27,7 @@ data class TrackArchive(
     @ColumnInfo(name ="parseuserid")
     val userobjectId:String,
     @ColumnInfo(name ="parseid")
-    val objectId:String
+    var objectId:String
 )
 @Dao
 interface trackArchiveDao{
@@ -35,7 +35,7 @@ interface trackArchiveDao{
     fun count(macaddress: String): Flow<Int>
 
     @Query("SELECT * FROM trackarchive WHERE macaddress=:macaddress LIMIT 1")
-    fun findbyMacAddress(macaddress: String):Flow<List<TrackArchive>>
+    fun findbyMacAddress(macaddress: String):MutableLiveData<List<TrackArchive>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(vararg trackArchive: TrackArchive)
