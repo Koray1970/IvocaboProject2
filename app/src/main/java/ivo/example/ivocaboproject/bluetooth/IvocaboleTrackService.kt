@@ -169,25 +169,34 @@ class IvocaboleTrackService : Service() {
                                     getLoc.loc.observeForever {
                                         if (it != null) {
                                             latLng = it
-                                            val notification =
-                                                NotificationCompat.Builder(
-                                                    applicationContext,
-                                                    "ivocabobluetooth"
-                                                )
-                                                    .setContentTitle(getString(R.string.notificationtitle))
-                                                    .setTicker(getString(R.string.notificationtitle))
-                                                    .setContentText(notifyContent)
-                                                    .setStyle(NotificationCompat.BigTextStyle()
-                                                        .bigText("Device current lost location  :\n ${it.latitude} , ${it.longitude}"))
-                                                    .setSmallIcon(R.drawable.outofrange_24)
-                                                    .setOngoing(true)
-                                                    .setSound(soundUri)
-                                                    .build()
+                                            if (notificationManager!!.areNotificationsEnabled()) {
+                                                var bigText="Device current lost location  :\n ${it.latitude} , ${it.longitude}"
+                                                val notification =
+                                                    NotificationCompat.Builder(
+                                                        applicationContext,
+                                                        "ivocabobluetooth"
+                                                    )
+                                                        .setContentTitle(getString(R.string.notificationtitle))
+                                                        .setTicker(getString(R.string.notificationtitle))
+                                                        .setContentText(notifyContent)
+                                                        .setStyle(
+                                                            NotificationCompat.BigTextStyle().bigText(bigText)
+                                                        )
+                                                        .setSmallIcon(R.drawable.outofrange_24)
+                                                        .setOngoing(true)
+                                                        .setSound(soundUri)
+                                                        .build()
+                                                Intent().also { intent->
+                                                    intent.setAction("hasTrackNotification")
+                                                    intent.putExtra("detail",bigText)
+                                                    sendBroadcast(intent)
+                                                }
 
-                                            notificationManager?.notify(
-                                                fResult.indexOf(d),
-                                                notification
-                                            )
+                                                notificationManager?.notify(
+                                                    fResult.indexOf(d),
+                                                    notification
+                                                )
+                                            }
                                         }
                                     }
                                 }

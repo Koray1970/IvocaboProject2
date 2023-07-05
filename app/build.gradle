@@ -34,6 +34,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Check if you have this parameter enabled.
+            // Add if missing and rebuild your app to device.
+            debuggable true
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

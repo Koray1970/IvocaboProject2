@@ -22,6 +22,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -291,7 +292,7 @@ fun DeviceEvents(
             )
         )
     }
-    var trackMyDeviceStatus=false
+    var trackMyDeviceStatus = false
     if (device.istracking != null) trackMyDeviceStatus = device.istracking!!
     var trackMyDeviceSwitchStatus by remember { mutableStateOf(trackMyDeviceStatus) }
 
@@ -319,8 +320,11 @@ fun DeviceEvents(
                 modifier = Modifier.size(SwitchDefaults.IconSize),
             )
         }
-    } else { null }
+    } else {
+        null
+    }
 
+    var trackOpenDialog= remember{ mutableStateOf(false) }
     //var notificationSwitchChecked by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
@@ -356,15 +360,17 @@ fun DeviceEvents(
                     Switch(
                         checked = trackMyDeviceSwitchStatus,
                         onCheckedChange = {
-                            trackMyDeviceSwitchStatus = it
-                            device.istracking = null
-                            if (it)
-                                device.istracking = true
-                            parseEvents.AddEditDevice(device,deviceViewModel)
-                            /*scope.launch {
-                                deviceViewModel.update(device)
+                            if (it) {
+                                trackOpenDialog.value=true
+                            }
+                            else{
+                                trackMyDeviceSwitchStatus=false
+                                if(device.istracking!=null) {
+                                    device.istracking = null
+                                    parseEvents.AddEditDevice(device, deviceViewModel)
+                                }
+                            }
 
-                            }*/
                         },
                         thumbContent = trackMyDeviceSwitchIcon
                     )
@@ -373,6 +379,40 @@ fun DeviceEvents(
                             fontSize = 14.sp, fontWeight = FontWeight.Medium
                         )
                     )
+                    if(trackOpenDialog.value) {
+                        AlertDialog(
+                            onDismissRequest = { trackOpenDialog.value=false },
+                            title = { Text(text = "Aaaaaa") },
+                            text = { Text(text = "Bbbbbbbbb") },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    trackMyDeviceSwitchStatus=true
+                                    device.istracking = true
+                                    var dbresult=parseEvents.AddEditDevice(device, deviceViewModel)
+                                    if(dbresult.eventResultFlags==EventResultFlags.FAILED){
+
+                                        Toast.makeText(context,"Tracking data can not be saved!",Toast.LENGTH_LONG).show()
+                                    }
+                                    trackOpenDialog.value=false
+
+                                }) {
+                                    Text(text = "Ok")
+                                }
+                            },
+                            dismissButton = {
+                                TextButton(
+                                    onClick = {
+                                        trackMyDeviceSwitchStatus=false
+                                        trackOpenDialog.value=false
+                                    },
+                                ) {
+                                    Text(text = "Dismiss")
+                                }
+                            }
+                        )
+                    }
+
+
                 }
                 /*end::Track This Device Switch*/
                 /*TextButton(
@@ -420,41 +460,43 @@ fun DeviceEvents(
                     Switch(
                         checked = missingSwitchChecked,
                         onCheckedChange = {
-                        missingSwitchChecked = it
-                        device.ismissing = null
-                        if (missingSwitchChecked) {
-                            device.ismissing = true
-                            device.latitude = latLng.latitude.toString()
-                            device.longitude = latLng.longitude.toString()
-                        }
+                            missingSwitchChecked = it
+                            device.ismissing = null
+                            if (missingSwitchChecked) {
+                                device.ismissing = true
+                                device.latitude = latLng.latitude.toString()
+                                device.longitude = latLng.longitude.toString()
+                            }
 
-                        val dbresult = parseEvents.addRemoveMissingBeacon(device, deviceViewModel)
+                            val dbresult =
+                                parseEvents.addRemoveMissingBeacon(device, deviceViewModel)
 
-                        if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                            if (device.ismissing == true) {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.missingdevicealert),
-                                    Toast.LENGTH_LONG
-                                ).show()
+                            if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                                if (device.ismissing == true) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.missingdevicealert),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.missingdevicefindalert),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             } else {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.missingdevicefindalert),
-                                    Toast.LENGTH_LONG
-                                ).show()
+                                if (dbresult.eventResultFlags == EventResultFlags.FAILED) {
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.missingdevicealerterror),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             }
-                        } else {
-                            if (dbresult.eventResultFlags == EventResultFlags.FAILED) {
-                                Toast.makeText(
-                                    context,
-                                    context.getString(R.string.missingdevicealerterror),
-                                    Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        }
 
-                    }, thumbContent = missingSwitchIcon)
+                        }, thumbContent = missingSwitchIcon
+                    )
                     Text(
                         text = stringResource(id = R.string.missing), style = TextStyle(
                             fontSize = 14.sp, fontWeight = FontWeight.Medium
@@ -467,7 +509,6 @@ fun DeviceEvents(
     }
 
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -160,14 +160,14 @@ class MainActivity : ComponentActivity() {
         //ParseUser.logOut()
         val permissions = if (Build.VERSION.SDK_INT <= 30) {
             listOf(
-                android.Manifest.permission.BLUETOOTH,
+                //android.Manifest.permission.BLUETOOTH,
                 android.Manifest.permission.ACCESS_FINE_LOCATION
             )
         } else {
             listOf(
-                android.Manifest.permission.BLUETOOTH_SCAN,
+                /*android.Manifest.permission.BLUETOOTH_SCAN,
                 android.Manifest.permission.BLUETOOTH_ADVERTISE,
-                android.Manifest.permission.BLUETOOTH_CONNECT,
+                android.Manifest.permission.BLUETOOTH_CONNECT,*/
                 android.Manifest.permission.ACCESS_FINE_LOCATION
             )
         }
@@ -356,7 +356,26 @@ fun Dashboard(
             }
         }
     }
-
+    var trackNotificationIntent = remember { mutableStateOf("") }
+    var trackNotificationOpenDialog = remember { mutableStateOf(false) }
+    SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
+        val action = receiverState?.action ?: return@SystemBroadcastReceiver
+        if (action == "hasTrackNotification") {
+            trackNotificationOpenDialog.value = true
+            trackNotificationIntent.value = receiverState.getStringExtra("detail")!!
+        }
+    }
+    if (trackNotificationOpenDialog.value) {
+        AlertDialog(onDismissRequest = { trackNotificationOpenDialog.value = false },
+            title = { Text(text = "AKDJLASJAK") },
+            text = { Text(text = trackNotificationIntent.value) },
+            confirmButton = {
+                TextButton(onClick = { trackNotificationOpenDialog.value = false }) {
+                    Text(text = "Oki")
+                }
+            }
+        )
+    }
     var latLng by remember { mutableStateOf(LatLng(0.0, 0.0)) }
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(latLng, 16f)
@@ -593,7 +612,8 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
     }
 }
 
-lateinit var displayiconDesc:String
+lateinit var displayiconDesc: String
+
 @Composable
 fun RegisterUser(
     navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
@@ -913,7 +933,9 @@ fun SignIn(
         }
     }
 }
-lateinit var msg:String
+
+lateinit var msg: String
+
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ResetPassword(navController: NavController) {
@@ -1114,9 +1136,10 @@ fun DeviceForm(
                     .fillMaxWidth()
                     .focusable(true),
                     onValueChange = {
-                        txtmacaddress = if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
-                            ""
-                        } else it
+                        txtmacaddress =
+                            if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                                ""
+                            } else it
                     },
                     label = { Text(text = stringResource(id = R.string.macaddress)) },
                     value = txtmacaddress,
@@ -1140,9 +1163,10 @@ fun DeviceForm(
                     })
                 OutlinedTextField(modifier = Modifier.fillMaxWidth(),
                     onValueChange = {
-                        txtdevicename = if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
-                            ""
-                        } else it
+                        txtdevicename =
+                            if (deviceformsheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded) {
+                                ""
+                            } else it
                     },
                     label = { Text(text = stringResource(id = R.string.devicename)) },
                     value = txtdevicename,
