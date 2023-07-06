@@ -77,6 +77,9 @@
     <string name="devicename">Cihaz Adı</string>
     <string name="devicedelete">Seçili cihaz silinmiş.</string>
 
+    <!--Lost device notification messages-->
+    <string name="lostdevicenotification_msg">Takip listesin ki cihazlarınızdan bazılar bulunamamıştır. Takip listesinden çıkarılacak olup, bulunamadıkları son konum kayıt altına alınmıştır.</string>
+
     <string name="deviceeventalerttitle">Device Event Form</string>
     <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
     <string name="tracking">Takip Et</string>

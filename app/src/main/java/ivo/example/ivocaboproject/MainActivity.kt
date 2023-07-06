@@ -201,7 +201,7 @@ class MainActivity : ComponentActivity() {
                     if (locationPermissionsState.allPermissionsGranted) {
 
                         //start::Track Notification Broadcastreceiver
-                        /*val trackNotificationIntent = remember { mutableStateOf("") }
+                        val trackNotificationIntent = remember { mutableStateOf("") }
                         val trackNotificationOpenDialog = remember { mutableStateOf(false) }
                         SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
                             val action = receiverState?.action ?: return@SystemBroadcastReceiver
@@ -266,15 +266,15 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             )
-                        }*/
+                        }
                         //end::Track Notification Broadcastreceiver
                         AppNavigator()
 
-                        //LaunchedEffect(Unit) {
-                            trackServiceIntent = Intent(applicationContext, BleTrackerService::class.java)
-                            //delay(2000L)
-                            applicationContext.startService(trackServiceIntent)
-                        //}
+
+                        trackServiceIntent =
+                            Intent(applicationContext, BleTrackerService::class.java)
+                        //delay(2000L)
+                        applicationContext.startService(trackServiceIntent)
 
                     } else {
                         Column {

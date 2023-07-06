@@ -75,6 +75,9 @@
     <string name="devicename">Device Name</string>
     <string name="devicedelete">Selected device is deleted.</string>
 
+    <!--Lost device notification messages-->
+    <string name="lostdevicenotification_msg">Some of your devices on your track list could not be found. They will be removed from the track list and the last location where they could not be found has been recorded.</string>
+
     <string name="deviceeventalerttitle">Device Event Form</string>
     <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
     <string name="tracking">Tracking</string>
