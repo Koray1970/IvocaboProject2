@@ -50,7 +50,7 @@ interface deviceDao {
     fun list():List<Device>
 
     @Query("SELECT * FROM devices WHERE istracking=1")
-    fun trackDeviceList():List<Device>
+    fun trackDeviceList():LiveData<List<Device>>
 
     @Query("SELECT * FROM devices WHERE macaddress=:macaddress LIMIT 1")
     fun findbyMacAddress(macaddress: String): Device

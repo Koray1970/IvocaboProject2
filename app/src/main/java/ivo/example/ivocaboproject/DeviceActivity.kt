@@ -105,6 +105,7 @@ import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
+import ivo.example.ivocaboproject.bluetooth.BleTrackerService
 import ivo.example.ivocaboproject.bluetooth.IvocaboleService
 import ivo.example.ivocaboproject.bluetooth.IvocaboleTrackService
 import ivo.example.ivocaboproject.database.EventResultFlags
@@ -368,6 +369,9 @@ fun DeviceEvents(
                                 if(device.istracking!=null) {
                                     device.istracking = null
                                     parseEvents.AddEditDevice(device, deviceViewModel)
+                                    deviceViewModel.trackDeviceItems.observeForever{
+                                        BleTrackerService.MACADDRESS_LIST.postValue(it)
+                                    }
                                 }
                             }
 
@@ -392,6 +396,9 @@ fun DeviceEvents(
                                     if(dbresult.eventResultFlags==EventResultFlags.FAILED){
 
                                         Toast.makeText(context,"Tracking data can not be saved!",Toast.LENGTH_LONG).show()
+                                    }
+                                    deviceViewModel.trackDeviceItems.observeForever{
+                                        BleTrackerService.MACADDRESS_LIST.postValue(it)
                                     }
                                     trackOpenDialog.value=false
 

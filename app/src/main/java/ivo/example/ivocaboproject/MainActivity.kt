@@ -75,6 +75,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -105,6 +106,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -127,6 +129,7 @@ import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.widgets.ScaleBar
 import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
+import ivo.example.ivocaboproject.bluetooth.BleTrackerService
 import ivo.example.ivocaboproject.bluetooth.IvocaboFetcher
 import ivo.example.ivocaboproject.bluetooth.IvocaboleTrackService
 import ivo.example.ivocaboproject.connectivity.FetchNetworkConnectivity
@@ -181,6 +184,9 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+
+
+
         setContent {
             IvocaboProjectTheme {
                 Surface(
@@ -194,9 +200,8 @@ class MainActivity : ComponentActivity() {
 
                     if (locationPermissionsState.allPermissionsGranted) {
 
-
                         //start::Track Notification Broadcastreceiver
-                        val trackNotificationIntent = remember { mutableStateOf("") }
+                        /*val trackNotificationIntent = remember { mutableStateOf("") }
                         val trackNotificationOpenDialog = remember { mutableStateOf(false) }
                         SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
                             val action = receiverState?.action ?: return@SystemBroadcastReceiver
@@ -261,22 +266,15 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             )
-                        }
+                        }*/
                         //end::Track Notification Broadcastreceiver
                         AppNavigator()
-                        LaunchedEffect(Unit) {
-                            trackServiceIntent =
-                                Intent(applicationContext, IvocaboleTrackService::class.java)
 
-                            deviceViewModel.getTrackDevicelist.observeForever {
-                                if (it.isNotEmpty()) {
-                                    IvocaboleTrackService.devicelist.postValue(it)
-                                }
-                            }
-                            IvocaboleTrackService.SCANNING_STATUS.postValue(true)
-                            delay(2000L)
+                        //LaunchedEffect(Unit) {
+                            trackServiceIntent = Intent(applicationContext, BleTrackerService::class.java)
+                            //delay(2000L)
                             applicationContext.startService(trackServiceIntent)
-                        }
+                        //}
 
                     } else {
                         Column {
@@ -415,6 +413,10 @@ fun Dashboard(
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
+
+    deviceViewModel.trackDeviceItems.observeForever {
+        BleTrackerService.MACADDRESS_LIST.postValue(it)
+    }
 
     if (userviewModel.count <= 0) {
         navController.navigate("registeruser")
