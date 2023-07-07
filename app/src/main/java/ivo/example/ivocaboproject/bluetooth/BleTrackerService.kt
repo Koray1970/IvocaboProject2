@@ -115,7 +115,7 @@ class BleTrackerService : Service(), IBleTRackerService {
                     .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                     .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                     .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
-                    .setReportDelay(5000L)
+                    .setReportDelay(3000L)
                     .build()
                 bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallBack)
             }
