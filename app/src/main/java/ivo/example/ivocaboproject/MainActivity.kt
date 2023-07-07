@@ -1253,7 +1253,7 @@ fun DeviceForm(
                                 txtdevicename,
                                 latLng.latitude.toString(),
                                 latLng.longitude.toString(),
-                                "", null, true, selectedOption.value
+                                "", null, null, selectedOption.value
 
                             )
                             val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)
