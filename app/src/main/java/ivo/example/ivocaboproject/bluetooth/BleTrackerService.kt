@@ -27,7 +27,9 @@ import ivo.example.ivocaboproject.AppHelpers
 import ivo.example.ivocaboproject.CurrentLoc
 import ivo.example.ivocaboproject.R
 import ivo.example.ivocaboproject.database.localdb.Device
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
 
 interface IBleTRackerService {
@@ -54,13 +56,14 @@ class BleTrackerService : Service(), IBleTRackerService {
     private var unTrackItems = mutableListOf<UnTrackDeviceItems>()
     private var notificationManager: NotificationManager? = null
     private lateinit var soundUri: Uri
-    private val getLoc: CurrentLoc = CurrentLoc(applicationContext)
+    private lateinit var getLoc: CurrentLoc
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
+        getLoc= CurrentLoc(applicationContext)
         //appAlarm = MediaPlayer.create(applicationContext, R.raw.alarm)
         soundUri =
             Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + applicationContext.packageName + "/" + R.raw.alarm)
@@ -139,80 +142,91 @@ class BleTrackerService : Service(), IBleTRackerService {
     val scanCallBack = object : ScanCallback() {
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             super.onBatchScanResults(results)
-            if (results?.isNotEmpty() == true) {
-                //scan result is not empty
-                MACADDRESS_LIST.value?.forEach {
-                    if (results.none { rr -> rr.device.address == it.macaddress }) {
+            Log.v(TAG,"Scan Results :  ${gson.toJson(results)}")
+            GlobalScope.launch {
+                if (results?.isNotEmpty() == true) {
+                    //scan result is not empty
+                    MACADDRESS_LIST.value?.forEach {
+                        if (results.none { rr -> rr.device.address == it.macaddress }) {
+                            unTrackDeviceItemOnListEvent(it)
+                        }
+                    }
+                } else {
+                    //scan result is empty
+                    MACADDRESS_LIST.value?.forEach {
                         unTrackDeviceItemOnListEvent(it)
                     }
                 }
-            } else {
-                //scan result is empty
-                MACADDRESS_LIST.value?.forEach {
-                    unTrackDeviceItemOnListEvent(it)
-                }
-            }
-            var lostDevices = unTrackItems.filter { ff -> ff.lostCounter >= 20 }
-            if (lostDevices.isNotEmpty()) {
+                var lostDevices = unTrackItems.filter { ff -> ff.lostCounter >= 20 }
+                if (lostDevices.isNotEmpty()) {
 
-                val bigText =getString(R.string.lostdevicenotification_msg)
-                if (notificationManager!!.areNotificationsEnabled()) {
+                    val bigText = getString(R.string.lostdevicenotification_msg)
+                    if (notificationManager!!.areNotificationsEnabled()) {
 
-                    //val notifyContent = currentDevice.macaddress + " - " + getString(R.string.devicefarfrom)
+                        //val notifyContent = currentDevice.macaddress + " - " + getString(R.string.devicefarfrom)
 
-                    val notification =
-                        NotificationCompat.Builder(
-                            applicationContext,
-                            "ivocabobluetooth"
-                        )
-                            .setContentTitle(getString(R.string.notificationtitle))
-                            .setTicker(getString(R.string.notificationtitle))
-                            //.setContentText(notifyContent)
-                            .setStyle(
-                                NotificationCompat.BigTextStyle()
-                                    .bigText(bigText)
+                        val notification =
+                            NotificationCompat.Builder(
+                                applicationContext,
+                                "ivocabobluetooth"
                             )
-                            .setSmallIcon(R.drawable.outofrange_24)
-                            .setOngoing(true)
-                            .setSound(soundUri)
-                            .build()
+                                .setContentTitle(getString(R.string.notificationtitle))
+                                .setTicker(getString(R.string.notificationtitle))
+                                //.setContentText(notifyContent)
+                                .setStyle(
+                                    NotificationCompat.BigTextStyle()
+                                        .bigText(bigText)
+                                )
+                                .setSmallIcon(R.drawable.outofrange_24)
+                                .setOngoing(true)
+                                .setSound(soundUri)
+                                .build()
+
+                        notificationManager?.notify(
+                            (0..1000000).shuffled().last(),
+                            notification
+                        )
+                    }
+
+
+
+
+
+
+                    Intent().also { intent ->
+                        intent.action = "hasTrackNotification"
+                        intent.putExtra("detail", bigText)
+                        intent.putExtra("lostdevicelist", gson.toJson(lostDevices))
+                        sendBroadcast(intent)
+                    }
                 }
-
-
-
-
-
-
-                Intent().also { intent ->
-                    intent.action = "hasTrackNotification"
-                    intent.putExtra("detail", bigText)
-                    intent.putExtra("lostdevicelist", gson.toJson(lostDevices))
-                    sendBroadcast(intent)
-                }
+                //Log.v(TAG, "Lost Devices : ${gson.toJson(lostDevices)}")
             }
-            //Log.v(TAG, "Lost Devices : ${gson.toJson(lostDevices)}")
         }
     }
 
     fun unTrackDeviceItemOnListEvent(device: Device) {
-        getLoc.startScanLoc()
-        var loc = getLoc.loc.value
-        var unTrackDeviceItems = UnTrackDeviceItems()
-        if (unTrackItems.isNotEmpty()) {
-            if (unTrackItems.any { i -> i.macAddress == device.macaddress }) {
-                unTrackItems.find { uti -> uti.macAddress == device.macaddress }!!.lostCounter++
+
+            getLoc.startScanLoc()
+            var loc = getLoc.loc.value
+            var unTrackDeviceItems = UnTrackDeviceItems()
+            if (unTrackItems.isNotEmpty()) {
+                if (unTrackItems.any { i -> i.macAddress == device.macaddress }) {
+                    unTrackItems.find { uti -> uti.macAddress == device.macaddress }!!.lostCounter++
+                } else {
+                    unTrackDeviceItems.macAddress = device.macaddress
+                    unTrackDeviceItems.lostCounter = 1
+                    if (loc != null)
+                        unTrackDeviceItems.loc = LatLng(loc.latitude, loc.longitude)
+                    unTrackItems.add(unTrackDeviceItems)
+                }
             } else {
                 unTrackDeviceItems.macAddress = device.macaddress
                 unTrackDeviceItems.lostCounter = 1
-                if (loc != null)
-                    unTrackDeviceItems.loc = LatLng(loc.latitude, loc.longitude)
                 unTrackItems.add(unTrackDeviceItems)
             }
-        } else {
-            unTrackDeviceItems.macAddress = device.macaddress
-            unTrackDeviceItems.lostCounter = 1
-            unTrackItems.add(unTrackDeviceItems)
-        }
+
+
     }
 
     companion object {
