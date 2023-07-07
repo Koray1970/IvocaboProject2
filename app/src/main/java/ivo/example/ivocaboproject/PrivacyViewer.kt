@@ -56,8 +56,7 @@ class PrivacyViewer : ComponentActivity() {
                 IvocaboProjectTheme {
                     // A surface container using the 'background' color from the theme
                     Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
+                        modifier = Modifier.fillMaxSize()
                     ) {
                         Privacy()
                     }
@@ -79,14 +78,11 @@ fun Privacy() {
     val scope = rememberCoroutineScope()
     val openDialog = remember { mutableStateOf(false) }
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.inverseOnSurface
-    ) {
+    Scaffold{
         Column(
             Modifier
                 .padding(it)
                 .padding(50.dp)
-                .background(color = MaterialTheme.colorScheme.inverseOnSurface)
         ) {
             Spacer(modifier = Modifier.padding(10.dp))
             Text(

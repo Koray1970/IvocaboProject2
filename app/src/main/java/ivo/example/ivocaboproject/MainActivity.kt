@@ -617,14 +617,15 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
 }
 
 lateinit var displayiconDesc: String
+private lateinit var logodescription:String
+
 
 @Composable
 fun RegisterUser(
     navController: NavController, userviewModel: UserViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current.applicationContext
-    val logodescription = stringResource(id = R.string.logodescription)
-
+    logodescription = context.getString(R.string.logodescription)
     if (ParseUser.getCurrentUser() != null) {
         navController.navigate("dashboard")
     } else {
@@ -638,10 +639,10 @@ fun RegisterUser(
 
             Image(
                 modifier = Modifier
-                    .width(80.dp)
+                    .width(110.dp)
                     .align(alignment = Alignment.CenterHorizontally)
                     .padding(0.dp, 10.dp),
-                painter = painterResource(id = R.drawable.ic_launcher_round),
+                painter = painterResource(id = R.drawable.ivocabo_logo_vecappicon),
                 contentDescription = logodescription
             )
 
@@ -797,7 +798,8 @@ fun SignIn(
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
-
+    val context= LocalContext.current.applicationContext
+    logodescription = context.getString(R.string.logodescription)
     var txtsiusername by rememberSaveable { mutableStateOf("") }
     val issiusernameBlank by remember { derivedStateOf { txtsiusername.isNotBlank() } }
 
@@ -814,11 +816,11 @@ fun SignIn(
     ) {
         Image(
             modifier = Modifier
-                .width(80.dp)
+                .width(110.dp)
                 .align(alignment = Alignment.CenterHorizontally)
                 .padding(0.dp, 10.dp),
-            painter = painterResource(id = R.drawable.ic_launcher_round),
-            contentDescription = ""
+            painter = painterResource(id = R.drawable.ivocabo_logo_vecappicon),
+            contentDescription = logodescription
         )
 
         Text(
@@ -932,6 +934,9 @@ lateinit var msg: String
 @Composable
 fun ResetPassword(navController: NavController) {
     val context = LocalContext.current.applicationContext
+    logodescription = context.getString(R.string.logodescription)
+
+
     val scope = rememberCoroutineScope()
     val alertbarHostState = remember { SnackbarHostState() }
     var txtrpemail by rememberSaveable { mutableStateOf("") }
@@ -983,11 +988,11 @@ fun ResetPassword(navController: NavController) {
             ) {
                 Image(
                     modifier = Modifier
-                        .width(80.dp)
+                        .width(110.dp)
                         .align(alignment = Alignment.CenterHorizontally)
                         .padding(0.dp, 10.dp),
-                    painter = painterResource(id = R.drawable.ic_launcher_round),
-                    contentDescription = ""
+                    painter = painterResource(id = R.drawable.ivocabo_logo_vecappicon),
+                    contentDescription = logodescription
                 )
                 Text(
                     modifier = Modifier
