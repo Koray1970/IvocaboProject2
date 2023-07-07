@@ -19,6 +19,7 @@ import android.os.IBinder
 import android.os.Parcelable
 import android.util.Log
 import androidx.annotation.RequiresPermission
+import androidx.compose.runtime.MutableState
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.maps.model.LatLng
@@ -28,6 +29,7 @@ import ivo.example.ivocaboproject.CurrentLoc
 import ivo.example.ivocaboproject.R
 import ivo.example.ivocaboproject.database.localdb.Device
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.parcelize.Parcelize
@@ -37,37 +39,30 @@ interface IBleTRackerService {
     fun stopScan()
 }
 
-class UnTrackDeviceItems {
-    var lostCounter: Int = 0
-    var macAddress: String = ""
-    var loc: LatLng = LatLng(0.0, 0.0)
-}
 
 class BleTrackerService : Service(), IBleTRackerService {
     private val TAG = BleTrackerService::class.java.simpleName
-    private val gson = Gson()
     private val appHelpers = AppHelpers()
-
+    private val gson = Gson()
     private var scanFilter = mutableListOf<ScanFilter>()
     private lateinit var scanSettings: ScanSettings
     private lateinit var bluetoothManager: BluetoothManager
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private var bluetoothLeScanner: BluetoothLeScanner? = null
-    private var unTrackItems = mutableListOf<UnTrackDeviceItems>()
-    private var notificationManager: NotificationManager? = null
-    private lateinit var soundUri: Uri
-    private lateinit var getLoc: CurrentLoc
+    private var callbackCounter = 0
+    private lateinit var trackingEventManagement: TrackingEventManagement
     override fun onBind(intent: Intent): IBinder? {
         return null
     }
 
     override fun onCreate() {
         super.onCreate()
-        getLoc= CurrentLoc(applicationContext)
-        //appAlarm = MediaPlayer.create(applicationContext, R.raw.alarm)
-        soundUri =
-            Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + applicationContext.packageName + "/" + R.raw.alarm)
-        notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        trackingEventManagement = TrackingEventManagement()
+        bluetoothManager = getSystemService(BluetoothManager::class.java)
+        bluetoothAdapter = bluetoothManager.adapter
+        if (bluetoothAdapter.isEnabled)
+            bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
+
     }
 
     @RequiresPermission(
@@ -81,24 +76,25 @@ class BleTrackerService : Service(), IBleTRackerService {
         //Log.v(TAG,gson.toJson(MACADDRESS_LIST.value))
         MACADDRESS_LIST.observeForever {
             if (it.isEmpty()) {
+                callbackCounter = 0
                 stopScan()
             } else {
-                stopScan()
-
                 scanFilter = mutableListOf<ScanFilter>()
                 it.forEach {
                     scanFilter.add(
                         ScanFilter.Builder()
-                            .setDeviceAddress(appHelpers.formatedMacAddress(it.macaddress)).build()
+                            .setDeviceAddress(appHelpers.formatedMacAddress(it.macaddress))
+                            .build()
                     )
                 }
+                callbackCounter = 0
                 startScan()
             }
-            Log.v(TAG, "Scanfilter List : ${gson.toJson(scanFilter)}")
-
         }
-        //if(scanFilter.isNotEmpty())
-
+        MainScope().launch {
+            delay(220)
+            startScan()
+        }
 
         return super.onStartCommand(intent, flags, startId)
     }
@@ -111,20 +107,19 @@ class BleTrackerService : Service(), IBleTRackerService {
     )*/
     @SuppressLint("MissingPermission")
     override fun startScan() {
-        bluetoothManager = getSystemService(BluetoothManager::class.java)
-        bluetoothAdapter = bluetoothManager.adapter
+        Log.v(TAG, "Scanfilter List : ${gson.toJson(scanFilter)}")
+        BleTrackerService.IS_SEVICE_RUNNING.postValue(true)
         if (bluetoothAdapter.isEnabled) {
-            bluetoothLeScanner = bluetoothAdapter.bluetoothLeScanner
             if (scanFilter.isNotEmpty()) {
                 scanSettings = ScanSettings.Builder()
                     .setScanMode(ScanSettings.SCAN_MODE_BALANCED)
                     .setCallbackType(ScanSettings.CALLBACK_TYPE_ALL_MATCHES)
                     .setMatchMode(ScanSettings.MATCH_MODE_STICKY)
-                    .setReportDelay(10000L)
+                    .setReportDelay(5000L)
                     .build()
                 bluetoothLeScanner?.startScan(scanFilter, scanSettings, scanCallBack)
-                Log.v(TAG, "startScan")
             }
+            //Log.v(TAG, "startScan")
         }
     }
 
@@ -140,96 +135,33 @@ class BleTrackerService : Service(), IBleTRackerService {
     }
 
     val scanCallBack = object : ScanCallback() {
+        override fun onScanResult(callbackType: Int, result: ScanResult?) {
+            super.onScanResult(callbackType, result)
+            Log.v(TAG, "onScanResult :  ${gson.toJson(result)}")
+        }
+
+        @SuppressLint("MissingPermission")
         override fun onBatchScanResults(results: MutableList<ScanResult>?) {
             super.onBatchScanResults(results)
-            Log.v(TAG,"Scan Results :  ${gson.toJson(results)}")
-            GlobalScope.launch {
-                if (results?.isNotEmpty() == true) {
-                    //scan result is not empty
-                    MACADDRESS_LIST.value?.forEach {
-                        if (results.none { rr -> rr.device.address == it.macaddress }) {
-                            unTrackDeviceItemOnListEvent(it)
-                        }
-                    }
-                } else {
-                    //scan result is empty
-                    MACADDRESS_LIST.value?.forEach {
-                        unTrackDeviceItemOnListEvent(it)
-                    }
-                }
-                var lostDevices = unTrackItems.filter { ff -> ff.lostCounter >= 20 }
-                if (lostDevices.isNotEmpty()) {
+            callbackCounter++
+            results?.sortBy({ it.timestampNanos })
+            var newlist = results?.distinctBy { it.device.address }?.toMutableList()
+            Log.v(TAG, "Scan Results Raw :  ${gson.toJson(newlist)}")
+            //Log.v(TAG, "Scan Results :  ${gson.toJson(newlist)}")
 
-                    val bigText = getString(R.string.lostdevicenotification_msg)
-                    if (notificationManager!!.areNotificationsEnabled()) {
+            //Log.v(TAG, "Scan Results2 :  ${gson.toJson(results)}")
 
-                        //val notifyContent = currentDevice.macaddress + " - " + getString(R.string.devicefarfrom)
-
-                        val notification =
-                            NotificationCompat.Builder(
-                                applicationContext,
-                                "ivocabobluetooth"
-                            )
-                                .setContentTitle(getString(R.string.notificationtitle))
-                                .setTicker(getString(R.string.notificationtitle))
-                                //.setContentText(notifyContent)
-                                .setStyle(
-                                    NotificationCompat.BigTextStyle()
-                                        .bigText(bigText)
-                                )
-                                .setSmallIcon(R.drawable.outofrange_24)
-                                .setOngoing(true)
-                                .setSound(soundUri)
-                                .build()
-
-                        notificationManager?.notify(
-                            (0..1000000).shuffled().last(),
-                            notification
-                        )
-                    }
-
-
-
-
-
-
-                    Intent().also { intent ->
-                        intent.action = "hasTrackNotification"
-                        intent.putExtra("detail", bigText)
-                        intent.putExtra("lostdevicelist", gson.toJson(lostDevices))
-                        sendBroadcast(intent)
-                    }
-                }
-                //Log.v(TAG, "Lost Devices : ${gson.toJson(lostDevices)}")
+            if (callbackCounter >= 5) {
+                trackingEventManagement.onInit(newlist, applicationContext)
+                callbackCounter = 0
             }
+            Log.v(TAG, "Counter :  $callbackCounter")
         }
-    }
-
-    fun unTrackDeviceItemOnListEvent(device: Device) {
-
-            getLoc.startScanLoc()
-            var loc = getLoc.loc.value
-            var unTrackDeviceItems = UnTrackDeviceItems()
-            if (unTrackItems.isNotEmpty()) {
-                if (unTrackItems.any { i -> i.macAddress == device.macaddress }) {
-                    unTrackItems.find { uti -> uti.macAddress == device.macaddress }!!.lostCounter++
-                } else {
-                    unTrackDeviceItems.macAddress = device.macaddress
-                    unTrackDeviceItems.lostCounter = 1
-                    if (loc != null)
-                        unTrackDeviceItems.loc = LatLng(loc.latitude, loc.longitude)
-                    unTrackItems.add(unTrackDeviceItems)
-                }
-            } else {
-                unTrackDeviceItems.macAddress = device.macaddress
-                unTrackDeviceItems.lostCounter = 1
-                unTrackItems.add(unTrackDeviceItems)
-            }
-
-
     }
 
     companion object {
         var MACADDRESS_LIST = MutableLiveData<List<Device>>()
+        var IS_SEVICE_RUNNING = MutableLiveData<Boolean>(false)
+        var STOP_ALARM=MutableLiveData<Boolean>()
     }
 }

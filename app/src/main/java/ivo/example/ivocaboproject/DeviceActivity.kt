@@ -2,18 +2,11 @@
 
 package ivo.example.ivocaboproject
 
-import android.Manifest.permission.ACCESS_FINE_LOCATION
-import android.Manifest.permission.BLUETOOTH
-import android.Manifest.permission.BLUETOOTH_ADVERTISE
-import android.Manifest.permission.BLUETOOTH_CONNECT
-import android.Manifest.permission.BLUETOOTH_SCAN
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -22,7 +15,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -41,7 +33,6 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
@@ -61,8 +52,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,20 +76,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
-import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
@@ -107,24 +88,22 @@ import com.google.maps.android.compose.widgets.ScaleBar
 import dagger.hilt.android.AndroidEntryPoint
 import ivo.example.ivocaboproject.bluetooth.BleTrackerService
 import ivo.example.ivocaboproject.bluetooth.IvocaboleService
-import ivo.example.ivocaboproject.bluetooth.IvocaboleTrackService
 import ivo.example.ivocaboproject.database.EventResultFlags
 import ivo.example.ivocaboproject.database.ParseEvents
 import ivo.example.ivocaboproject.database.localdb.Device
 import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
-import ivo.example.ivocaboproject.deviceevents.FindMyDeviceViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 private val TAG = DeviceActivity::class.java.simpleName
 private val gson = Gson()
 
+
 @AndroidEntryPoint
 class DeviceActivity : ComponentActivity() {
     private val deviceViewModel by viewModels<DeviceViewModel>()
     private lateinit var bluetoothAdapter: BluetoothAdapter
-
+    private lateinit var nDevice: Device
 
     @OptIn(ExperimentalMaterial3Api::class)
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -134,14 +113,46 @@ class DeviceActivity : ComponentActivity() {
         val macaddress = intent.getStringExtra("macaddress").toString()
         val dbdetails = deviceViewModel.getDeviceDetail(macaddress)
 
-        GlobalScope.launch {
-            IvocaboleTrackService.SCANNING_STATUS.postValue( false)
-            val lIntent = Intent(applicationContext, IvocaboleTrackService::class.java)
-            applicationContext.stopService(lIntent)
-        }
 
         setContent {
             IvocaboProjectTheme {
+                var trackMyDeviceStatus = false
+                if (dbdetails.istracking != null) trackMyDeviceStatus = dbdetails.istracking!!
+
+                var trackMyDeviceSwitchStatus = remember { mutableStateOf(trackMyDeviceStatus) }
+
+                //start::Track Notification Broadcastreceiver
+                val trackNotificationIntent = remember { mutableStateOf("") }
+                val trackNotificationOpenDialog = remember { mutableStateOf(false) }
+
+
+                SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
+                    val action = receiverState?.action ?: return@SystemBroadcastReceiver
+                    if (action == "hasTrackNotification") {
+                        trackNotificationOpenDialog.value = true
+                        nDevice=gson.fromJson(receiverState.getStringExtra("lostdevice"),Device::class.java)
+                        trackNotificationIntent.value ="${nDevice.name} \n ${receiverState.getStringExtra("detail")}"
+                    }
+                }
+                if (trackNotificationOpenDialog.value) {
+                    AlertDialog(onDismissRequest = {
+                        trackNotificationOpenDialog.value = false
+                        trackMyDeviceSwitchStatus.value = false
+                    },
+                        title = { Text(text =getString(R.string.notificationtitle)) },
+                        text = { Text(text = trackNotificationIntent.value) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                trackNotificationOpenDialog.value = false
+                                trackMyDeviceSwitchStatus.value = false
+                            }) {
+                                Text(text = getString(R.string.ok))
+                            }
+                        }
+                    )
+                }
+                //end::Track Notification Broadcastreceiver
+
                 val findDeviceBottomSheetState = rememberBottomSheetScaffoldState()
                 val openDeviceEventFormDialog = remember { mutableStateOf(false) }
 
@@ -182,12 +193,16 @@ class DeviceActivity : ComponentActivity() {
                     })
                 }) {
                     SetUpBluetooth()
-                    DeviceEvents(dbdetails, findDeviceBottomSheetState)
+                    DeviceEvents(dbdetails, trackMyDeviceSwitchStatus, findDeviceBottomSheetState)
                 }
 
-                /*DeviceTrackPlaceholder(
-                    dbdetails, showNotificationStateOf, trackBottomSheetState.bottomSheetState
-                )*/
+                BleTrackerService.IS_SEVICE_RUNNING.observeForever {
+                    if (!it) {
+                        val trackServiceIntent =
+                            Intent(applicationContext, BleTrackerService::class.java)
+                        applicationContext.startService(trackServiceIntent)
+                    }
+                }
                 DeviceFindPlaceholder(
                     device = dbdetails,
                     bottomSheetState = findDeviceBottomSheetState.bottomSheetState
@@ -219,24 +234,24 @@ class DeviceActivity : ComponentActivity() {
         }
     }
 
-    @Composable
+    /*@Composable
     fun AppNavigator() {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = "dashboard") {
             composable("dashboard") { Dashboard(navController) }
             composable("registeruser") { RegisterUser(navController) }
         }
-    }
+    }*/
 }
 
 
 lateinit var latLng: LatLng
-private fun permmissions(): List<String> {
+/*private fun permmissions(): List<String> {
     if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.O) {
         return listOf(BLUETOOTH, ACCESS_FINE_LOCATION)
     }
     return listOf(BLUETOOTH_SCAN, BLUETOOTH_ADVERTISE, BLUETOOTH_CONNECT, ACCESS_FINE_LOCATION)
-}
+}*/
 
 
 @Composable
@@ -252,6 +267,7 @@ fun GetLocation(ctx: Context) {
 @Composable
 fun DeviceEvents(
     device: Device,
+    trackMyDeviceSwitchStatus: MutableState<Boolean>,
     findDeviceBottomSheetScaffoldState: BottomSheetScaffoldState,
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
@@ -293,12 +309,14 @@ fun DeviceEvents(
             )
         )
     }
-    var trackMyDeviceStatus = false
+    /*var trackMyDeviceStatus = false
     if (device.istracking != null) trackMyDeviceStatus = device.istracking!!
-    var trackMyDeviceSwitchStatus by remember { mutableStateOf(trackMyDeviceStatus) }
 
 
-    val trackMyDeviceSwitchIcon: (@Composable () -> Unit)? = if (trackMyDeviceSwitchStatus) {
+    var trackMyDeviceSwitchStatus by remember { mutableStateOf(trackMyDeviceStatus) }*/
+    var trackMyDeviceSwitchEnabled by remember { mutableStateOf(true) }
+
+    val trackMyDeviceSwitchIcon: (@Composable () -> Unit)? = if (trackMyDeviceSwitchStatus.value) {
         {
             Icon(
                 imageVector = Icons.Filled.Check,
@@ -325,7 +343,7 @@ fun DeviceEvents(
         null
     }
 
-    var trackOpenDialog= remember{ mutableStateOf(false) }
+    val trackOpenDialog = remember { mutableStateOf(false) }
     //var notificationSwitchChecked by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
@@ -359,17 +377,17 @@ fun DeviceEvents(
                 /*start::Track This Device Switch*/
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Switch(
-                        checked = trackMyDeviceSwitchStatus,
+                        enabled = trackMyDeviceSwitchEnabled,
+                        checked = trackMyDeviceSwitchStatus.value,
                         onCheckedChange = {
                             if (it) {
-                                trackOpenDialog.value=true
-                            }
-                            else{
-                                trackMyDeviceSwitchStatus=false
-                                if(device.istracking!=null) {
+                                trackOpenDialog.value = true
+                            } else {
+                                trackMyDeviceSwitchStatus.value = false
+                                if (device.istracking != null) {
                                     device.istracking = null
                                     parseEvents.AddEditDevice(device, deviceViewModel)
-                                    deviceViewModel.trackDeviceItems.observeForever{
+                                    deviceViewModel.trackDeviceItems.observeForever {
                                         BleTrackerService.MACADDRESS_LIST.postValue(it)
                                     }
                                 }
@@ -383,24 +401,28 @@ fun DeviceEvents(
                             fontSize = 14.sp, fontWeight = FontWeight.Medium
                         )
                     )
-                    if(trackOpenDialog.value) {
+                    if (trackOpenDialog.value) {
                         AlertDialog(
-                            onDismissRequest = { trackOpenDialog.value=false },
-                            title = { Text(text = "Aaaaaa") },
-                            text = { Text(text = "Bbbbbbbbb") },
+                            onDismissRequest = { trackOpenDialog.value = false },
+                            title = { Text(text = context.getString(R.string.trckswc_title)) },
+                            text = { Text(text = context.getString(R.string.trckswc_detail)) },
                             confirmButton = {
                                 TextButton(onClick = {
-                                    trackMyDeviceSwitchStatus=true
+                                    trackMyDeviceSwitchStatus.value = true
                                     device.istracking = true
-                                    var dbresult=parseEvents.AddEditDevice(device, deviceViewModel)
-                                    if(dbresult.eventResultFlags==EventResultFlags.FAILED){
-
-                                        Toast.makeText(context,"Tracking data can not be saved!",Toast.LENGTH_LONG).show()
+                                    val dbresult =
+                                        parseEvents.AddEditDevice(device, deviceViewModel)
+                                    if (dbresult.eventResultFlags == EventResultFlags.FAILED) {
+                                        Toast.makeText(
+                                            context,
+                                            "Tracking data can not be saved!",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
-                                    deviceViewModel.trackDeviceItems.observeForever{
+                                    deviceViewModel.trackDeviceItems.observeForever {
                                         BleTrackerService.MACADDRESS_LIST.postValue(it)
                                     }
-                                    trackOpenDialog.value=false
+                                    trackOpenDialog.value = false
 
                                 }) {
                                     Text(text = "Ok")
@@ -409,8 +431,8 @@ fun DeviceEvents(
                             dismissButton = {
                                 TextButton(
                                     onClick = {
-                                        trackMyDeviceSwitchStatus=false
-                                        trackOpenDialog.value=false
+                                        trackMyDeviceSwitchStatus.value = false
+                                        trackOpenDialog.value = false
                                     },
                                 ) {
                                     Text(text = "Dismiss")
@@ -470,9 +492,13 @@ fun DeviceEvents(
                             missingSwitchChecked = it
                             device.ismissing = null
                             if (missingSwitchChecked) {
+                                trackMyDeviceSwitchStatus.value = false
+                                trackMyDeviceSwitchEnabled = false
                                 device.ismissing = true
                                 device.latitude = latLng.latitude.toString()
                                 device.longitude = latLng.longitude.toString()
+                            } else {
+                                trackMyDeviceSwitchEnabled = true
                             }
 
                             val dbresult =

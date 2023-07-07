@@ -93,8 +93,8 @@
     <string name="missingdevicealert">Your lost device has been successfully registered in our system.</string>
     <string name="missingdevicefindalert">Your device has been successfully removed from the lost list because you found your lost device.</string>
     <string name="missingdevicealerterror">An error occurred during the lost device registration process. Error code 120</string>
-    <string name="notificationtitle">Ivocabo Device Track Alert</string>
-    <string name="devicefarfrom">The Ivocabo device has moved away from you quite a bit.</string>
+    <string name="notificationtitle">Eşyanız yanınızda mı?</string>
+    <string name="devicefarfrom">Lütfen eşyanızın yanınızda olup-olmadığını kontrol edin. Eğer yanınıza almayacaksanız "Bildirim" özelliğini devre dışı bırakın.</string>
     <string name="emailnotnull">Email must be input!</string>
     <string name="emailnotvalid">Email must be formatted correctly!</string>
     <string name="resetpasswordwarning">If you do not remember password please click Reset Password button.</string>

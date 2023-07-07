@@ -1,5 +1,6 @@
 package ivo.example.ivocaboproject.database
 
+import android.content.Context
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
 import com.parse.ParseException
@@ -7,12 +8,14 @@ import com.parse.ParseObject
 import com.parse.ParseQuery
 import com.parse.ParseUser
 import ivo.example.ivocaboproject.AppHelpers
+import ivo.example.ivocaboproject.database.localdb.AppDatabase
 import ivo.example.ivocaboproject.database.localdb.Device
 import ivo.example.ivocaboproject.database.localdb.DeviceViewModel
 import ivo.example.ivocaboproject.database.localdb.TrackArchive
 import ivo.example.ivocaboproject.database.localdb.TrackArchiveViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
+import ivo.example.ivocaboproject.database.localdb.deviceDao
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -413,5 +416,58 @@ class ParseEvents {
         }
         return eventResult
     }
+
+    suspend fun AddTrackDeviceArchiveSecond(
+        context:Context,
+        deviceDao: deviceDao,
+        device: Device,
+        latitude: String,
+        longitude: String
+    ): EventResult<Boolean> {
+        var eventResult = EventResult<Boolean>(false)
+        try {
+            val parseuserid = ParseUser.getCurrentUser().objectId
+            val parseObject = ParseObject("TrackArchive")
+
+            parseObject.put("parseDeviceId", device.objectId)
+            parseObject.put("User", parseuserid)
+            parseObject.put("latitude", latitude)
+            parseObject.put("time", appHelpers.getNOWasString())
+            parseObject.put("mac", device.macaddress)
+            parseObject.put("longitude", longitude)
+            parseObject.save()
+            if (parseObject.isDataAvailable) {
+                val dbTrackArchive=AppDatabase.getDatabase(context).trackArchiveDao()
+
+                MainScope().launch {
+                    val trackArchive = TrackArchive(
+                        0,
+                        appHelpers.getNOWasString(),
+                        device.macaddress,
+                        latitude,
+                        longitude,
+                        parseuserid,
+                        parseObject.objectId
+                    )
+                    dbTrackArchive.insert(trackArchive)
+
+                    delay(320L)
+                    device.istracking=null
+                    device.longitude=longitude
+                    device.latitude=latitude
+                    deviceDao.update(device)
+                }
+                eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                eventResult.result = true
+            }
+
+        } catch (exception: Exception) {
+            eventResult.exception = exception
+        }
+        return eventResult
+    }
+
+
+
 
 }

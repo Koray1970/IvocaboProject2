@@ -153,7 +153,8 @@ val appHelpers = AppHelpers()
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     val parseEvents = ParseEvents()
-
+    private val gson = Gson()
+    private lateinit var nDevice: Device
     @RequiresApi(Build.VERSION_CODES.S)
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -184,14 +185,10 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-
-
-
         setContent {
             IvocaboProjectTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = Color.Black,
                 ) {
                     val locationPermissionsState = rememberMultiplePermissionsState(permissions)
                     val approximateDialog = remember { mutableStateOf(false) }
@@ -207,56 +204,15 @@ class MainActivity : ComponentActivity() {
                             val action = receiverState?.action ?: return@SystemBroadcastReceiver
                             if (action == "hasTrackNotification") {
                                 trackNotificationOpenDialog.value = true
-                                trackNotificationIntent.value =
-                                    receiverState.getStringExtra("detail")!!
-                                val finddevice = deviceViewModel.getDeviceDetail(
-                                    receiverState.getStringExtra("macaddress")!!.replace(":", "")
-                                )
-                                if (!(finddevice == null && finddevice.istracking == null)) {
-                                    finddevice.istracking = null
-                                    try {
-                                        var dbresult = parseEvents.AddTrackDeviceArchive(
-                                            finddevice,
-                                            receiverState.getDoubleExtra("latitude", 0.0)
-                                                .toString(),
-                                            receiverState.getDoubleExtra("longitude", 0.0)
-                                                .toString(),
-                                            trackArchiveViewModel,
-                                            deviceViewModel
-                                        )
-                                        if (dbresult.eventResultFlags == EventResultFlags.FAILED) {
-                                            Toast.makeText(
-                                                applicationContext,
-                                                "Please contact with us, as soon as possible! ${dbresult.errormessage}",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
-                                        deviceViewModel.initTrackDeviceList()
-                                        deviceViewModel.getTrackDevicelist.observeForever {
-                                            if (it.isNotEmpty()) {
-                                                IvocaboleTrackService.SCANNING_STATUS.postValue(true)
-                                                IvocaboleTrackService.devicelist.postValue(it)
-                                            } else {
-                                                IvocaboleTrackService.SCANNING_STATUS.postValue(false)
-                                                IvocaboleTrackService.devicelist.postValue(null)
-                                            }
-                                        }
-                                    } catch (exception: Exception) {
-                                        Toast.makeText(
-                                            applicationContext,
-                                            exception.message,
-                                            Toast.LENGTH_LONG
-                                        ).show()
-                                    }
-
-                                }
+                                nDevice=gson.fromJson(receiverState.getStringExtra("lostdevice"),Device::class.java)
+                                trackNotificationIntent.value ="${nDevice.name} \n ${receiverState.getStringExtra("detail")}"
                             }
                         }
                         if (trackNotificationOpenDialog.value) {
                             AlertDialog(onDismissRequest = {
                                 trackNotificationOpenDialog.value = false
                             },
-                                title = { Text(text = "AKDJLASJAK") },
+                                title = { Text(text =getString(R.string.notificationtitle)) },
                                 text = { Text(text = trackNotificationIntent.value) },
                                 confirmButton = {
                                     TextButton(onClick = {
@@ -270,11 +226,13 @@ class MainActivity : ComponentActivity() {
                         //end::Track Notification Broadcastreceiver
                         AppNavigator()
 
-
-                        trackServiceIntent =
-                            Intent(applicationContext, BleTrackerService::class.java)
-                        //delay(2000L)
-                        applicationContext.startService(trackServiceIntent)
+                        BleTrackerService.IS_SEVICE_RUNNING.observeForever{
+                            if(!it) {
+                                trackServiceIntent =
+                                    Intent(applicationContext, BleTrackerService::class.java)
+                                applicationContext.startService(trackServiceIntent)
+                            }
+                        }
 
                     } else {
                         Column {
@@ -674,7 +632,6 @@ fun RegisterUser(
         Column(modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(color = Color.Black)
             .pointerInput(Unit) {
 
             }) {
@@ -694,7 +651,6 @@ fun RegisterUser(
                     .padding(0.dp, 8.dp),
                 text = stringResource(id = R.string.rg_title),
                 style = TextStyle(
-                    color = MaterialTheme.colorScheme.onPrimary,
                     textAlign = TextAlign.Center,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
@@ -704,7 +660,6 @@ fun RegisterUser(
                 modifier = Modifier.fillMaxWidth(),
                 text = stringResource(id = R.string.rg_subtitle),
                 style = TextStyle(
-                    color = MaterialTheme.colorScheme.inversePrimary,
                     fontStyle = FontStyle.Italic,
                     fontWeight = FontWeight.Light,
                     textAlign = TextAlign.Center,
@@ -719,7 +674,6 @@ fun RegisterUser(
                 label = { Text(text = stringResource(id = R.string.rg_username)) },
                 supportingText = { Text(text = stringResource(id = R.string.rg_usernamesupporting)) },
                 value = txtrgusername,
-                textStyle = TextStyle(color = Color.White),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Words,
                     autoCorrect = false,
@@ -742,7 +696,6 @@ fun RegisterUser(
                 label = { Text(text = stringResource(id = R.string.email)) },
                 supportingText = { Text(text = stringResource(id = R.string.emailsupporting)) },
                 value = txtrgemail,
-                textStyle = TextStyle(color = Color.White),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrect = false,
@@ -773,7 +726,6 @@ fun RegisterUser(
                 label = { Text(text = stringResource(id = R.string.rg_password)) },
                 supportingText = { Text(text = stringResource(id = R.string.rg_passwordsupporting)) },
                 value = txtrgpassword,
-                textStyle = TextStyle(color = Color.White),
                 visualTransformation = if (ispasswordVisible) VisualTransformation.None
                 else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -793,7 +745,6 @@ fun RegisterUser(
                 modifier = Modifier.padding(0.dp, 10.dp),
                 text = stringResource(id = R.string.rg_warning),
                 style = TextStyle(
-                    color = MaterialTheme.colorScheme.inversePrimary,
                     fontStyle = FontStyle.Italic,
                     fontWeight = FontWeight.Light,
                     fontSize = 14.sp
@@ -860,7 +811,6 @@ fun SignIn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .background(color = Color.Black)
     ) {
         Image(
             modifier = Modifier
@@ -877,7 +827,6 @@ fun SignIn(
                 .padding(0.dp, 8.dp),
             text = stringResource(id = R.string.signin),
             style = TextStyle(
-                color = MaterialTheme.colorScheme.onPrimary,
                 textAlign = TextAlign.Center,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold
@@ -888,7 +837,6 @@ fun SignIn(
             onValueChange = { txtsiusername = it },
             label = { Text(text = stringResource(id = R.string.rg_username)) },
             value = txtsiusername,
-            textStyle = TextStyle(color = Color.White),
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.None,
                 autoCorrect = false,
@@ -907,7 +855,6 @@ fun SignIn(
             onValueChange = { txtsipassword = it },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
             value = txtsipassword,
-            textStyle = TextStyle(color = Color.White),
             visualTransformation = if (ispasswordsiVisible) VisualTransformation.None
             else PasswordVisualTransformation(),
             keyboardOptions = KeyboardOptions(
@@ -932,7 +879,6 @@ fun SignIn(
             Text(
                 text = stringResource(id = R.string.resetpasswordwarning),
                 style = TextStyle(
-                    color = Color.White,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Light
                 )
@@ -998,8 +944,7 @@ fun ResetPassword(navController: NavController) {
         snackbarHost = { SnackbarHost(hostState = alertbarHostState) },
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .background(color = Color.Black),
+            .padding(16.dp),
         content = { innerPadding ->
             if (confirmOpenDialog.value) {
                 AlertDialog(onDismissRequest = { confirmOpenDialog.value = false },
@@ -1050,7 +995,6 @@ fun ResetPassword(navController: NavController) {
                         .padding(0.dp, 8.dp),
                     text = stringResource(id = R.string.resetpasswordformtitle),
                     style = TextStyle(
-                        color = MaterialTheme.colorScheme.onPrimary,
                         textAlign = TextAlign.Center,
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
@@ -1061,7 +1005,6 @@ fun ResetPassword(navController: NavController) {
                     onValueChange = { txtrpemail = it },
                     label = { Text(text = stringResource(id = R.string.email)) },
                     value = txtrpemail,
-                    textStyle = TextStyle(color = Color.White),
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     keyboardOptions = KeyboardOptions(
                         capitalization = KeyboardCapitalization.None,
