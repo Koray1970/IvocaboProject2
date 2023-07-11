@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.IvocaboProject" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.IvocaboProject" parent="android:Theme.Material.Light.NoActionBar" >
+        <item name="windowSplashScreenBackground">@color/orange_70</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/baseline_emoji_people_24</item>
+        <item name="windowSplashScreenAnimationDuration">800</item>
+    </style>
 </resources>

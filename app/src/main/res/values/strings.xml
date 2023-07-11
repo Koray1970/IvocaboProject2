@@ -125,4 +125,5 @@
     <string name="prf_moreinformation_title">More Information</string>
     <string name="prf_help">Help</string>
     <string name="prf_aboutivocabo">About Ivocabo</string>
+    <string name="title_activity_splash">SplashActivity</string>
 </resources>
