@@ -99,6 +99,8 @@
     <string name="buttonresetpassword">Reset Password</string>
     <string name="resetpasswordformtitle">Reset Password Form</string>
     <string name="resetpasswordsuccessful">Please check your emails, find and fill the reset form that send from Ivocabo to given at the email to reset your password.</string>
+    <string name="checkmacaddress">Please check MACADDRESS of Ivocabo device, and input right formatted type.</string>
+
     <!--Settings-->
     <string name="prf_settings_title">Settings</string>
     <string name="prf_profile_title">Profile</string>

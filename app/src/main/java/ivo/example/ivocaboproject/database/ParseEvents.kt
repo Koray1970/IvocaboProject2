@@ -299,6 +299,7 @@ class ParseEvents {
                     missingDeviceParseObject.put("Time", appHelpers.getNOWasString())
                     missingDeviceParseObject.put("mac", device.macaddress)
                     missingDeviceParseObject.save()
+                    device.istracking=null
                     deviceViewModel.update(device)
                     result.eventResultFlags = EventResultFlags.SUCCESS
                     result.result = true

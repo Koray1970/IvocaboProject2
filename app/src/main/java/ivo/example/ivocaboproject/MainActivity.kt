@@ -1,6 +1,7 @@
 package ivo.example.ivocaboproject
 
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -87,6 +88,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -94,6 +96,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
@@ -115,6 +118,9 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -491,6 +497,7 @@ fun DeviceList(
     val context = LocalContext.current.applicationContext
     val parseEvents = ParseEvents()
     val listState = rememberLazyListState()
+
     val txtitemdelete = stringResource(id = R.string.devicedelete)
     val scope = rememberCoroutineScope()
 
@@ -509,84 +516,124 @@ fun DeviceList(
         )
     }
     var deviceList = remember { mutableListOf<Device>() }
-
-    deviceViewModel.livedataDevicelist.observeForever{
-        deviceList =it.toMutableList()
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
-        state = listState,
-        userScrollEnabled = true
+    deviceViewModel.loadDeviceList()
+    if (deviceViewModel.livedataDevicelist.observeAsState().value?.isNotEmpty() == true)
+        deviceList = deviceViewModel.livedataDevicelist.observeAsState().value!!.toMutableList()
+    val isLoading by deviceViewModel.isloading.collectAsState()
+    val swipeRefreshState = rememberSwipeRefreshState(isRefreshing = isLoading)
+    SwipeRefresh(
+        state = swipeRefreshState,
+        onRefresh = deviceViewModel::loadDeviceList,
+        indicator = { state, refreshTrigger ->
+            SwipeRefreshIndicator(
+                state = state,
+                refreshTriggerDistance = refreshTrigger,
+                backgroundColor = Color.Green,
+                contentColor = Color.DarkGray
+            )
+        },
     ) {
-        itemsIndexed(deviceList) { _, item ->
-            val dismissState = rememberDismissState(confirmValueChange = {
-                if (it == DismissValue.DismissedToStart || it == DismissValue.DismissedToEnd) {
-                    val dbresult = parseEvents.DeleteDevice(item, deviceViewModel)
-                    if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                        deviceViewModel.handleViewEvent(
-                            DeviceListViewEvent.RemoveItem(device = item)
-                        )
-                        Toast.makeText(context, txtitemdelete, Toast.LENGTH_SHORT).show()
-                    }
-                }
-                true
-            })
-            var deviceicon = -1
-            when (item.devicetype) {
-                1 -> deviceicon = R.drawable.t3_icon_32
-                2 -> deviceicon = R.drawable.e9_icon_32
-            }
-            SwipeToDismiss(state = dismissState, background = {
-                dismissState.dismissDirection ?: return@SwipeToDismiss
-                DeviceSwipeBackground(dismissState = dismissState)
-            }, dismissContent = {
-                Card(
-                    onClick = {
-                        scope.launch {
-                            val intent = Intent(context, DeviceActivity::class.java)
-                            intent.putExtra("macaddress", item.macaddress)
-                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            context.startActivity(intent)
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight(),
+            state = listState,
+            userScrollEnabled = true
+        ) {
+            itemsIndexed(deviceList) { _, item ->
+                val dismissState = rememberDismissState(confirmValueChange = {
+                    if (it == DismissValue.DismissedToStart || it == DismissValue.DismissedToEnd) {
+                        val dbresult = parseEvents.DeleteDevice(item, deviceViewModel)
+                        if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                            deviceViewModel.handleViewEvent(
+                                DeviceListViewEvent.RemoveItem(device = item)
+                            )
+                            Toast.makeText(context, txtitemdelete, Toast.LENGTH_SHORT).show()
                         }
-                    },
-
-                    shape = RoundedCornerShape(0.dp),
-                    elevation = CardDefaults.cardElevation(1.dp, 1.dp, 1.dp, 2.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.Black,
-                        contentColor = Color.White,
-                    )
-                ) {
-                    ListItem(
-                        /*colors = ListItemDefaults.colors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        ),*/
-                        leadingContent = {
-                            Image(
-                                painter = painterResource(id = deviceicon),
-                                contentDescription = null
-                            )
-                        },
-                        headlineContent = {
-                            Text(
-                                item.name,
-                                style = TextStyle(fontWeight = FontWeight.Black, fontSize = 24.sp)
-                            )
-                        },
-                        supportingContent = {
-                            Text(
-                                item.macaddress,
-                                style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Light)
-                            )
-                        })
-                    Divider()
+                    }
+                    true
+                })
+                var deviceicon = -1
+                when (item.devicetype) {
+                    1 -> deviceicon = R.drawable.t3_icon_32
+                    2 -> deviceicon = R.drawable.e9_icon_32
                 }
-            })
+                SwipeToDismiss(state = dismissState, background = {
+                    dismissState.dismissDirection ?: return@SwipeToDismiss
+                    DeviceSwipeBackground(dismissState = dismissState)
+                }, dismissContent = {
+                    Card(
+                        onClick = {
+                            scope.launch {
+                                val intent = Intent(context, DeviceActivity::class.java)
+                                intent.putExtra("macaddress", item.macaddress)
+                                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                context.startActivity(intent)
+                            }
+                        },
+
+                        shape = RoundedCornerShape(0.dp),
+                        elevation = CardDefaults.cardElevation(1.dp, 1.dp, 1.dp, 2.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.Black,
+                            contentColor = Color.White,
+                        )
+                    ) {
+                        ListItem(
+                            /*colors = ListItemDefaults.colors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            ),*/
+                            leadingContent = {
+                                Image(
+                                    painter = painterResource(id = deviceicon),
+                                    contentDescription = null
+                                )
+                            },
+                            headlineContent = {
+                                Text(
+                                    item.name,
+                                    style = TextStyle(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 24.sp
+                                    )
+                                )
+                            },
+                            supportingContent = {
+                                Text(
+                                    item.macaddress,
+                                    style = TextStyle(
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Light
+                                    )
+                                )
+                            }
+                        , trailingContent = {
+                                Row() {
+                                    if(item.istracking!=null) {
+                                        Icon(
+                                            modifier = Modifier.width(20.dp),
+                                            imageVector = ImageVector.vectorResource(id = R.drawable.gps_9084630),
+                                            contentDescription = "Tracking"
+                                        )
+                                        //Spacer(modifier = Modifier.width(10.dp))
+                                    }
+                                    if(item.ismissing!=null) {
+                                        Icon(
+                                            modifier = Modifier.width(20.dp),
+                                            imageVector = ImageVector.vectorResource(id = R.drawable.location_4542804),
+                                            contentDescription = "Missing"
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                        Divider()
+                    }
+                })
+            }
         }
     }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1253,29 +1300,34 @@ fun DeviceForm(
                     Spacer(modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = {
                         if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
-                            val parseEvents = ParseEvents()
-                            val lDevice = Device(
-                                0,
-                                appHelpers.getNOWasSQLDate(),
-                                appHelpers.unformatedMacAddress(txtmacaddress),
-                                txtdevicename,
-                                latLng.latitude.toString(),
-                                latLng.longitude.toString(),
-                                "", null, null, selectedOption.value
+                            if(BluetoothAdapter.checkBluetoothAddress(appHelpers.formatedMacAddress(txtmacaddress))) {
+                                val parseEvents = ParseEvents()
+                                val lDevice = Device(
+                                    0,
+                                    appHelpers.getNOWasSQLDate(),
+                                    appHelpers.unformatedMacAddress(txtmacaddress),
+                                    txtdevicename,
+                                    latLng.latitude.toString(),
+                                    latLng.longitude.toString(),
+                                    "", null, null, selectedOption.value
 
-                            )
-                            val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)
-                            if (dbresponse.eventResultFlags == EventResultFlags.SUCCESS) {
-                                txtmacaddress = ""
-                                txtdevicename = ""
-                                scope.launch {
-                                    deviceViewModel.handleViewEvent(
-                                        DeviceListViewEvent.AddItem(
-                                            lDevice
+                                )
+                                val dbresponse = parseEvents.AddEditDevice(lDevice, deviceViewModel)
+                                if (dbresponse.eventResultFlags == EventResultFlags.SUCCESS) {
+                                    txtmacaddress = ""
+                                    txtdevicename = ""
+                                    scope.launch {
+                                        deviceViewModel.handleViewEvent(
+                                            DeviceListViewEvent.AddItem(
+                                                lDevice
+                                            )
                                         )
-                                    )
-                                    deviceformsheetState.bottomSheetState.partialExpand()
+                                        deviceformsheetState.bottomSheetState.partialExpand()
+                                    }
                                 }
+                            }
+                            else{
+                                Toast.makeText(context,context.getString(R.string.checkmacaddress),Toast.LENGTH_LONG).show()
                             }
                         } else {
                             if (txtmacaddress.isEmpty()) iserrormacaddress = true

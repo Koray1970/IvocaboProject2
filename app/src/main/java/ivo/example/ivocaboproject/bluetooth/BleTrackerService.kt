@@ -81,11 +81,14 @@ class BleTrackerService : Service(), IBleTRackerService {
             } else {
                 scanFilter = mutableListOf<ScanFilter>()
                 it.forEach {
-                    scanFilter.add(
-                        ScanFilter.Builder()
-                            .setDeviceAddress(appHelpers.formatedMacAddress(it.macaddress))
-                            .build()
-                    )
+                    var mm=appHelpers.formatedMacAddress(it.macaddress)
+                    if(BluetoothAdapter.checkBluetoothAddress(mm)) {
+                        scanFilter.add(
+                            ScanFilter.Builder()
+                                .setDeviceAddress(mm)
+                                .build()
+                        )
+                    }
                 }
                 callbackCounter = 0
                 startScan()

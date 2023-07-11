@@ -13,7 +13,10 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import ivo.example.ivocaboproject.database.EventResultFlags
@@ -34,20 +37,26 @@ class DeviceViewModel @Inject constructor(
     fun consumableState() = uiState.asStateFlow()
     var livedataDevicelist=MutableLiveData<List<Device>>()
     var trackDeviceItems=MutableLiveData<List<Device>>()
+    private val _isloading= MutableStateFlow(false)
+    val isloading=_isloading.asStateFlow()
     init {
         //fetchDeviceListData()
         //initTrackDeviceList()
         //viewModelScope.launch {
-            repo.livedataDeviceList().observeForever {
-                livedataDevicelist.postValue(it)
-            }
+        loadDeviceList()
             repo.trackDeviceList().observeForever{
                 trackDeviceItems.postValue(it)
             }
         //}
-
     }
 
+    fun loadDeviceList()=viewModelScope.launch {
+        _isloading.value=true
+        repo.livedataDeviceList().observeForever{
+            livedataDevicelist.postValue(it)
+            _isloading.value=false
+        }
+    }
 
 
 
