@@ -106,7 +106,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -131,7 +130,6 @@ import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
 import ivo.example.ivocaboproject.bluetooth.BleTrackerService
 import ivo.example.ivocaboproject.bluetooth.IvocaboFetcher
-import ivo.example.ivocaboproject.bluetooth.IvocaboleTrackService
 import ivo.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import ivo.example.ivocaboproject.connectivity.InternetConnectionStatus
 import ivo.example.ivocaboproject.database.EventResultFlags
@@ -155,6 +153,7 @@ class MainActivity : ComponentActivity() {
     val parseEvents = ParseEvents()
     private val gson = Gson()
     private lateinit var nDevice: Device
+
     @RequiresApi(Build.VERSION_CODES.S)
     @OptIn(ExperimentalPermissionsApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -204,15 +203,19 @@ class MainActivity : ComponentActivity() {
                             val action = receiverState?.action ?: return@SystemBroadcastReceiver
                             if (action == "hasTrackNotification") {
                                 trackNotificationOpenDialog.value = true
-                                nDevice=gson.fromJson(receiverState.getStringExtra("lostdevice"),Device::class.java)
-                                trackNotificationIntent.value ="${nDevice.name} \n ${receiverState.getStringExtra("detail")}"
+                                nDevice = gson.fromJson(
+                                    receiverState.getStringExtra("lostdevice"),
+                                    Device::class.java
+                                )
+                                trackNotificationIntent.value =
+                                    "${nDevice.name} \n ${receiverState.getStringExtra("detail")}"
                             }
                         }
                         if (trackNotificationOpenDialog.value) {
                             AlertDialog(onDismissRequest = {
                                 trackNotificationOpenDialog.value = false
                             },
-                                title = { Text(text =getString(R.string.notificationtitle)) },
+                                title = { Text(text = getString(R.string.notificationtitle)) },
                                 text = { Text(text = trackNotificationIntent.value) },
                                 confirmButton = {
                                     TextButton(onClick = {
@@ -226,8 +229,8 @@ class MainActivity : ComponentActivity() {
                         //end::Track Notification Broadcastreceiver
                         AppNavigator()
 
-                        BleTrackerService.IS_SEVICE_RUNNING.observeForever{
-                            if(!it) {
+                        BleTrackerService.IS_SEVICE_RUNNING.observeForever {
+                            if (!it) {
                                 trackServiceIntent =
                                     Intent(applicationContext, BleTrackerService::class.java)
                                 applicationContext.startService(trackServiceIntent)
@@ -299,20 +302,21 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Composable
-    fun AppNavigator() {
-        val navController = rememberNavController()
-        NavHost(navController = navController, startDestination = "registeruser") {
-            composable("dashboard") { Dashboard(navController) }
-            composable("registeruser") { RegisterUser(navController) }
-            composable("signin") { SignIn(navController) }
-            composable("resetpassword") { ResetPassword(navController) }
-            composable("settings") { Settings() }
-        }
-    }
 
     companion object {
         lateinit var trackServiceIntent: Intent
+    }
+}
+
+@Composable
+fun AppNavigator() {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "registeruser") {
+        composable("dashboard") { Dashboard(navController) }
+        composable("registeruser") { RegisterUser(navController) }
+        composable("signin") { SignIn(navController) }
+        composable("resetpassword") { ResetPassword(navController) }
+        composable("settings") { Settings() }
     }
 }
 
@@ -504,13 +508,20 @@ fun DeviceList(
             style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
         )
     }
+    var deviceList = remember { mutableListOf<Device>() }
+
+    deviceViewModel.livedataDevicelist.observeForever{
+        deviceList =it.toMutableList()
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight(), state = listState, userScrollEnabled = true
+            .wrapContentHeight(),
+        state = listState,
+        userScrollEnabled = true
     ) {
-        itemsIndexed(state.value.devices) { _, item ->
+        itemsIndexed(deviceList) { _, item ->
             val dismissState = rememberDismissState(confirmValueChange = {
                 if (it == DismissValue.DismissedToStart || it == DismissValue.DismissedToEnd) {
                     val dbresult = parseEvents.DeleteDevice(item, deviceViewModel)
@@ -535,9 +546,6 @@ fun DeviceList(
                 Card(
                     onClick = {
                         scope.launch {
-                            IvocaboleTrackService.SCANNING_STATUS.postValue(false)
-                            context.stopService(MainActivity.trackServiceIntent)
-                            delay(1500L)
                             val intent = Intent(context, DeviceActivity::class.java)
                             intent.putExtra("macaddress", item.macaddress)
                             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -617,7 +625,7 @@ fun DeviceSwipeBackground(dismissState: DismissState) {
 }
 
 lateinit var displayiconDesc: String
-private lateinit var logodescription:String
+private lateinit var logodescription: String
 
 
 @Composable
@@ -798,7 +806,7 @@ fun SignIn(
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
-    val context= LocalContext.current.applicationContext
+    val context = LocalContext.current.applicationContext
     logodescription = context.getString(R.string.logodescription)
     var txtsiusername by rememberSaveable { mutableStateOf("") }
     val issiusernameBlank by remember { derivedStateOf { txtsiusername.isNotBlank() } }

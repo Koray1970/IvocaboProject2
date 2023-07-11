@@ -63,10 +63,7 @@
             android:label="@string/title_activity_settings"
             android:theme="@style/Theme.IvocaboProject" />
 
-        <service
-            android:name=".bluetooth.IvocaboleTrackService"
-            android:enabled="true"
-            android:exported="false" />
+
         <service
             android:name=".bluetooth.IvocaboleService"
             android:enabled="true"

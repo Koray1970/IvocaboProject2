@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface DeviceRepository {
     fun count(): Int
     fun list():List<Device>
+    fun livedataDeviceList():LiveData<List<Device>>
     fun trackDeviceList():LiveData<List<Device>>
     fun findbyMacAddress(macaddress: String): Device
     suspend fun insert(device: Device)
@@ -16,6 +17,7 @@ interface DeviceRepository {
 class DeviceOfflineRepository(private val deviceDao: deviceDao) : DeviceRepository {
     override fun count(): Int = deviceDao.count()
     override fun list(): List<Device> =deviceDao.list()
+    override fun livedataDeviceList(): LiveData<List<Device>> =deviceDao.livedataDeviceList()
     override fun trackDeviceList(): LiveData<List<Device>> = deviceDao.trackDeviceList()
     override fun findbyMacAddress(macaddress: String): Device =deviceDao.findbyMacAddress(macaddress)
     override suspend fun insert(device: Device) = deviceDao.insert(device)

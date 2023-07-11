@@ -52,6 +52,9 @@ interface deviceDao {
     @Query("SELECT * FROM devices")
     suspend fun listRow():List<Device>
 
+    @Query("SELECT * FROM devices")
+    fun livedataDeviceList():LiveData<List<Device>>
+
     @Query("SELECT * FROM devices WHERE istracking=1")
     fun trackDeviceList():LiveData<List<Device>>
 
