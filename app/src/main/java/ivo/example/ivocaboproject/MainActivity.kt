@@ -858,7 +858,9 @@ fun SignIn(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
+
     var progressState = remember { mutableStateOf(false) }
+    AppProgress(progressState)
 
     logodescription = context.getString(R.string.logodescription)
     var txtsiUserNameErrorState by remember { mutableStateOf(false) }
@@ -871,7 +873,7 @@ fun SignIn(
     val icon = if (ispasswordsiVisible) painterResource(id = R.drawable.baseline_visibility_2480)
     else painterResource(id = R.drawable.baseline_visibility_off_24)
 
-    AppProgress(progressState)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -1190,6 +1192,10 @@ fun DeviceForm(
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
 
+    var progressState = remember { mutableStateOf(false) }
+    AppProgress(progressState)
+
+
     val deviceformsheetState = rememberBottomSheetScaffoldState(deviceFormSheetState.value)
 
     var txtmacaddress by rememberSaveable { mutableStateOf("") }
@@ -1339,13 +1345,10 @@ fun DeviceForm(
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = {
+                        progressState.value=true
                         if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
-                            if (BluetoothAdapter.checkBluetoothAddress(
-                                    appHelpers.formatedMacAddress(
-                                        txtmacaddress
-                                    )
-                                )
-                            ) {
+                            val cMacAddress=appHelpers.formatedMacAddress(txtmacaddress)
+                            if (BluetoothAdapter.checkBluetoothAddress(cMacAddress)) {
                                 val parseEvents = ParseEvents()
                                 val lDevice = Device(
                                     0,
@@ -1370,7 +1373,16 @@ fun DeviceForm(
                                         deviceformsheetState.bottomSheetState.partialExpand()
                                     }
                                 }
+                                else{
+                                    progressState.value=false
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.err),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             } else {
+                                progressState.value=false
                                 Toast.makeText(
                                     context,
                                     context.getString(R.string.checkmacaddress),
@@ -1378,6 +1390,7 @@ fun DeviceForm(
                                 ).show()
                             }
                         } else {
+                            progressState.value=false
                             if (txtmacaddress.isEmpty()) iserrormacaddress = true
                             if (txtdevicename.isEmpty()) iserrordevicename = true
                         }
