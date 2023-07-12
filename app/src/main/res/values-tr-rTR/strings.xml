@@ -5,6 +5,7 @@
     <string name="title_activity_profile">ProfileActivity</string>
     <string name="title_activity_settings">SettingsActivity</string>
     <string name="title_activity_device">DeviceActivity</string>
+    <string name="title_activity_splash">SplashActivity</string>
     <string name="save">Kaydet</string>
     <string name="cancel">İptal</string>
     <string name="ok">OK</string>
@@ -24,16 +25,17 @@
     <string name="menu_1">Dashboard</string>
     <string name="menu_2">Profile</string>
     <string name="menu_3">Settings</string>
+    <string name="pleasewait">Lütfen Bekleyiniz!</string>
 
     <string name="addnewdevice">Yeni Cihaz</string>
 
     <string name="privacypolicy_title">Gizlilik Politikası</string>
     <string name="privacypolicy_detail1">Ivocabo, gizliliğin saygı duyulması gereken temel bir insani hak olduğuna kesinlikle inanmaktadır.</string>
     <string name="privacypolicy_detail2">Ivocabo olarak kişisel verilerinize nasıl işlem yaptığımız ve verilenizle ilgili haklarınız Gizlilik Politikamızdan aşağıdaki bağlantıyı ziyaret ederek inceleyebilirsiniz.</string>
-    <string name="internetdisconnected">Device internet is disconnected! Please check internet connection</string>
-    <string name="internetconnected">Device internet is connected!</string>
-    <string name="internetwifeconnected">Device is connecting over wifi!</string>
-    <string name="internetcellularconnected">Device is connecting with cellular data, this service may overcharge your communication quota!</string>
+    <string name="internetdisconnected">Cihazın internet bağlantısı kesildi! Lütfen internet bağlantısını kontrol edin</string>
+    <string name="internetconnected">Cihazın interneti bağlı!</string>
+    <string name="internetwifeconnected">Cihaz wifi üzerinden bağlanıyor!</string>
+    <string name="internetcellularconnected">Cihaz hücresel veri ile bağlanıyor, bu hizmet iletişim kotanızı aşabilir!</string>
 
     <string name="back4app_server_url">https://parseapi.back4app.com</string>
 
@@ -42,18 +44,19 @@
     <string name="back4app_client_key">76ve3Hc2utzbskckgdIjGBb4egC4vP0KvsnYrfQb</string>
     <!--Register form-->
     <string name="rg_title">Kullanıcı Kayıt Formu</string>
-    <string name="rg_subtitle">Please fill below form, cause we only communicate with your given data.</string>
-    <string name="rg_warning">We undertake that the data you register with this form will not be shared with third parties and will be protected.</string>
+    <string name="rg_subtitle">Lütfen aşağıdaki formu doldurun, çünkü sadece verdiğiniz verilerle iletişim kuruyoruz.</string>
+    <string name="rg_warning">Bu form ile kaydettiğiniz verilerinizin üçüncü kişilerle paylaşılmayacağını ve korunacağını taahhüt ederiz.</string>
     <string name="rg_username">Kullanıcı Adı</string>
-    <string name="rg_usernameremoving">Removing given username!</string>
-    <string name="rg_usernamesupporting">Please enter a username you can remember!</string>
+    <string name="rg_usernameremoving">Girilen kullanıcı adını siliniz!</string>
+    <string name="rg_usernamesupporting">Lütfen hatırlayabileceğiniz bir kullanıcı adı giriniz!</string>
     <string name="rg_password">Şifre</string>
-    <string name="rg_passworddisplay">Display password!</string>
-    <string name="rg_passwordhide">Hide password!</string>
-    <string name="rg_passwordsupporting">Please enter a password you can remember!</string>
-    <string name="formelementisempty">Please don not leave empty!</string>
-    <string name="parseerror208">Account already exists for this username.</string>
+    <string name="rg_passworddisplay">Şifre görüntüle!</string>
+    <string name="rg_passwordhide">Şifre gizle!</string>
+    <string name="rg_passwordsupporting">Lütfen hatırlayabileceğiniz bir şifre giriniz!</string>
+    <string name="formelementisempty">Lütfen form alanlarını boş bırakmayınız!</string>
+    <string name="parseerror208">Girdiğiniz kullanıcı adı kullanılmakta!</string>
     <string name="userisauthenticated">User is reauthenticated!!!</string>
+    <string name="checksingincredentials">Lütfen üye giriş bilgileriniz kontrol ediniz!</string>
 
     <!--start::location permission titles-->
     <string name="prm_locationbtn">Konum İzini Talebi</string>
@@ -80,27 +83,27 @@
     <!--Lost device notification messages-->
     <string name="lostdevicenotification_msg">Takip listesin ki cihazlarınızdan bazılar bulunamamıştır. Takip listesinden çıkarılacak olup, bulunamadıkları son konum kayıt altına alınmıştır.</string>
 
-    <string name="deviceeventalerttitle">Device Event Form</string>
-    <string name="deviceeventalerttext">This event form can not initialize. Please try again. Error Code:502 </string>
+    <string name="deviceeventalerttitle">Cihaz Olay Formu</string>
+    <string name="deviceeventalerttext">Bu olay formu başlatılamıyor. Lütfen tekrar deneyin. Hata Kodu: 502 </string>
     <string name="tracking">Takip Et</string>
     <string name="find">Bul</string>
-    <string name="enablenotifications">Enable Notifications</string>
-    <string name="missing">Missing</string>
-    <string name="ivocaboisfarfromyou">Ivocabo is far from you</string>
-    <string name="youareapproaching">You are approaching to Ivocabo</string>
-    <string name="ivocaboisaround">Ivocabo is around</string>
-    <string name="devicepermissionalerttitle">Ivocabo Device Connect Permissions</string>
-    <string name="missingdevicealert">Your lost device has been successfully registered in our system.</string>
-    <string name="missingdevicefindalert">Your device has been successfully removed from the lost list because you found your lost device.</string>
-    <string name="missingdevicealerterror">An error occurred during the lost device registration process. Error code 120</string>
+    <string name="enablenotifications">Bildirimleri Etkinleştir</string>
+    <string name="missing">Kayıp</string>
+    <string name="ivocaboisfarfromyou">Ivocabo senden uzak</string>
+    <string name="youareapproaching">Ivocabo\'ya yaklaşıyorsun</string>
+    <string name="ivocaboisaround">Ivocabo buralarda</string>
+    <string name="devicepermissionalerttitle">Ivocabo Cihaz Bağlantı İzinleri</string>
+    <string name="missingdevicealert">Kayıp cihazınız sistemimize başarıyla kaydedilmiştir.</string>
+    <string name="missingdevicefindalert">Kayıp cihazınızı bulduğunuz için cihazınız kayıp listesinden başarıyla kaldırıldı.</string>
+    <string name="missingdevicealerterror">Kayıp cihaz kayıt işlemi sırasında bir hata oluştu. Hata kodu 120</string>
     <string name="notificationtitle">Eşyanız yanınızda mı?</string>
     <string name="devicefarfrom">Lütfen eşyanızın yanınızda olup-olmadığını kontrol edin. Eğer yanınıza almayacaksanız "Bildirim" özelliğini devre dışı bırakın.</string>
-    <string name="emailnotnull">Email must be input!</string>
-    <string name="emailnotvalid">Email must be formatted correctly!</string>
-    <string name="resetpasswordwarning">If you do not remember password please click Reset Password button.</string>
-    <string name="buttonresetpassword">Reset Password</string>
-    <string name="resetpasswordformtitle">Reset Password Form</string>
-    <string name="resetpasswordsuccessful">Please check your emails, find and fill the reset form that send from Ivocabo to given at the email to reset your password.</string>
+    <string name="emailnotnull">E-posta girilmelidir!</string>
+    <string name="emailnotvalid">E-posta doğru biçimlendirilmelidir!</string>
+    <string name="resetpasswordwarning">Parolayı hatırlamıyorsanız lütfen Parolayı Sıfırla düğmesine tıklayın.</string>
+    <string name="buttonresetpassword">Şifreyi yenile</string>
+    <string name="resetpasswordformtitle">Şifre Formu Sıfırla</string>
+    <string name="resetpasswordsuccessful">Lütfen e-postalarınızı kontrol edin, parolanızı sıfırlamak için Ivocabo\'dan e-postada verilen sıfırlama formunu bulun ve doldurun.</string>
     <string name="checkmacaddress">Lütfen Ivocabo cihazının MACADDRESS\'ini kontrol edin ve doğru biçimlendirilmiş türü girin.</string>
     <!--Settings-->
     <string name="prf_settings_title">Ayarlar</string>

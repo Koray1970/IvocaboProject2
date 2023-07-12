@@ -15,6 +15,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
@@ -44,6 +46,7 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DismissDirection
 import androidx.compose.material3.DismissState
 import androidx.compose.material3.DismissValue
@@ -72,6 +75,7 @@ import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -108,6 +112,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -606,10 +611,9 @@ fun DeviceList(
                                         fontWeight = FontWeight.Light
                                     )
                                 )
-                            }
-                        , trailingContent = {
+                            }, trailingContent = {
                                 Row() {
-                                    if(item.istracking!=null) {
+                                    if (item.istracking != null) {
                                         Icon(
                                             modifier = Modifier.width(20.dp),
                                             imageVector = ImageVector.vectorResource(id = R.drawable.gps_9084630),
@@ -617,7 +621,7 @@ fun DeviceList(
                                         )
                                         //Spacer(modifier = Modifier.width(10.dp))
                                     }
-                                    if(item.ismissing!=null) {
+                                    if (item.ismissing != null) {
                                         Icon(
                                             modifier = Modifier.width(20.dp),
                                             imageVector = ImageVector.vectorResource(id = R.drawable.location_4542804),
@@ -854,16 +858,20 @@ fun SignIn(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
+    var progressState = remember { mutableStateOf(false) }
+
     logodescription = context.getString(R.string.logodescription)
+    var txtsiUserNameErrorState by remember { mutableStateOf(false) }
     var txtsiusername by rememberSaveable { mutableStateOf("") }
     val issiusernameBlank by remember { derivedStateOf { txtsiusername.isNotBlank() } }
 
+    var txtsiPasswordErrorState by remember { mutableStateOf(false) }
     var txtsipassword by remember { mutableStateOf("") }
     var ispasswordsiVisible by remember { mutableStateOf(false) }
     val icon = if (ispasswordsiVisible) painterResource(id = R.drawable.baseline_visibility_2480)
     else painterResource(id = R.drawable.baseline_visibility_off_24)
 
-
+    AppProgress(progressState)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -889,9 +897,12 @@ fun SignIn(
                 fontWeight = FontWeight.Bold
             )
         )
-
-        OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtsiusername = it },
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            onValueChange = {
+                if (it.length > 0) txtsiUserNameErrorState = false
+                txtsiusername = it
+            },
             label = { Text(text = stringResource(id = R.string.rg_username)) },
             value = txtsiusername,
             keyboardOptions = KeyboardOptions(
@@ -907,9 +918,15 @@ fun SignIn(
                         )
                     }
                 }
-            })
-        OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-            onValueChange = { txtsipassword = it },
+            },
+            isError = txtsiUserNameErrorState
+        )
+        OutlinedTextField(
+            modifier = Modifier.fillMaxWidth(),
+            onValueChange = {
+                if (it.length > 0) txtsiPasswordErrorState = false
+                txtsipassword= it
+            },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
             value = txtsipassword,
             visualTransformation = if (ispasswordsiVisible) VisualTransformation.None
@@ -926,7 +943,9 @@ fun SignIn(
                         painter = icon, contentDescription = "Visibility Icon"
                     )
                 }
-            })
+            },
+            isError = txtsiPasswordErrorState
+        )
         Column(
             modifier = Modifier
                 .padding(10.dp, 15.dp)
@@ -964,6 +983,8 @@ fun SignIn(
             FilledTonalButton(
                 onClick = {
                     scope.launch {
+                        progressState.value = true
+                        delay(2000)
                         if (txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
                             val parseEvents = ParseEvents()
                             val dbresult =
@@ -972,7 +993,25 @@ fun SignIn(
                                 deviceViewModel.syncDeviceList()
                                 delay(2800L)
                                 navController.navigate("dashboard")
+                            } else {
+                                progressState.value = false
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.checksingincredentials),
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
+                        } else {
+                            progressState.value = false
+                            txtsiUserNameErrorState =
+                                if (txtsiusername.isNullOrBlank()) true else false
+                            txtsiPasswordErrorState =
+                                if (txtsipassword.isNullOrBlank()) true else false
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.formelementisempty),
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 },
@@ -981,6 +1020,7 @@ fun SignIn(
             }
         }
     }
+
 }
 
 lateinit var msg: String
@@ -1300,7 +1340,12 @@ fun DeviceForm(
                     Spacer(modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = {
                         if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
-                            if(BluetoothAdapter.checkBluetoothAddress(appHelpers.formatedMacAddress(txtmacaddress))) {
+                            if (BluetoothAdapter.checkBluetoothAddress(
+                                    appHelpers.formatedMacAddress(
+                                        txtmacaddress
+                                    )
+                                )
+                            ) {
                                 val parseEvents = ParseEvents()
                                 val lDevice = Device(
                                     0,
@@ -1325,9 +1370,12 @@ fun DeviceForm(
                                         deviceformsheetState.bottomSheetState.partialExpand()
                                     }
                                 }
-                            }
-                            else{
-                                Toast.makeText(context,context.getString(R.string.checkmacaddress),Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.checkmacaddress),
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
                         } else {
                             if (txtmacaddress.isEmpty()) iserrormacaddress = true
@@ -1344,6 +1392,40 @@ fun DeviceForm(
             }
         }) {
 
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AppProgress(isShow: MutableState<Boolean>) {
+    val context = LocalContext.current.applicationContext
+    //var openDialog=remember{ mutableStateOf(isShow.value) }
+    if (isShow.value) {
+        AlertDialog(
+            modifier = Modifier.fillMaxSize(),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            onDismissRequest = { isShow.value = false },
+            //modifier = Modifier.background(Color.Transparent),
+            content = {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(100.dp),
+                        color = Color.White,
+                        strokeWidth = 10.dp
+                    )
+                    Text(
+                        text = context.getString(R.string.pleasewait),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                }
+            }
+        )
     }
 }
 

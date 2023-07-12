@@ -4,6 +4,7 @@
     <string name="title_activity_profile">ProfileActivity</string>
     <string name="title_activity_settings">SettingsActivity</string>
     <string name="title_activity_device">DeviceActivity</string>
+    <string name="title_activity_splash">SplashActivity</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="ok">OK</string>
@@ -23,6 +24,7 @@
     <string name="menu_1">Dashboard</string>
     <string name="menu_2">Profile</string>
     <string name="menu_3">Settings</string>
+    <string name="pleasewait">Please Wait!</string>
 
 
     <string name="addnewdevice">Add New Device</string>
@@ -50,9 +52,10 @@
     <string name="rg_passworddisplay">Display password!</string>
     <string name="rg_passwordhide">Hide password!</string>
     <string name="rg_passwordsupporting">Please enter a password you can remember!</string>
-    <string name="formelementisempty">Please don not leave empty!</string>
+    <string name="formelementisempty">Please don not leave empty field!</string>
     <string name="parseerror208">Account already exists for this username.</string>
     <string name="userisauthenticated">User is reauthenticated!!!</string>
+    <string name="checksingincredentials">Please check sign-in credentials!</string>
 
     <!--start::location permission titles-->
     <string name="prm_locationbtn">Request Location Permissions</string>
@@ -125,5 +128,5 @@
     <string name="prf_moreinformation_title">More Information</string>
     <string name="prf_help">Help</string>
     <string name="prf_aboutivocabo">About Ivocabo</string>
-    <string name="title_activity_splash">SplashActivity</string>
+
 </resources>
