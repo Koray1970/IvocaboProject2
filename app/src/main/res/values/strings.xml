@@ -77,6 +77,8 @@
     <string name="macaddress">Mac Address</string>
     <string name="devicename">Device Name</string>
     <string name="devicedelete">Selected device is deleted.</string>
+    <string name="deviceaddeditgeneralerror">A general error occurred while registering your Ivocabo device! Error Code : PRS305</string>
+    <string name="deviceaddeditmacaddresinlisterror">The Mac Address you entered is being used, please check and re-enter! Error Code: PRS300</string>
 
     <!--Lost device notification messages-->
     <string name="lostdevicenotification_msg">Some of your devices on your track list could not be found. They will be removed from the track list and the last location where they could not be found has been recorded.</string>

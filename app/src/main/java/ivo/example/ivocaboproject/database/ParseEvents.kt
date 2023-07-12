@@ -3,6 +3,7 @@ package ivo.example.ivocaboproject.database
 import android.content.Context
 import android.util.Log
 import com.google.android.gms.maps.model.LatLng
+import com.parse.FindCallback
 import com.parse.ParseException
 import com.parse.ParseObject
 import com.parse.ParseQuery
@@ -159,31 +160,41 @@ class ParseEvents {
         var eventResult = EventResult<Boolean>(false)
         try {
             val parseuserid = ParseUser.getCurrentUser().objectId
-            val parseObject = ParseObject("Beacons")
+            val fQuery = ParseQuery<ParseObject>("Beacons")
+            fQuery.whereEqualTo("mac", device.macaddress)
+            if (fQuery.find().size <= 0) {
+                val parseObject = ParseObject("Beacons")
 
-            var isnew = false
-            if (device.objectId.isEmpty())
-                isnew = true
-            else
-                parseObject.objectId = device.objectId
+                var isnew = false
+                if (device.objectId.isEmpty())
+                    isnew = true
+                else
+                    parseObject.objectId = device.objectId
 
-            parseObject.put("User", parseuserid)
-            parseObject.put("latitude", device.latitude)
-            parseObject.put("longitude", device.longitude)
-            parseObject.put("mac", device.macaddress)
-            parseObject.put("devicename", device.name)
-            parseObject.put("parseUserId", parseuserid)
-            parseObject.put("devicetype", device.devicetype!!)
-            parseObject.save()
-            if (parseObject.isDataAvailable) {
-                if (isnew) {
-                    device.objectId = parseObject.objectId
-                    deviceViewModel.insert(device)
-                } else {
-                    deviceViewModel.update(device)
+                parseObject.put("User", parseuserid)
+                parseObject.put("latitude", device.latitude)
+                parseObject.put("longitude", device.longitude)
+                parseObject.put("mac", device.macaddress)
+                parseObject.put("devicename", device.name)
+                parseObject.put("parseUserId", parseuserid)
+                parseObject.put("devicetype", device.devicetype!!)
+                parseObject.save()
+                if (parseObject.isDataAvailable) {
+                    if (isnew) {
+                        device.objectId = parseObject.objectId
+                        deviceViewModel.insert(device)
+                    } else {
+                        deviceViewModel.update(device)
+                    }
+                    eventResult.eventResultFlags = EventResultFlags.SUCCESS
+                    eventResult.result = true
                 }
-                eventResult.eventResultFlags = EventResultFlags.SUCCESS
-                eventResult.result = true
+                else{
+                    eventResult.errorcode = "PRS305"
+                }
+            } else {
+                //mac address is in list
+                eventResult.errorcode = "PRS300"
             }
 
         } catch (exception: Exception) {
@@ -299,7 +310,7 @@ class ParseEvents {
                     missingDeviceParseObject.put("Time", appHelpers.getNOWasString())
                     missingDeviceParseObject.put("mac", device.macaddress)
                     missingDeviceParseObject.save()
-                    device.istracking=null
+                    device.istracking = null
                     deviceViewModel.update(device)
                     result.eventResultFlags = EventResultFlags.SUCCESS
                     result.result = true
@@ -404,7 +415,7 @@ class ParseEvents {
                         parseObject.objectId
                     )
                     trackArchiveViewModel.insert(trackArchive)
-                    
+
                     delay(600L)
                     deviceViewModel.update(device)
                 }
@@ -419,7 +430,7 @@ class ParseEvents {
     }
 
     suspend fun AddTrackDeviceArchiveSecond(
-        context:Context,
+        context: Context,
         deviceDao: deviceDao,
         device: Device,
         latitude: String,
@@ -438,7 +449,7 @@ class ParseEvents {
             parseObject.put("longitude", longitude)
             parseObject.save()
             if (parseObject.isDataAvailable) {
-                val dbTrackArchive=AppDatabase.getDatabase(context).trackArchiveDao()
+                val dbTrackArchive = AppDatabase.getDatabase(context).trackArchiveDao()
 
                 MainScope().launch {
                     val trackArchive = TrackArchive(
@@ -453,9 +464,9 @@ class ParseEvents {
                     dbTrackArchive.insert(trackArchive)
 
                     delay(320L)
-                    device.istracking=null
-                    device.longitude=longitude
-                    device.latitude=latitude
+                    device.istracking = null
+                    device.longitude = longitude
+                    device.latitude = latitude
                     deviceDao.update(device)
                 }
                 eventResult.eventResultFlags = EventResultFlags.SUCCESS
@@ -467,8 +478,6 @@ class ParseEvents {
         }
         return eventResult
     }
-
-
 
 
 }

@@ -108,6 +108,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -685,6 +686,10 @@ fun RegisterUser(
 ) {
     val context = LocalContext.current.applicationContext
     logodescription = context.getString(R.string.logodescription)
+    val scope = rememberCoroutineScope()
+    var progressState = remember { mutableStateOf(false) }
+    AppProgress(progressState)
+
     if (ParseUser.getCurrentUser() != null) {
         navController.navigate("dashboard")
     } else {
@@ -726,14 +731,20 @@ fun RegisterUser(
                     fontSize = 10.sp
                 )
             )
-
+            var txtRgUserNameErrorState by remember { mutableStateOf(false) }
             var txtrgusername by rememberSaveable { mutableStateOf("") }
             val isusernameVisible by remember { derivedStateOf { txtrgusername.isNotBlank() } }
+
+
             OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-                onValueChange = { txtrgusername = it },
+                onValueChange = {
+                    txtRgUserNameErrorState = !it.isNotEmpty()
+                    txtrgusername = it
+                },
                 label = { Text(text = stringResource(id = R.string.rg_username)) },
                 supportingText = { Text(text = stringResource(id = R.string.rg_usernamesupporting)) },
                 value = txtrgusername,
+                isError = txtRgUserNameErrorState,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Words,
                     autoCorrect = false,
@@ -749,13 +760,18 @@ fun RegisterUser(
                         }
                     }
                 })
+            var txtRgEmailErrorStatus by remember { mutableStateOf(false) }
             var txtrgemail by rememberSaveable { mutableStateOf("") }
             val isemailVisible by remember { derivedStateOf { txtrgemail.isNotBlank() } }
             OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-                onValueChange = { txtrgemail = it },
+                onValueChange = {
+                    txtRgEmailErrorStatus = !it.isNotEmpty()
+                    txtrgemail = it
+                },
                 label = { Text(text = stringResource(id = R.string.email)) },
                 supportingText = { Text(text = stringResource(id = R.string.emailsupporting)) },
                 value = txtrgemail,
+                isError = txtRgEmailErrorStatus,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
                     autoCorrect = false,
@@ -771,6 +787,7 @@ fun RegisterUser(
                         }
                     }
                 })
+            var txtRgPasswordErrorStatus by remember { mutableStateOf(false) }
             var txtrgpassword by rememberSaveable { mutableStateOf("") }
             var ispasswordVisible by remember { mutableStateOf(false) }
 
@@ -782,10 +799,14 @@ fun RegisterUser(
                 painterResource(id = R.drawable.baseline_visibility_off_24)
             }
             OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-                onValueChange = { txtrgpassword = it },
+                onValueChange = {
+                    txtRgPasswordErrorStatus = !it.isNotEmpty()
+                    txtrgpassword = it
+                },
                 label = { Text(text = stringResource(id = R.string.rg_password)) },
                 supportingText = { Text(text = stringResource(id = R.string.rg_passwordsupporting)) },
                 value = txtrgpassword,
+                isError = txtRgPasswordErrorStatus,
                 visualTransformation = if (ispasswordVisible) VisualTransformation.None
                 else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(
@@ -816,29 +837,49 @@ fun RegisterUser(
                     .wrapContentHeight()
             ) {
                 FilledTonalButton(
-                    onClick = { navController.navigate("signin") },
+                    onClick = {
+                        progressState.value = true
+                        navController.navigate("signin")
+                    },
                 ) {
                     Text(text = stringResource(id = R.string.signin))
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 FilledTonalButton(
                     onClick = {
-                        val parseEvents = ParseEvents()
-                        val user = User(
-                            0,
-                            appHelpers.getNOWasSQLDate(),
-                            txtrgusername,
-                            txtrgemail,
-                            txtrgpassword,
-                            null,
-                            null
-                        )
-                        val dbresult = parseEvents.AddUser(user, userviewModel)
-                        if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                            txtrgusername = ""
-                            txtrgemail = ""
-                            txtrgpassword = ""
-                            navController.navigate("dashboard")
+                        progressState.value = true
+                        scope.launch {
+
+                            if (txtrgusername.isNotEmpty() && txtrgemail.isNotEmpty() && txtrgpassword.isNotEmpty()) {
+                                delay(800L)
+                                val parseEvents = ParseEvents()
+                                val user = User(
+                                    0,
+                                    appHelpers.getNOWasSQLDate(),
+                                    txtrgusername,
+                                    txtrgemail,
+                                    txtrgpassword,
+                                    null,
+                                    null
+                                )
+                                val dbresult = parseEvents.AddUser(user, userviewModel)
+                                if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                                    progressState.value = false
+                                    txtrgusername = ""
+                                    txtrgemail = ""
+                                    txtrgpassword = ""
+                                    navController.navigate("dashboard")
+                                } else {
+                                    delay(300L)
+                                    progressState.value = false
+                                }
+                            } else {
+                                delay(300L)
+                                txtRgUserNameErrorState = !txtrgusername.isNotEmpty()
+                                txtRgEmailErrorStatus = !txtrgemail.isNotEmpty()
+                                txtRgPasswordErrorStatus = !txtrgpassword.isNotEmpty()
+                                progressState.value = false
+                            }
                         }
                     },
                 ) {
@@ -926,8 +967,8 @@ fun SignIn(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             onValueChange = {
-                if (it.length > 0) txtsiPasswordErrorState = false
-                txtsipassword= it
+                txtsiPasswordErrorState = !txtsipassword.isNullOrEmpty()
+                txtsipassword = it
             },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
             value = txtsipassword,
@@ -1005,10 +1046,8 @@ fun SignIn(
                             }
                         } else {
                             progressState.value = false
-                            txtsiUserNameErrorState =
-                                if (txtsiusername.isNullOrBlank()) true else false
-                            txtsiPasswordErrorState =
-                                if (txtsipassword.isNullOrBlank()) true else false
+                            txtsiUserNameErrorState = txtsiusername.isNullOrEmpty()
+                            txtsiPasswordErrorState =txtsipassword.isNullOrBlank()
                             Toast.makeText(
                                 context,
                                 context.getString(R.string.formelementisempty),
@@ -1031,155 +1070,169 @@ lateinit var msg: String
 @Composable
 fun ResetPassword(navController: NavController) {
     val context = LocalContext.current.applicationContext
+    val scope = rememberCoroutineScope()
     logodescription = context.getString(R.string.logodescription)
 
+    var progressState = remember { mutableStateOf(false) }
+    AppProgress(progressState)
 
-    val scope = rememberCoroutineScope()
     val alertbarHostState = remember { SnackbarHostState() }
+
+    var txtRpEmailErrorStatus = remember { mutableStateOf(false) }
     var txtrpemail by rememberSaveable { mutableStateOf("") }
     val isrpemailVisible by remember { derivedStateOf { txtrpemail.isNotBlank() } }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val confirmOpenDialog = remember { mutableStateOf(false) }
 
+    if (confirmOpenDialog.value) {
+        AlertDialog(onDismissRequest = { confirmOpenDialog.value = false },
+            content = {
+                Surface(
+                    modifier = Modifier
+                        .wrapContentWidth()
+                        .wrapContentHeight(),
+                    shape = MaterialTheme.shapes.large,
+                    tonalElevation = AlertDialogDefaults.TonalElevation
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = stringResource(id = R.string.resetpasswordsuccessful)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        TextButton(
+                            onClick = {
+                                confirmOpenDialog.value = false
+                                navController.navigate("signin")
+                            },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text(stringResource(id = R.string.gotosignin))
+                        }
+                    }
+                }
+            }
+        )
+    }
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = alertbarHostState) },
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        content = { innerPadding ->
-            if (confirmOpenDialog.value) {
-                AlertDialog(onDismissRequest = { confirmOpenDialog.value = false },
-                    content = {
-                        Surface(
-                            modifier = Modifier
-                                .wrapContentWidth()
-                                .wrapContentHeight(),
-                            shape = MaterialTheme.shapes.large,
-                            tonalElevation = AlertDialogDefaults.TonalElevation
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = stringResource(id = R.string.resetpasswordsuccessful)
-                                )
-                                Spacer(modifier = Modifier.height(24.dp))
-                                TextButton(
-                                    onClick = {
-                                        confirmOpenDialog.value = false
-                                        navController.navigate("signin")
-                                    },
-                                    modifier = Modifier.align(Alignment.End)
-                                ) {
-                                    Text(stringResource(id = R.string.gotosignin))
-                                }
-                            }
-                        }
-                    }
-                )
-            }
-            Column(
+            .padding(16.dp)
+    ) { innerPadding ->
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+
+            Image(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(color = Color.Black),
-            ) {
-                Image(
-                    modifier = Modifier
-                        .width(110.dp)
-                        .align(alignment = Alignment.CenterHorizontally)
-                        .padding(0.dp, 10.dp),
-                    painter = painterResource(id = R.drawable.ivocabo_logo_vecappicon),
-                    contentDescription = logodescription
+                    .width(110.dp)
+                    .align(alignment = Alignment.CenterHorizontally)
+                    .padding(0.dp, 10.dp),
+                painter = painterResource(id = R.drawable.ivocabo_logo_vecappicon),
+                contentDescription = logodescription
+            )
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(0.dp, 8.dp),
+                text = stringResource(id = R.string.resetpasswordformtitle),
+                style = TextStyle(
+                    textAlign = TextAlign.Center,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
                 )
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(0.dp, 8.dp),
-                    text = stringResource(id = R.string.resetpasswordformtitle),
-                    style = TextStyle(
-                        textAlign = TextAlign.Center,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-
-                OutlinedTextField(modifier = Modifier.fillMaxWidth(),
-                    onValueChange = { txtrpemail = it },
-                    label = { Text(text = stringResource(id = R.string.email)) },
-                    value = txtrpemail,
-                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        autoCorrect = false,
-                        keyboardType = KeyboardType.Email
-                    ),
-                    trailingIcon = {
-                        if (isrpemailVisible) {
-                            IconButton(onClick = { txtrpemail = "" }) {
-                                Icon(
-                                    imageVector = Icons.Default.Clear, contentDescription = "Clear"
-                                )
-                            }
+            )
+            OutlinedTextField (
+                value = txtrpemail,
+                modifier = Modifier.fillMaxWidth(),
+                onValueChange = {
+                    //txtRpEmailErrorStatus.value = !txtrpemail.isEmpty()
+                    txtrpemail = it
+                },
+                label = { Text(text= context.getString(R.string.email)) },
+                isError = txtRpEmailErrorStatus,
+                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrect = false,
+                    keyboardType = KeyboardType.Email
+                ),
+                trailingIcon = {
+                    if (isrpemailVisible) {
+                        IconButton(onClick = { txtrpemail = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear, contentDescription = "Clear"
+                            )
                         }
-                    })
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                ) {
-                    FilledTonalButton(
-                        onClick = { navController.navigate("signin") },
-                    ) {
-                        Text(text = stringResource(id = R.string.goback))
                     }
-                    Spacer(modifier = Modifier.weight(1f))
+                })
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+                    .padding(vertical = 10.dp)
+            ) {
+                FilledTonalButton(
+                    onClick = { navController.navigate("signin") },
+                ) {
+                    Text(text = stringResource(id = R.string.goback))
+                }
+                Spacer(modifier = Modifier.weight(1f))
 
-                    FilledTonalButton(
-                        onClick = {
+                FilledTonalButton(
+                    onClick = {
+                        progressState.value = true
+                        scope.launch {
                             keyboardController?.hide()
                             if (txtrpemail.isNotEmpty()) {
                                 val parseEvents = ParseEvents()
                                 val dbresult = parseEvents.ResetUserPassword(txtrpemail)
                                 if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                                     confirmOpenDialog.value = true
+                                    delay(300)
+                                    progressState.value = false
                                 } else {
-                                    scope.launch {
-
-                                        msg = when (dbresult.errorcode) {
-                                            "RUP-103" -> {
-                                                context.getString(R.string.emailnotvalid)
-                                            }
-
-                                            "RUP-102" -> {
-                                                context.getString(R.string.emailnotnull)
-                                            }
-
-                                            else -> {
-                                                context.getString(R.string.generalexceptionmessage)
-                                            }
+                                    delay(300)
+                                    progressState.value = false
+                                    msg = when (dbresult.errorcode) {
+                                        "RUP-103" -> {
+                                            context.getString(R.string.emailnotvalid)
                                         }
-                                        alertbarHostState.showSnackbar(
-                                            message = msg,
-                                            duration = SnackbarDuration.Short
-                                        )
+
+                                        "RUP-102" -> {
+                                            context.getString(R.string.emailnotnull)
+                                        }
+
+                                        else -> {
+                                            context.getString(R.string.generalexceptionmessage)
+                                        }
                                     }
-                                }
-                            } else {
-                                scope.launch {
                                     alertbarHostState.showSnackbar(
-                                        message = context.getString(R.string.emailnotnull),
+                                        message = msg,
                                         duration = SnackbarDuration.Short
                                     )
                                 }
+                            } else {
+                                delay(300)
+                                progressState.value = false
+                                alertbarHostState.showSnackbar(
+                                    message = context.getString(R.string.emailnotnull),
+                                    duration = SnackbarDuration.Short
+                                )
+
                             }
-                        },
-                    ) {
-                        Text(text = stringResource(id = R.string.reset))
-                    }
+                        }
+                    },
+                ) {
+                    Text(text = stringResource(id = R.string.reset))
                 }
             }
         }
-    )
+    }
 }
 
 
@@ -1345,9 +1398,9 @@ fun DeviceForm(
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = {
-                        progressState.value=true
+                        progressState.value = true
                         if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
-                            val cMacAddress=appHelpers.formatedMacAddress(txtmacaddress)
+                            val cMacAddress = appHelpers.formatedMacAddress(txtmacaddress)
                             if (BluetoothAdapter.checkBluetoothAddress(cMacAddress)) {
                                 val parseEvents = ParseEvents()
                                 val lDevice = Device(
@@ -1372,17 +1425,28 @@ fun DeviceForm(
                                         )
                                         deviceformsheetState.bottomSheetState.partialExpand()
                                     }
-                                }
-                                else{
-                                    progressState.value=false
-                                    Toast.makeText(
-                                        context,
-                                        context.getString(R.string.err),
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                                } else {
+                                    progressState.value = false
+                                    var errMessage = ""
+                                    if (!dbresponse.errorcode.isNullOrEmpty()) {
+                                        errMessage = when (dbresponse.errorcode) {
+                                            //parse add edit general error occured
+                                            "PRS305" -> context.getString(R.string.deviceaddeditgeneralerror)
+                                            //mac address is in list
+                                            "PRS300" -> context.getString(R.string.deviceaddeditmacaddresinlisterror)
+                                            else -> ""
+                                        }
+                                    }
+                                    if (errMessage.isNotEmpty()) {
+                                        Toast.makeText(
+                                            context,
+                                            errMessage,
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
                                 }
                             } else {
-                                progressState.value=false
+                                progressState.value = false
                                 Toast.makeText(
                                     context,
                                     context.getString(R.string.checkmacaddress),
@@ -1390,7 +1454,7 @@ fun DeviceForm(
                                 ).show()
                             }
                         } else {
-                            progressState.value=false
+                            progressState.value = false
                             if (txtmacaddress.isEmpty()) iserrormacaddress = true
                             if (txtdevicename.isEmpty()) iserrordevicename = true
                         }

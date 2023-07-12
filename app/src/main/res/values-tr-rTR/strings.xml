@@ -79,6 +79,8 @@
     <string name="macaddress">Mac Adres</string>
     <string name="devicename">Cihaz Adı</string>
     <string name="devicedelete">Seçili cihaz silinmiş.</string>
+    <string name="deviceaddeditgeneralerror">Ivocabo cihazınızı kayıt ederken genel bir hata oluştu! Hata Kodu : PRS305</string>
+    <string name="deviceaddeditmacaddresinlisterror">Giridiğiniz Mac Adresi kullanılmakta lütfen kontrol edip tekrar giriniz! Hata Kodu : PRS300</string>
 
     <!--Lost device notification messages-->
     <string name="lostdevicenotification_msg">Takip listesin ki cihazlarınızdan bazılar bulunamamıştır. Takip listesinden çıkarılacak olup, bulunamadıkları son konum kayıt altına alınmıştır.</string>
