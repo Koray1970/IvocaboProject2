@@ -5,12 +5,11 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
-import android.net.wifi.WifiManager
-import android.widget.Toast
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
-import ivo.example.ivocaboproject.R
 
 class AppInternetConnectivity {
+    private val TAG=AppInternetConnectivity::class.java.simpleName
     private lateinit var _context:Context
     private val networkRequest = NetworkRequest.Builder()
         .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -18,9 +17,11 @@ class AppInternetConnectivity {
         .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
         .build()
 
-    fun AppInternetConnectivity(context:Context){
+    constructor(context:Context){
         _context=context
         val connectivityManager =  context.getSystemService(ConnectivityManager::class.java) as ConnectivityManager
+
+        Log.v(TAG,"connectivityManager.isActiveNetworkMetered : ${connectivityManager.isActiveNetworkMetered}")
         INTERNET_CONNECTION_STATUS.postValue(connectivityManager.isActiveNetworkMetered)
         connectivityManager.requestNetwork(networkRequest, networkCallback)
     }
@@ -29,6 +30,7 @@ class AppInternetConnectivity {
         override fun onAvailable(network: Network) {
             super.onAvailable(network)
             INTERNET_CONNECTION_STATUS.postValue(true)
+            Log.v(TAG,"INTERNET_CONNECTION_STATUS : true")
         }
 
         // Network capabilities have changed for the network
@@ -44,7 +46,7 @@ class AppInternetConnectivity {
         override fun onLost(network: Network) {
             super.onLost(network)
             INTERNET_CONNECTION_STATUS.postValue(false)
-
+            Log.v(TAG,"INTERNET_CONNECTION_STATUS : false")
             //Toast.makeText(_context,_context.getString(R.string.internetdisconnected),Toast.LENGTH_LONG).show()
         }
     }

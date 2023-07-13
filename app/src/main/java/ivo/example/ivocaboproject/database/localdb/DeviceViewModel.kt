@@ -68,6 +68,7 @@ class DeviceViewModel @Inject constructor(
                 if (dbrmresult.result!!.size > 0) {
                     dbrmresult.result!!.forEach {
                         viewModelScope.launch {
+                            it.istracking=null
                             repo.insert(it)
                         }
                     }

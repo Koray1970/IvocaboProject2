@@ -134,5 +134,6 @@
     <string name="prf_moreinformation_title">More Information</string>
     <string name="prf_help">Help</string>
     <string name="prf_aboutivocabo">About Ivocabo</string>
-
+    <string name="logout_alerttitle">User Sign Out</string>
+    <string name="logout_alerttext">When you sign out, your local app data is deleted and the application does not scan or find any Ivocabo device(s), your existing data is stored in our remote data archive so that you can use it when you sign in again. You can sign in again with the existing Username and Password.\nAre you sure you want to Sign Out?</string>
 </resources>

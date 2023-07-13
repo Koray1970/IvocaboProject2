@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
@@ -44,9 +45,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -75,11 +78,11 @@ import java.util.Locale
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
+        MainActivity.appProgressStatus.postValue(false)
         setContent {
             IvocaboProjectTheme {
                 // A surface container using the 'background' color from the theme
-
+                AppProgress()
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     contentColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -99,7 +102,7 @@ lateinit var profileSheetScaffoldState: BottomSheetScaffoldState
 @OptIn(ExperimentalMaterial3Api::class)
 lateinit var permissionsSheetScaffoldState: BottomSheetScaffoldState
 
-var privacyOpenDialog= mutableStateOf(false)
+var privacyOpenDialog = mutableStateOf(false)
 
 @SuppressLint("RememberReturnType")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -251,7 +254,7 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
             },
             trailingContent = {
                 IconButton(onClick = {
-                    privacyOpenDialog.value=true
+                    privacyOpenDialog.value = true
                 }) {
                     Icon(
                         Icons.Filled.KeyboardArrowRight,
@@ -300,9 +303,9 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
             },
             trailingContent = {
                 IconButton(onClick = {
-                    /*val int = Intent(context, ProfileActivity::class.java).apply {
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://ivocabo.com")).apply {
                         context.startActivity(this)
-                    }*/
+                    }
                 }) {
                     Icon(
                         Icons.Filled.KeyboardArrowRight,
@@ -323,6 +326,55 @@ fun Settings(userViewModel: UserViewModel = hiltViewModel()) {
 fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
     val parseEvents = ParseEvents()
     val context = LocalContext.current.applicationContext
+    var logoutAlertDialogStatus by remember { mutableStateOf(false) }
+
+    if (logoutAlertDialogStatus)
+        AlertDialog(
+            onDismissRequest = { logoutAlertDialogStatus = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        MainActivity.appProgressStatus.postValue(true)
+                        try {
+                            context.deleteDatabase("ivocabo.db")
+                            ParseUser.logOut()
+                            val int = Intent(context, PrivacyViewer::class.java).apply {
+                                context.startActivity(this)
+                            }
+                            MainActivity.appProgressStatus.postValue(false)
+                            logoutAlertDialogStatus = false
+                        } catch (exception: Exception) {
+
+                        }
+
+                    }) {
+                    Text(text = context.getString(R.string.readandconfirm))
+                }
+
+            },
+            dismissButton= {
+                TextButton(
+                    onClick = { logoutAlertDialogStatus = false }) {
+                    Text(text = context.getString(R.string.cancel))
+                }
+            },
+            title = {
+                Text(
+                    text = context.getString(R.string.logout_alerttitle),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = { Text(text = context.getString(R.string.logout_alerttext)) },
+            icon = {
+                Icon(
+                    modifier = Modifier.size(50.dp),
+                    tint = Color.Red,
+                    painter = painterResource(id = R.drawable.baseline_logout_24),
+                    contentDescription = "Logout Alert"
+                )
+            }
+        )
+
     var user = userViewModel.getUserDetail
     BottomSheetScaffold(
         modifier = Modifier.padding(15.dp),
@@ -352,11 +404,7 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
                         modifier = Modifier.padding(0.dp, 20.dp)
                     ) {
                         Button(onClick = {
-                            context.deleteDatabase("ivocabo.db")
-                            ParseUser.logOut()
-                            val int = Intent(context, PrivacyViewer::class.java).apply {
-                                context.startActivity(this)
-                            }
+                            logoutAlertDialogStatus = true
                         }) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -399,7 +447,7 @@ fun Profile(userViewModel: UserViewModel = hiltViewModel()) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShowPrivacy(){
+fun ShowPrivacy() {
     val context = LocalContext.current.applicationContext
     val urlState = rememberWebViewState("https://www.ivocabo.com/gi-zli-li-k-poli-ti-kasi")
     if (privacyOpenDialog.value) {
@@ -460,7 +508,7 @@ fun ShowPrivacy(){
 @Composable
 fun Permissions(userView: UserViewModel = hiltViewModel()) {
     val context = LocalContext.current.applicationContext
-    var user=userView.getUserDetail
+    var user = userView.getUserDetail
 
     var locationCheckedState = remember { mutableStateOf(false) }
     if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
@@ -509,7 +557,7 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
             trackingCheckedState.value = true
         }
     }
-    var culture= Locale.getDefault().language
+    var culture = Locale.getDefault().language
 
     BottomSheetScaffold(
         scaffoldState = permissionsSheetScaffoldState,
@@ -517,12 +565,11 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
                     text =
-                    if(culture==Locale.forLanguageTag("tr-TR").language)
+                    if (culture == Locale.forLanguageTag("tr-TR").language)
                         context.getString(R.string.prf_permissions)
-                        .uppercase(Locale.forLanguageTag("tr-TR"))
+                            .uppercase(Locale.forLanguageTag("tr-TR"))
                     else
-                        context.getString(R.string.prf_permissions).uppercase()
-                    ,
+                        context.getString(R.string.prf_permissions).uppercase(),
                     modifier = Modifier.fillMaxWidth(),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
@@ -531,8 +578,17 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                 ListItem(
                     supportingContent = {
                         Column() {
-                            Text(text=context.getString(R.string.prf_location_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
-                            Text(text=context.getString(R.string.prf_location_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                            Text(
+                                text = context.getString(R.string.prf_location_warning_title),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                            Text(
+                                text = context.getString(R.string.prf_location_warning),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraLight,
+                                lineHeight = 10.sp
+                            )
                         }
                     },
                     headlineContent = {
@@ -543,7 +599,7 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     },
                     trailingContent = {
                         Checkbox(
-                            enabled=false,
+                            enabled = false,
                             checked = locationCheckedState.value,
                             onCheckedChange = { locationCheckedState.value = it }
                         )
@@ -553,8 +609,17 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                 ListItem(
                     supportingContent = {
                         Column() {
-                            Text(text=context.getString(R.string.prf_bluetooth_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
-                            Text(text=context.getString(R.string.prf_bluetooth_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                            Text(
+                                text = context.getString(R.string.prf_bluetooth_warning_title),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                            Text(
+                                text = context.getString(R.string.prf_bluetooth_warning),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraLight,
+                                lineHeight = 10.sp
+                            )
                         }
                     },
                     headlineContent = {
@@ -565,7 +630,7 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     },
                     trailingContent = {
                         Checkbox(
-                            enabled=false,
+                            enabled = false,
                             checked = bluetoothCheckedState.value,
                             onCheckedChange = { bluetoothCheckedState.value = it }
                         )
@@ -575,8 +640,17 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                 ListItem(
                     supportingContent = {
                         Column() {
-                            Text(text=context.getString(R.string.prf_notification_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
-                            Text(text=context.getString(R.string.prf_notification_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                            Text(
+                                text = context.getString(R.string.prf_notification_warning_title),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                            Text(
+                                text = context.getString(R.string.prf_notification_warning),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraLight,
+                                lineHeight = 10.sp
+                            )
                         }
                     },
                     headlineContent = {
@@ -588,7 +662,8 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     trailingContent = {
                         Checkbox(
                             checked = notificationCheckedState.value,
-                            onCheckedChange = { notificationCheckedState.value = it
+                            onCheckedChange = {
+                                notificationCheckedState.value = it
                                 user.notification = it
                                 if (it == false)
                                     userView.user.notification = null
@@ -601,8 +676,17 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                 ListItem(
                     supportingContent = {
                         Column() {
-                            Text(text=context.getString(R.string.prf_tracking_warning_title), fontSize = 10.sp, fontWeight = FontWeight.Normal)
-                            Text(text=context.getString(R.string.prf_tracking_warning), fontSize = 10.sp, fontWeight = FontWeight.ExtraLight, lineHeight = 10.sp)
+                            Text(
+                                text = context.getString(R.string.prf_tracking_warning_title),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                            Text(
+                                text = context.getString(R.string.prf_tracking_warning),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraLight,
+                                lineHeight = 10.sp
+                            )
                         }
                     },
                     headlineContent = {
@@ -613,7 +697,7 @@ fun Permissions(userView: UserViewModel = hiltViewModel()) {
                     },
                     trailingContent = {
                         Checkbox(
-                            enabled=false,
+                            enabled = false,
                             checked = trackingCheckedState.value,
                             onCheckedChange = {
                                 trackingCheckedState.value = it

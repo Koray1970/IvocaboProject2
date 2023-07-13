@@ -53,6 +53,7 @@ import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
 import ivo.example.ivocaboproject.connectivity.AppInternetConnectivity
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -63,14 +64,20 @@ class PrivacyViewer : ComponentActivity() {
         super.onCreate(savedInstanceState)
         /*applicationContext.deleteDatabase("ivocabo.db")
         ParseUser.logOut()*/
+        MainActivity.appProgressStatus.postValue(true)
+        MainActivity.checkInternetConnectivity = AppInternetConnectivity(applicationContext)
+        MainScope().launch {
+            delay(1000)
+            MainActivity.appProgressStatus.postValue(false)
+        }
 
-        MainActivity.checkInternetConnectivity.AppInternetConnectivity(applicationContext)
+
 
         if (ParseUser.getCurrentUser() == null) {
             setContent {
                 IvocaboProjectTheme {
                     InternetAlertDialog()
-                    AppProgress(mutableStateOf(appProgressStatus.observeAsState().value))
+                    AppProgress()
                     Surface(
                         modifier = Modifier.fillMaxSize()
                     ) {
@@ -84,8 +91,9 @@ class PrivacyViewer : ComponentActivity() {
             }
         }
     }
-    companion object{
-        var appProgressStatus=MutableLiveData<Boolean>(false)
+
+    companion object {
+        var appProgressStatus = MutableLiveData<Boolean>(false)
     }
 
 }
@@ -96,15 +104,16 @@ fun Privacy() {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     val openDialog = remember { mutableStateOf(false) }
-    var internetStatus by remember{ mutableStateOf(false) }
+    var internetStatus by remember { mutableStateOf(false) }
     AppInternetConnectivity.INTERNET_CONNECTION_STATUS.observeForever {
-
+        if(it==true)
+            MainActivity.appProgressStatus.postValue(true)
+        MainActivity.internetConnectionAlertDialogStatus.postValue(it)
         scope.launch {
-            delay(250)
-            internetStatus=it
-            MainActivity.internetConnectionAlertDialogStatus.postValue(!it)
+            delay(800)
+            internetStatus = it
+            MainActivity.appProgressStatus.postValue(false)
         }
-
     }
     Scaffold {
         Column(
@@ -200,7 +209,6 @@ fun Privacy() {
                 usePlatformDefaultWidth = false
             ),
             content = {
-
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     topBar = {

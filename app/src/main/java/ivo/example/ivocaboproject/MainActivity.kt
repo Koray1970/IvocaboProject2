@@ -178,7 +178,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         //context.deleteDatabase("ivocabo.db")
         //ParseUser.logOut()
-        checkInternetConnectivity.AppInternetConnectivity(applicationContext)
+        if (checkInternetConnectivity == null)
+            checkInternetConnectivity = AppInternetConnectivity(applicationContext)
         AppInternetConnectivity.INTERNET_CONNECTION_STATUS.observeForever {
             if (it == false) {
                 internetConnectionAlertDialogStatus.postValue(true)
@@ -207,7 +208,7 @@ class MainActivity : ComponentActivity() {
                 ).show()
             }
         }
-
+appProgressStatus.postValue(false)
         setContent {
             IvocaboProjectTheme {
                 Surface(
@@ -218,7 +219,7 @@ class MainActivity : ComponentActivity() {
                     val requestDialog = remember { mutableStateOf(false) }
                     val deniedDialog = remember { mutableStateOf(false) }
 
-
+                    AppProgress()
                     InternetAlertDialog()
 
                     if (locationPermissionsState.allPermissionsGranted) {
@@ -339,7 +340,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         lateinit var trackServiceIntent: Intent
-        val checkInternetConnectivity = AppInternetConnectivity()
+        lateinit var checkInternetConnectivity: AppInternetConnectivity
         var internetConnectionAlertDialogStatus = MutableLiveData<Boolean>(false)
         var appProgressStatus = MutableLiveData<Boolean>(false)
     }
@@ -348,14 +349,22 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun InternetAlertDialog() {
     val context = LocalContext.current.applicationContext
-    if (MainActivity.internetConnectionAlertDialogStatus.value == true) {
+    var internetConnectionStatus by remember { mutableStateOf(false) }
+    MainActivity.internetConnectionAlertDialogStatus.observeForever {
+        if (it == false)
+            internetConnectionStatus = true
+        else
+            internetConnectionStatus = false
+
+    }
+    if (internetConnectionStatus) {
         AlertDialog(
             onDismissRequest = {
-                MainActivity.internetConnectionAlertDialogStatus.postValue(false)
+                internetConnectionStatus = false
             },
             confirmButton = {
                 TextButton(onClick = {
-                    MainActivity.internetConnectionAlertDialogStatus.postValue(false)
+                    internetConnectionStatus = false
                 }) {
                     Text(text = context.getString(R.string.ok))
                 }
@@ -963,7 +972,12 @@ fun SignIn(
     deviceViewModel: DeviceViewModel = hiltViewModel(),
 ) {
     val scope = rememberCoroutineScope()
+    MainActivity.appProgressStatus.postValue(false)
     val context = LocalContext.current.applicationContext
+    var internetConnectionStatus by remember { mutableStateOf(true) }
+    AppInternetConnectivity.INTERNET_CONNECTION_STATUS.observeForever {
+        internetConnectionStatus = it
+    }
 
     logodescription = context.getString(R.string.logodescription)
     var txtsiUserNameErrorState by remember { mutableStateOf(false) }
@@ -1005,7 +1019,7 @@ fun SignIn(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             onValueChange = {
-                if (it.length > 0) txtsiUserNameErrorState = false
+                txtsiUserNameErrorState = it.isNullOrBlank()
                 txtsiusername = it
             },
             label = { Text(text = stringResource(id = R.string.rg_username)) },
@@ -1029,7 +1043,7 @@ fun SignIn(
         OutlinedTextField(
             modifier = Modifier.fillMaxWidth(),
             onValueChange = {
-                txtsiPasswordErrorState = !txtsipassword.isNullOrEmpty()
+                txtsiPasswordErrorState = txtsipassword.isNullOrEmpty()
                 txtsipassword = it
             },
             label = { Text(text = stringResource(id = R.string.rg_password)) },
@@ -1086,35 +1100,47 @@ fun SignIn(
             }
             Spacer(modifier = Modifier.weight(1f))
             FilledTonalButton(
+                enabled = internetConnectionStatus,
                 onClick = {
+                    MainActivity.appProgressStatus.postValue(true)
                     scope.launch {
-                        MainActivity.appProgressStatus.postValue(true)
-                        delay(2000)
-                        if (txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
-                            val parseEvents = ParseEvents()
-                            val dbresult =
-                                parseEvents.SingInUser(txtsiusername, txtsipassword, userviewModel)
-                            if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                                deviceViewModel.syncDeviceList()
-                                delay(2800L)
-                                navController.navigate("dashboard")
+                        delay(600)
+                        if (internetConnectionStatus) {
+                            if (txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
+                                val parseEvents = ParseEvents()
+                                val dbresult =
+                                    parseEvents.SingInUser(
+                                        txtsiusername,
+                                        txtsipassword,
+                                        userviewModel
+                                    )
+                                if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
+                                    deviceViewModel.syncDeviceList()
+                                    delay(16000L)
+                                    MainActivity.appProgressStatus.postValue(false)
+                                    navController.navigate("dashboard")
+                                } else {
+                                    delay(1600L)
+                                    MainActivity.appProgressStatus.postValue(false)
+                                    Toast.makeText(
+                                        context,
+                                        context.getString(R.string.checksingincredentials),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
                             } else {
+                                delay(1600L)
                                 MainActivity.appProgressStatus.postValue(false)
+                                txtsiUserNameErrorState = txtsiusername.isNullOrEmpty()
+                                txtsiPasswordErrorState = txtsipassword.isNullOrBlank()
                                 Toast.makeText(
                                     context,
-                                    context.getString(R.string.checksingincredentials),
+                                    context.getString(R.string.formelementisempty),
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
                         } else {
-                            MainActivity.appProgressStatus.postValue(false)
-                            txtsiUserNameErrorState = txtsiusername.isNullOrEmpty()
-                            txtsiPasswordErrorState = txtsipassword.isNullOrBlank()
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.formelementisempty),
-                                Toast.LENGTH_LONG
-                            ).show()
+                            MainActivity.internetConnectionAlertDialogStatus.postValue(true)
                         }
                     }
                 },
@@ -1134,7 +1160,6 @@ fun ResetPassword(navController: NavController) {
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
     logodescription = context.getString(R.string.logodescription)
-
 
 
     val alertbarHostState = remember { SnackbarHostState() }
@@ -1168,7 +1193,8 @@ fun ResetPassword(navController: NavController) {
                                     confirmOpenDialog.value = false
                                     delay(250)
                                     navController.navigate("signin")
-                                    MainActivity.appProgressStatus.postValue(false) }
+                                    MainActivity.appProgressStatus.postValue(false)
+                                }
                             },
                             modifier = Modifier.align(Alignment.End)
                         ) {
@@ -1490,6 +1516,7 @@ fun DeviceForm(
                                             )
                                         )
                                         deviceformsheetState.bottomSheetState.partialExpand()
+                                        MainActivity.appProgressStatus.postValue(false)
                                     }
                                 } else {
                                     MainActivity.appProgressStatus.postValue(false)

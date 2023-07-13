@@ -18,7 +18,7 @@ android {
         minSdk 24
         targetSdk 33
         versionCode 7
-        versionName "7.0.1"
+        versionName "7.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -37,7 +37,7 @@ android {
         debug {
             // Check if you have this parameter enabled.
             // Add if missing and rebuild your app to device.
-            debuggable true
+            debuggable false
         }
         release {
             minifyEnabled false

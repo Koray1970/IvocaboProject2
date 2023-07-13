@@ -136,4 +136,7 @@
     <string name="prf_moreinformation_title">Daha Fazlası</string>
     <string name="prf_help">Yardım</string>
     <string name="prf_aboutivocabo">Ivocabo Hakkında</string>
+
+    <string name="logout_alerttitle">Kullanıcı Uygulamadan Çıkış</string>
+    <string name="logout_alerttext">Çıkış yaptığınızda uygulama içi verileriniz silinir ve uygulama herhangi bir Ivocabo cihazı taraması ve bulma işlemi yapmaz, var olan verileriniz uzak veri arşivimizde tekrar giriş yaptığınız da kullanabilmeniz için saklanmaktadır. Var olan Kullanıcı Adı ve Şifre ile takrar giriş yapabilirsiniz.\nUygulamadan Çıkış Yapmak istediğinizden emin misiniz?</string>
 </resources>
