@@ -27,6 +27,11 @@
     <string name="menu_3">Settings</string>
     <string name="pleasewait">Lütfen Bekleyiniz!</string>
 
+    <!--start::internet connection alert-->
+    <string name="ica_title">Internet Kopma Uyarısı!</string>
+    <string name="ica_detail">Lütfen cihazın internet bağlantısını kontrol edin ve cihazın internet bağlantısı KAPALI (OFF) ise lütfen internete bağlanmak için AÇIK (ON) konuma getirin.</string>
+    <!--end::internet connection alert-->
+
     <string name="addnewdevice">Yeni Cihaz</string>
 
     <string name="privacypolicy_title">Gizlilik Politikası</string>

@@ -2,6 +2,7 @@ package ivo.example.ivocaboproject
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -76,6 +77,7 @@ import androidx.compose.material3.rememberDismissState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -115,6 +117,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.MutableLiveData
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -142,6 +145,7 @@ import com.parse.ParseUser
 import dagger.hilt.android.AndroidEntryPoint
 import ivo.example.ivocaboproject.bluetooth.BleTrackerService
 import ivo.example.ivocaboproject.bluetooth.IvocaboFetcher
+import ivo.example.ivocaboproject.connectivity.AppInternetConnectivity
 import ivo.example.ivocaboproject.connectivity.FetchNetworkConnectivity
 import ivo.example.ivocaboproject.connectivity.InternetConnectionStatus
 import ivo.example.ivocaboproject.database.EventResultFlags
@@ -154,6 +158,7 @@ import ivo.example.ivocaboproject.database.localdb.TrackArchiveViewModel
 import ivo.example.ivocaboproject.database.localdb.User
 import ivo.example.ivocaboproject.database.localdb.UserViewModel
 import ivo.example.ivocaboproject.ui.theme.IvocaboProjectTheme
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -166,12 +171,19 @@ class MainActivity : ComponentActivity() {
     private val gson = Gson()
     private lateinit var nDevice: Device
 
+
     @RequiresApi(Build.VERSION_CODES.S)
-    @OptIn(ExperimentalPermissionsApi::class)
+    @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //context.deleteDatabase("ivocabo.db")
         //ParseUser.logOut()
+        checkInternetConnectivity.AppInternetConnectivity(applicationContext)
+        AppInternetConnectivity.INTERNET_CONNECTION_STATUS.observeForever {
+            if (it == false) {
+                internetConnectionAlertDialogStatus.postValue(true)
+            }
+        }
         val permissions = if (Build.VERSION.SDK_INT <= 30) {
             listOf(
                 //android.Manifest.permission.BLUETOOTH,
@@ -206,49 +218,59 @@ class MainActivity : ComponentActivity() {
                     val requestDialog = remember { mutableStateOf(false) }
                     val deniedDialog = remember { mutableStateOf(false) }
 
-                    if (locationPermissionsState.allPermissionsGranted) {
 
-                        //start::Track Notification Broadcastreceiver
-                        val trackNotificationIntent = remember { mutableStateOf("") }
-                        val trackNotificationOpenDialog = remember { mutableStateOf(false) }
-                        SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
-                            val action = receiverState?.action ?: return@SystemBroadcastReceiver
-                            if (action == "hasTrackNotification") {
-                                trackNotificationOpenDialog.value = true
-                                nDevice = gson.fromJson(
-                                    receiverState.getStringExtra("lostdevice"),
-                                    Device::class.java
-                                )
-                                trackNotificationIntent.value =
-                                    "${nDevice.name} \n ${receiverState.getStringExtra("detail")}"
-                            }
-                        }
-                        if (trackNotificationOpenDialog.value) {
-                            AlertDialog(onDismissRequest = {
-                                trackNotificationOpenDialog.value = false
-                            },
-                                title = { Text(text = getString(R.string.notificationtitle)) },
-                                text = { Text(text = trackNotificationIntent.value) },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        trackNotificationOpenDialog.value = false
-                                    }) {
-                                        Text(text = "Oki")
-                                    }
+                    InternetAlertDialog()
+
+                    if (locationPermissionsState.allPermissionsGranted) {
+                        if (ParseUser.getCurrentUser() != null) {
+                            //start::Track Notification Broadcastreceiver
+                            val trackNotificationIntent = remember { mutableStateOf("") }
+                            val trackNotificationOpenDialog = remember { mutableStateOf(false) }
+                            SystemBroadcastReceiver(systemAction = "hasTrackNotification") { receiverState ->
+                                val action = receiverState?.action ?: return@SystemBroadcastReceiver
+                                if (action == "hasTrackNotification") {
+                                    trackNotificationOpenDialog.value = true
+                                    nDevice = gson.fromJson(
+                                        receiverState.getStringExtra("lostdevice"),
+                                        Device::class.java
+                                    )
+                                    trackNotificationIntent.value =
+                                        "${nDevice.name} \n ${receiverState.getStringExtra("detail")}"
                                 }
-                            )
+                            }
+                            if (trackNotificationOpenDialog.value) {
+                                AlertDialog(onDismissRequest = {
+                                    trackNotificationOpenDialog.value = false
+                                },
+                                    title = { Text(text = getString(R.string.notificationtitle)) },
+                                    text = { Text(text = trackNotificationIntent.value) },
+                                    confirmButton = {
+                                        TextButton(onClick = {
+                                            trackNotificationOpenDialog.value = false
+                                        }) {
+                                            Text(text = "Oki")
+                                        }
+                                    }
+                                )
+                            }
                         }
                         //end::Track Notification Broadcastreceiver
                         AppNavigator()
-
-                        BleTrackerService.IS_SEVICE_RUNNING.observeForever {
-                            if (!it) {
-                                trackServiceIntent =
-                                    Intent(applicationContext, BleTrackerService::class.java)
-                                applicationContext.startService(trackServiceIntent)
+                        if (ParseUser.getCurrentUser() != null) {
+                            LaunchedEffect(Unit) {
+                                delay(800L)
+                                BleTrackerService.IS_SEVICE_RUNNING.observeForever {
+                                    if (!it) {
+                                        trackServiceIntent =
+                                            Intent(
+                                                applicationContext,
+                                                BleTrackerService::class.java
+                                            )
+                                        applicationContext.startService(trackServiceIntent)
+                                    }
+                                }
                             }
                         }
-
                     } else {
                         Column {
                             val allPermissionsRevoked =
@@ -317,6 +339,42 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         lateinit var trackServiceIntent: Intent
+        val checkInternetConnectivity = AppInternetConnectivity()
+        var internetConnectionAlertDialogStatus = MutableLiveData<Boolean>(false)
+        var appProgressStatus = MutableLiveData<Boolean>(false)
+    }
+}
+
+@Composable
+fun InternetAlertDialog() {
+    val context = LocalContext.current.applicationContext
+    if (MainActivity.internetConnectionAlertDialogStatus.value == true) {
+        AlertDialog(
+            onDismissRequest = {
+                MainActivity.internetConnectionAlertDialogStatus.postValue(false)
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    MainActivity.internetConnectionAlertDialogStatus.postValue(false)
+                }) {
+                    Text(text = context.getString(R.string.ok))
+                }
+            },
+            icon = {
+                Icon(
+                    modifier = Modifier.size(50.dp),
+                    painter = painterResource(id = R.drawable.baseline_wifi_off_24),
+                    contentDescription = "Wifi Disconnected"
+                )
+            },
+            title = {
+                Text(
+                    text = context.getString(R.string.ica_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
+            },
+            text = { Text(text = context.getString(R.string.ica_detail)) }
+        )
     }
 }
 
@@ -339,8 +397,12 @@ var deviceFormSheetState = mutableStateOf(SheetState(false, SheetValue.Partially
 @Composable
 fun AppNavigationBar(navController: NavController) {
     val scope = rememberCoroutineScope()
-
     val context = LocalContext.current.applicationContext
+    var addNewDeviceBtnStatus by remember { mutableStateOf(true) }
+    MainActivity.internetConnectionAlertDialogStatus.observeForever {
+        addNewDeviceBtnStatus = it != false
+
+    }
     val items = listOf(
         Pair(context.getString(R.string.menu_1), Pair("dashboard", R.drawable.baseline_home_24)),
         //Pair(context.getString(R.string.menu_2), Pair("", R.drawable.baseline_emoji_people_24)),
@@ -360,8 +422,12 @@ fun AppNavigationBar(navController: NavController) {
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
-                    scope.launch {
-                        deviceFormSheetState.value.expand()
+                    if (addNewDeviceBtnStatus == true) {
+                        scope.launch {
+                            deviceFormSheetState.value.expand()
+                        }
+                    } else {
+                        MainActivity.internetConnectionAlertDialogStatus.postValue(true)
                     }
                 },
                 //containerColor = MaterialTheme.colorScheme.primary
@@ -687,8 +753,7 @@ fun RegisterUser(
     val context = LocalContext.current.applicationContext
     logodescription = context.getString(R.string.logodescription)
     val scope = rememberCoroutineScope()
-    var progressState = remember { mutableStateOf(false) }
-    AppProgress(progressState)
+
 
     if (ParseUser.getCurrentUser() != null) {
         navController.navigate("dashboard")
@@ -838,7 +903,7 @@ fun RegisterUser(
             ) {
                 FilledTonalButton(
                     onClick = {
-                        progressState.value = true
+                        MainActivity.appProgressStatus.postValue(true)
                         navController.navigate("signin")
                     },
                 ) {
@@ -847,7 +912,7 @@ fun RegisterUser(
                 Spacer(modifier = Modifier.weight(1f))
                 FilledTonalButton(
                     onClick = {
-                        progressState.value = true
+                        MainActivity.appProgressStatus.postValue(true)
                         scope.launch {
 
                             if (txtrgusername.isNotEmpty() && txtrgemail.isNotEmpty() && txtrgpassword.isNotEmpty()) {
@@ -864,21 +929,21 @@ fun RegisterUser(
                                 )
                                 val dbresult = parseEvents.AddUser(user, userviewModel)
                                 if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
-                                    progressState.value = false
+                                    MainActivity.appProgressStatus.postValue(false)
                                     txtrgusername = ""
                                     txtrgemail = ""
                                     txtrgpassword = ""
                                     navController.navigate("dashboard")
                                 } else {
                                     delay(300L)
-                                    progressState.value = false
+                                    MainActivity.appProgressStatus.postValue(false)
                                 }
                             } else {
                                 delay(300L)
                                 txtRgUserNameErrorState = !txtrgusername.isNotEmpty()
                                 txtRgEmailErrorStatus = !txtrgemail.isNotEmpty()
                                 txtRgPasswordErrorStatus = !txtrgpassword.isNotEmpty()
-                                progressState.value = false
+                                MainActivity.appProgressStatus.postValue(false)
                             }
                         }
                     },
@@ -899,9 +964,6 @@ fun SignIn(
 ) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current.applicationContext
-
-    var progressState = remember { mutableStateOf(false) }
-    AppProgress(progressState)
 
     logodescription = context.getString(R.string.logodescription)
     var txtsiUserNameErrorState by remember { mutableStateOf(false) }
@@ -1026,7 +1088,7 @@ fun SignIn(
             FilledTonalButton(
                 onClick = {
                     scope.launch {
-                        progressState.value = true
+                        MainActivity.appProgressStatus.postValue(true)
                         delay(2000)
                         if (txtsiusername.isNotEmpty() && txtsipassword.isNotEmpty()) {
                             val parseEvents = ParseEvents()
@@ -1037,7 +1099,7 @@ fun SignIn(
                                 delay(2800L)
                                 navController.navigate("dashboard")
                             } else {
-                                progressState.value = false
+                                MainActivity.appProgressStatus.postValue(false)
                                 Toast.makeText(
                                     context,
                                     context.getString(R.string.checksingincredentials),
@@ -1045,9 +1107,9 @@ fun SignIn(
                                 ).show()
                             }
                         } else {
-                            progressState.value = false
+                            MainActivity.appProgressStatus.postValue(false)
                             txtsiUserNameErrorState = txtsiusername.isNullOrEmpty()
-                            txtsiPasswordErrorState =txtsipassword.isNullOrBlank()
+                            txtsiPasswordErrorState = txtsipassword.isNullOrBlank()
                             Toast.makeText(
                                 context,
                                 context.getString(R.string.formelementisempty),
@@ -1073,8 +1135,7 @@ fun ResetPassword(navController: NavController) {
     val scope = rememberCoroutineScope()
     logodescription = context.getString(R.string.logodescription)
 
-    var progressState = remember { mutableStateOf(false) }
-    AppProgress(progressState)
+
 
     val alertbarHostState = remember { SnackbarHostState() }
 
@@ -1102,8 +1163,12 @@ fun ResetPassword(navController: NavController) {
                         Spacer(modifier = Modifier.height(24.dp))
                         TextButton(
                             onClick = {
-                                confirmOpenDialog.value = false
-                                navController.navigate("signin")
+                                MainActivity.appProgressStatus.postValue(true)
+                                scope.launch {
+                                    confirmOpenDialog.value = false
+                                    delay(250)
+                                    navController.navigate("signin")
+                                    MainActivity.appProgressStatus.postValue(false) }
                             },
                             modifier = Modifier.align(Alignment.End)
                         ) {
@@ -1146,15 +1211,16 @@ fun ResetPassword(navController: NavController) {
                     fontWeight = FontWeight.Bold
                 )
             )
-            OutlinedTextField (
+
+            OutlinedTextField(
                 value = txtrpemail,
                 modifier = Modifier.fillMaxWidth(),
                 onValueChange = {
-                    //txtRpEmailErrorStatus.value = !txtrpemail.isEmpty()
+                    txtRpEmailErrorStatus.value = !txtrpemail.isEmpty()
                     txtrpemail = it
                 },
-                label = { Text(text= context.getString(R.string.email)) },
-                isError = txtRpEmailErrorStatus,
+                label = { Text(text = context.getString(R.string.email)) },
+                isError = txtRpEmailErrorStatus.value,
                 keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.None,
@@ -1185,7 +1251,7 @@ fun ResetPassword(navController: NavController) {
 
                 FilledTonalButton(
                     onClick = {
-                        progressState.value = true
+                        MainActivity.appProgressStatus.postValue(true)
                         scope.launch {
                             keyboardController?.hide()
                             if (txtrpemail.isNotEmpty()) {
@@ -1194,10 +1260,10 @@ fun ResetPassword(navController: NavController) {
                                 if (dbresult.eventResultFlags == EventResultFlags.SUCCESS) {
                                     confirmOpenDialog.value = true
                                     delay(300)
-                                    progressState.value = false
+                                    MainActivity.appProgressStatus.postValue(false)
                                 } else {
                                     delay(300)
-                                    progressState.value = false
+                                    MainActivity.appProgressStatus.postValue(false)
                                     msg = when (dbresult.errorcode) {
                                         "RUP-103" -> {
                                             context.getString(R.string.emailnotvalid)
@@ -1218,7 +1284,7 @@ fun ResetPassword(navController: NavController) {
                                 }
                             } else {
                                 delay(300)
-                                progressState.value = false
+                                MainActivity.appProgressStatus.postValue(false)
                                 alertbarHostState.showSnackbar(
                                     message = context.getString(R.string.emailnotnull),
                                     duration = SnackbarDuration.Short
@@ -1245,8 +1311,8 @@ fun DeviceForm(
     val context = LocalContext.current.applicationContext
     val scope = rememberCoroutineScope()
 
-    var progressState = remember { mutableStateOf(false) }
-    AppProgress(progressState)
+
+    MainActivity.appProgressStatus.postValue(false)
 
 
     val deviceformsheetState = rememberBottomSheetScaffoldState(deviceFormSheetState.value)
@@ -1398,7 +1464,7 @@ fun DeviceForm(
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     OutlinedButton(onClick = {
-                        progressState.value = true
+                        MainActivity.appProgressStatus.postValue(true)
                         if (!(txtmacaddress.isEmpty() || txtdevicename.isEmpty())) {
                             val cMacAddress = appHelpers.formatedMacAddress(txtmacaddress)
                             if (BluetoothAdapter.checkBluetoothAddress(cMacAddress)) {
@@ -1426,7 +1492,7 @@ fun DeviceForm(
                                         deviceformsheetState.bottomSheetState.partialExpand()
                                     }
                                 } else {
-                                    progressState.value = false
+                                    MainActivity.appProgressStatus.postValue(false)
                                     var errMessage = ""
                                     if (!dbresponse.errorcode.isNullOrEmpty()) {
                                         errMessage = when (dbresponse.errorcode) {
@@ -1446,7 +1512,7 @@ fun DeviceForm(
                                     }
                                 }
                             } else {
-                                progressState.value = false
+                                MainActivity.appProgressStatus.postValue(false)
                                 Toast.makeText(
                                     context,
                                     context.getString(R.string.checkmacaddress),
@@ -1454,7 +1520,7 @@ fun DeviceForm(
                                 ).show()
                             }
                         } else {
-                            progressState.value = false
+                            MainActivity.appProgressStatus.postValue(false)
                             if (txtmacaddress.isEmpty()) iserrormacaddress = true
                             if (txtdevicename.isEmpty()) iserrordevicename = true
                         }
@@ -1474,14 +1540,20 @@ fun DeviceForm(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppProgress(isShow: MutableState<Boolean>) {
+fun AppProgress() {
     val context = LocalContext.current.applicationContext
-    //var openDialog=remember{ mutableStateOf(isShow.value) }
-    if (isShow.value) {
+    var openDialog = remember { mutableStateOf(false) }
+    MainActivity.appProgressStatus.observeForever {
+        openDialog.value = it
+    }
+    if (openDialog.value) {
         AlertDialog(
             modifier = Modifier.fillMaxSize(),
             properties = DialogProperties(usePlatformDefaultWidth = false),
-            onDismissRequest = { isShow.value = false },
+            onDismissRequest = {
+                openDialog.value = false
+                MainActivity.appProgressStatus.postValue(false)
+            },
             //modifier = Modifier.background(Color.Transparent),
             content = {
                 Column(
