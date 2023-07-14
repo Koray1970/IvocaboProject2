@@ -9,14 +9,17 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
-class TrackArchiveViewModel @Inject constructor(private val repo: TrackArchiveRepository):
+class TrackArchiveViewModel @Inject constructor(private val repo: TrackArchiveRepository) :
     ViewModel() {
     var getTrackDevicelist = MutableLiveData<List<TrackArchive>>()
+
     init {
         macAddress.observeForever {
             if (it.isNotEmpty())
                 viewModelScope.launch {
-                    getTrackDevicelist.postValue(repo.findbyMacAddress(it).single())
+                    var rrr = repo.findbyMacAddress(it).single()
+                    if (rrr.isNotEmpty())
+                        getTrackDevicelist.postValue(rrr)
                 }
         }
     }
@@ -27,6 +30,6 @@ class TrackArchiveViewModel @Inject constructor(private val repo: TrackArchiveRe
     }
 
     companion object {
-       var macAddress= MutableLiveData<String>()
+        var macAddress = MutableLiveData<String>()
     }
 }

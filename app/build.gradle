@@ -17,8 +17,8 @@ android {
         applicationId 'ivo.example.ivocaboproject'
         minSdk 24
         targetSdk 33
-        versionCode 7
-        versionName "7.0.2"
+        versionCode 8
+        versionName "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary true
@@ -40,7 +40,7 @@ android {
             debuggable false
         }
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
