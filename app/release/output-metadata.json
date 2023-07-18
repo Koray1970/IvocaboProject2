@@ -4,15 +4,15 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.example.ivocaboproject",
+  "applicationId": "ivo.example.ivocaboproject",
   "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 1,
-      "versionName": "1.0",
+      "versionCode": 11,
+      "versionName": "1.0.5",
       "outputFile": "app-release.apk"
     }
   ],

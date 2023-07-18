@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "220906513720",
+    "project_id": "ivocabo-8eb86",
+    "storage_bucket": "ivocabo-8eb86.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:220906513720:android:1d047794d8377e04c20dcd",
+        "android_client_info": {
+          "package_name": "ivo.example.ivocaboproject"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "220906513720-03mj8anp3q049gj2ivmn1t98t6oshbej.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCutMS4xlLrk4ewYn34G2DIF_X1G9WUVL4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "220906513720-03mj8anp3q049gj2ivmn1t98t6oshbej.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
